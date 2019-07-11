@@ -2,16 +2,20 @@ package cmd
 
 import (
 	"os"
+	"reflect"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/tosca/compiler"
+	"github.com/tliron/puccini/tosca/database"
 )
 
 var output string
 var resolve bool
 var coerce bool
+var persist bool
 
 func init() {
 	rootCmd.AddCommand(compileCmd)
@@ -20,6 +24,7 @@ func init() {
 	compileCmd.Flags().StringVarP(&output, "output", "o", "", "output Clout to file (default is stdout)")
 	compileCmd.Flags().BoolVarP(&resolve, "resolve", "r", true, "resolves the topology (attempts to satisfy all requirements with capabilities")
 	compileCmd.Flags().BoolVarP(&coerce, "coerce", "c", false, "coerces all values (calls functions and applies constraints)")
+	compileCmd.Flags().BoolVarP(&persist, "persist", "d", false, "persists clout output into a dgraph database")
 }
 
 var compileCmd = &cobra.Command{
@@ -65,6 +70,15 @@ func Compile(urlString string) {
 			}
 			os.Exit(1)
 		}
+	}
+
+	// Persist
+	if persist {
+		grammarVersion := reflect.ValueOf(context.ServiceTemplate.EntityPtr).Type().String()
+
+		grammarVersion = grammarVersion[1:strings.LastIndex(grammarVersion, ".")]
+
+		database.Persist(clout, urlString, grammarVersion)
 	}
 
 	if !common.Quiet || (output != "") {
