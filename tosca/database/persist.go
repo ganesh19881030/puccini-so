@@ -18,7 +18,6 @@ import (
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	"google.golang.org/grpc"
-	"gopkg.in/gcfg.v1"
 )
 
 // DgraphSet for Dgraph json data
@@ -26,24 +25,11 @@ type DgraphSet struct {
 	Set []ard.Map `json:"set"`
 }
 
-// SoConfig struct for configuration data
-type SoConfig struct {
-	Dgraph struct {
-		Host string
-		Port int
-	}
-}
-
-// CONFIG_FILE configuration file
-var CONFIG_FILE = "../config/application.cfg"
-
 // Persist description
 func Persist(clout *clout.Clout, urlString string, grammarVersion string) error {
 
-	// struct to hold SO configuration
-	socfg := SoConfig{}
 	// read configuration from a file
-	err := gcfg.ReadFileInto(&socfg, CONFIG_FILE)
+	socfg,err := common.GetSoConfig()
 	if err != nil {
 		common.FailOnError(err)
 	}
