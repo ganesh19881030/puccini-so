@@ -15,20 +15,38 @@ import (
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 
-	// "github.com/tliron/puccini/js"
-	// "github.com/tliron/puccini/tosca/normal"
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	"google.golang.org/grpc"
+	"gopkg.in/gcfg.v1"
 )
 
-// DgraphSet is a struct ...
+// DgraphSet for Dgraph json data
 type DgraphSet struct {
 	Set []ard.Map `json:"set"`
 }
 
+// SoConfig struct for configuration data
+type SoConfig struct {
+	Dgraph struct {
+		Host string
+		Port int
+	}
+}
+
+// CONFIG_FILE configuration file
+var CONFIG_FILE = "../config/application.cfg"
+
 // Persist description
 func Persist(clout *clout.Clout, urlString string, grammarVersion string) error {
+
+	// struct to hold SO configuration
+	socfg := SoConfig{}
+	// read configuration from a file
+	err := gcfg.ReadFileInto(&socfg, CONFIG_FILE)
+	if err != nil {
+		common.FailOnError(err)
+	}
 
 	var printout = false
 	//	timestamp, err := common.Timestamp()
@@ -123,6 +141,7 @@ func Persist(clout *clout.Clout, urlString string, grammarVersion string) error 
 	//}
 	dgraphset.Set = append(dgraphset.Set, cloutItem)
 
+	// write out the Dgraph data in JSON format
 	if printout {
 		err := format.WriteOrPrint(dgraphset, "json", true, "")
 		common.FailOnError(err)
@@ -131,7 +150,10 @@ func Persist(clout *clout.Clout, urlString string, grammarVersion string) error 
 		fmt.Println("-")
 	}
 
-	saveCloutGraph(&dgraphset, "ec2-13-59-54-80.us-east-2.compute.amazonaws.com:9080")
+	// construct Dgraph url from configuration
+	dburl := fmt.Sprintf("%s:%d", socfg.Dgraph.Host, socfg.Dgraph.Port)
+	// save clout data into Dgraph
+	saveCloutGraph(&dgraphset, dburl)
 
 	return nil
 }
