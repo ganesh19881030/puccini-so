@@ -4,23 +4,28 @@ import (
 	"gopkg.in/gcfg.v1"
 )
 
-// SoConfig struct for configuration data
-type SoConfig struct {
+// SoConfiguration struct for configuration data
+type SoConfiguration struct {
 	Dgraph struct {
 		Host string
 		Port int
+		CloutDBType string
 	}
 }
 
-// CONFIG_FILE configuration file
-var CONFIG_FILE = "../config/application.cfg"
+// ConfigFile configuration file
+const ConfigFile = "../config/application.cfg"
 
-// GetSoConfig fetches the application configuration data from a file
-func GetSoConfig() (SoConfig, error) {
+// SoConfig global variable to store the configuration
+var SoConfig SoConfiguration
+
+// Initialize global variable for configuration
+func init(){
 	// struct to hold SO configuration
-	socfg := SoConfig{}
+	SoConfig = SoConfiguration{}
 	// read configuration from a file
-	err := gcfg.ReadFileInto(&socfg, CONFIG_FILE)
-
-	return socfg, err
+	err := gcfg.ReadFileInto(&SoConfig, ConfigFile)
+	if err != nil {
+		FailOnError(err)
+	}
 }
