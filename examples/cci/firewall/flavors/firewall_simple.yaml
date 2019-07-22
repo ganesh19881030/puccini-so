@@ -1,0 +1,76 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Simple firewall deployment flavor
+
+imports:
+  - ../types/firewall_vnf_type.yaml
+
+topology_template:
+
+  substitution_mappings:
+    node_type: cci.nodes.Firewall
+    substitution_filter:
+      properties:
+        - flavour_id: { equal: simple }
+    requirements:
+      trusted_link:   [ trustedCp, virtual_link ] 
+      untrusted_link: [ untrustedCp, virtual_link ] 
+
+  node_templates:
+
+    firewall:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: firewall
+        description: Firewall VM
+        boot_order: []
+        nfvi_constraints: []
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+        sw_image_data:
+          name: 'Firewall-VNF-v1.0.0'
+          version: 1.0.0
+          checksum:
+            hash: '9af30fce37a4c5c831e095745744d6d2'
+            algorithm: sha-256
+          container_format: bare
+          disk_format: qcow2
+          min_disk: 60 GB
+          size: 2 GB
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4096 MiB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 1
+              virtual_cpu_clock: 1800 MHz
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: artifacts/firewall.image.v1.0.0.qcow2
+
+    trustedCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        role: leaf
+        description: Connection point to access the trusted network
+        protocol: [ associated_layer_protocol: ipv4 ]
+        trunk_mode: false
+      requirements:
+        - virtual_binding: firewall
+
+    untrustedCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        role: leaf
+        description: Connection point to access the untrusted network
+        protocol: [ associated_layer_protocol: ipv4 ]
+        trunk_mode: false
+      requirements:
+        - virtual_binding: firewall
+
