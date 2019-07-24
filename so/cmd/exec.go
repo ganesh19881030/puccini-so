@@ -17,16 +17,17 @@ var execCmd = &cobra.Command{
 	Use:   "exec [COMMAND or JavaScript PATH or URL] [[Clout PATH or URL]]",
 	Short: "Execute JavaScript in Clout",
 	Long:  ``,
-	Args:  cobra.RangeArgs(1, 2),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 
-		var path string
-		if len(args) == 2 {
-			path = args[1]
-		}
+		//var path string
+		//if len(args) == 2 {
+		//	path = args[1]
+		//}
 
-		clout_, err := ReadClout(path)
+		//clout_, err := ReadClout(path)
+		clout_, err := ReadCloutFromDgraph()
 		common.FailOnError(err)
 
 		// Try loading JavaScript from Clout
