@@ -73,6 +73,7 @@ func init() {
 	Grammar["WorkflowDefinition"] = tosca_v1_2.ReadWorkflowDefinition
 	Grammar["WorkflowPreconditionDefinition"] = tosca_v1_2.ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = tosca_v1_2.ReadWorkflowStepDefinition
+	Grammar["MergeScriptNamespace"] = tosca_v1_2.MergeScriptNamespace
 
 	for name, sourceCode := range tosca_v1_2.FunctionSourceCode {
 		// Unsupported functions

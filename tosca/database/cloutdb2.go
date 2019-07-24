@@ -20,7 +20,7 @@ func NewCloutDb2(dburl string) CloutDB {
 }
 
 // Save method implementation of CloutDB interface for CloutDB2 instance
-func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersion string) error {
+func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersions string) error {
 	var printout = true
 	var dgraphset = DgraphSet{}
 
@@ -33,7 +33,7 @@ func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersion str
 	topologyName := extractTopologyName(urlString)
 	cloutItem["clout:name"] = topologyName
 	cloutItem["clout:version"] = clout.Version
-	cloutItem["clout:grammarversion"] = grammarVersion
+	cloutItem["clout:grammarversion"] = grammarVersions
 
 	dgraphset.Set = append(dgraphset.Set, cloutItem)
 

@@ -18,6 +18,7 @@ type Context struct {
 	Parsing         sync.Map
 	WG              sync.WaitGroup
 	Locker          sync.Mutex
+	GrammerVersions []string
 }
 
 func NewContext(quirks []string) Context {

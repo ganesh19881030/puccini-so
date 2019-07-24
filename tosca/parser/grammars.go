@@ -6,9 +6,17 @@ import (
 	"github.com/tliron/puccini/tosca/grammars/hot"
 	"github.com/tliron/puccini/tosca/grammars/tosca_v1_1"
 	"github.com/tliron/puccini/tosca/grammars/tosca_v1_2"
+	"github.com/tliron/puccini/tosca/grammars/tosca_v1_3"
 )
 
+// GrammerVersions stores all the versions encountered in parsing the template
+// Using map to store the versions as a set of keys, since GOLANG does not
+// have a set object
+var GrammerVersions = make(map[string]bool)
+
+// Grammars global variable
 var Grammars = map[string]tosca.Grammar{
+	"tosca_simple_yaml_1_3":            tosca_v1_3.Grammar,
 	"tosca_simple_yaml_1_2":            tosca_v1_2.Grammar,
 	"tosca_simple_yaml_1_1":            tosca_v1_1.Grammar,
 	"tosca_simple_yaml_1_0":            tosca_v1_1.Grammar, // TODO: properly support 1.0
@@ -26,6 +34,7 @@ var Grammars = map[string]tosca.Grammar{
 	"2013-05-23":                       hot.Grammar, // icehouse
 }
 
+// DetectGrammar finds the grammar version being used by the TOSCA service template
 func DetectGrammar(context *tosca.Context) bool {
 	var versionContext *tosca.Context
 	var ok bool
@@ -36,6 +45,7 @@ func DetectGrammar(context *tosca.Context) bool {
 	}
 
 	if version := versionContext.ReadString(); version != nil {
+		GrammerVersions[*version] = true
 		if context.Grammar, ok = Grammars[*version]; ok {
 			return true
 		} else {

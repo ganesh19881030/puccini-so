@@ -23,6 +23,10 @@ func (self *Context) ReadServiceTemplate(url_ url.URL) bool {
 	self.ServiceTemplate = serviceTemplate
 	sort.Sort(self.Units)
 
+	for key := range GrammerVersions {
+		self.GrammerVersions = append(self.GrammerVersions, key)
+	}
+
 	return ok
 }
 
