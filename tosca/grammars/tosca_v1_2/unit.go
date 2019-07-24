@@ -6,17 +6,17 @@ import (
 )
 
 //
-// Unit
+// Unit - used for processing imports in TOSCA files
 //
 // See ServiceTemplate
 //
 // [TOSCA-Simple-Profile-YAML-v1.2] @ 3.10
 // [TOSCA-Simple-Profile-YAML-v1.1] @ 3.9
 //
-
 type Unit struct {
 	*Entity `name:"unit"`
 
+	Description             *string           `read:"description" hierarchy:""`
 	ToscaDefinitionsVersion *string           `read:"tosca_definitions_version" require:"tosca_definitions_version"`
 	Metadata                Metadata          `read:"metadata,!Metadata"`
 	Repositories            Repositories      `read:"repositories,Repository"`

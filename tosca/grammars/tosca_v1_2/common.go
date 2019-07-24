@@ -74,6 +74,7 @@ func init() {
 	Grammar["WorkflowDefinition"] = ReadWorkflowDefinition
 	Grammar["WorkflowPreconditionDefinition"] = ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = ReadWorkflowStepDefinition
+	Grammar["MergeScriptNamespace"] = MergeScriptNamespace
 
 	for name, sourceCode := range FunctionSourceCode {
 		DefaultScriptNamespace[name] = &tosca.Script{

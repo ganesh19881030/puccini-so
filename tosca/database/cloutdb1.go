@@ -15,21 +15,20 @@ import (
 
 // CloutDB1 defines an implementation of CloutDB
 type CloutDB1 struct {
-    Dburl string
-    
+	Dburl string
 }
 
 // NewCloutDb1 creates a CloutDB1 instance
 func NewCloutDb1(dburl string) CloutDB {
-	return CloutDB1 {dburl}
+	return CloutDB1{dburl}
 }
 
 // Save method implementation of CloutDB interface for CloutDB1 instance
 //
-// It is essentially a translation of graph.js plugin functionality to GO 
+// It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
-func (db CloutDB1) Save (clout *clout.Clout, urlString string, grammarVersion string) error {
-    var printout = false
+func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions string) error {
+	var printout = false
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {
 	//		return  err
@@ -108,7 +107,7 @@ func (db CloutDB1) Save (clout *clout.Clout, urlString string, grammarVersion st
 	topologyName := extractTopologyName(urlString)
 	cloutItem["clout:name"] = topologyName
 	cloutItem["clout:version"] = clout.Version
-	cloutItem["clout:grammarversion"] = grammarVersion
+	cloutItem["clout:grammarversion"] = grammarVersions
 	props := clout.Properties["tosca"].(ard.Map)
 
 	bytes, error := json.Marshal(props)
@@ -133,9 +132,8 @@ func (db CloutDB1) Save (clout *clout.Clout, urlString string, grammarVersion st
 
 	// save clout data into Dgraph
 	SaveCloutGraph(&dgraphset, db.Dburl)
-    return nil
+	return nil
 }
-
 
 func isTosca(metadata *ard.Map, etype string) bool {
 	if *metadata != nil {

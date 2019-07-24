@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"os"
-	"reflect"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tliron/puccini/common"
@@ -74,11 +72,11 @@ func Compile(urlString string) {
 
 	// Persist
 	if persist {
-		grammarVersion := reflect.ValueOf(context.ServiceTemplate.EntityPtr).Type().String()
+		//grammarVersion := reflect.ValueOf(context.ServiceTemplate.EntityPtr).Type().String()
 
-		grammarVersion = grammarVersion[1:strings.LastIndex(grammarVersion, ".")]
+		//grammarVersion = grammarVersion[1:strings.LastIndex(grammarVersion, ".")]
 
-		database.Persist(clout, urlString, grammarVersion)
+		database.Persist(clout, urlString, context.GrammerVersions)
 	}
 
 	if !common.Quiet || (output != "") {

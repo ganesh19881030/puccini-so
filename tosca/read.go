@@ -22,6 +22,50 @@ const (
 
 // From "read" tags
 func (self *Context) ReadFields(entityPtr interface{}) []string {
+
+	// Node type properties that are specified on a single line, do not fit
+	// nto a map Data structure that Puccini is expecting.  Converting the Data
+	// structure in this case to a map with the value being stored in the
+	// "default" key.
+	//
+	// >>>> This is equivalent to modifying a model shown below: >>>
+	/*
+		node_types:
+
+		  cci.nodes.Firewall:
+		    derived_from: tosca.nodes.nfv.VNF
+		    properties:
+		      descriptor_id: 33eabee9-6ef7-44f1-827b-f909226aecb9
+		      provider: CCI
+		      product_name: Bonap Firewall
+
+			  >>>>>  to this shown below:   >>>>>
+
+
+		node_types:
+
+		  cci.nodes.Firewall:
+		    derived_from: tosca.nodes.nfv.VNF
+		    properties:
+			  descriptor_id:
+			  	default: 33eabee9-6ef7-44f1-827b-f909226aecb9
+			  provider:
+			  	default: CCI
+			  product_name:
+			  	default: Bonap Firewall
+
+
+	*/
+	if self.Parent != nil &&
+		strings.EqualFold(self.Parent.Name, "properties") &&
+		strings.HasPrefix(self.Path, "node_types") &&
+		!self.Is("map") {
+
+		value := self.Data
+		self.Data = make(ard.Map)
+		self.Data.(ard.Map)["default"] = value
+
+	}
 	if !self.ValidateType("map") {
 		return nil
 	}
