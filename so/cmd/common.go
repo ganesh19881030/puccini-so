@@ -6,6 +6,7 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/tliron/puccini/clout"
+	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/url"
 )
 
@@ -50,38 +51,13 @@ func ReadClout(path string) (*clout.Clout, error) {
 }
 
 // ReadCloutFromDgraph reads the clout data from Dgraph
-func ReadCloutFromDgraph(dburl string) (*clout.Clout, error) {
-	var url_ url.URL
+func ReadCloutFromDgraph() (*clout.Clout, error) {
+	// construct Dgraph url from configuration
+	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
 
-	var err error
-	if path != "" {
-		url_, err = url.NewValidURL(path, nil)
-	} else {
-		url_, err = url.ReadInternalURLFromStdin("yaml")
-	}
-	if err != nil {
-		return nil, err
-	}
+	//f := url_.Format()
+	output := createCloutOutput(dburl)
 
-	reader, err := url_.Open()
-	if err != nil {
-		return nil, err
-	}
+	return output, nil
 
-	if readerCloser, ok := reader.(io.ReadCloser); ok {
-		defer readerCloser.Close()
-	}
-
-	f := url_.Format()
-
-	switch f {
-	case "json":
-		return clout.DecodeJson(reader)
-	case "yaml", "":
-		return clout.DecodeYaml(reader)
-	case "xml":
-		return clout.DecodeXml(reader)
-	default:
-		return nil, fmt.Errorf("unsupported format: %s", f)
-	}
 }
