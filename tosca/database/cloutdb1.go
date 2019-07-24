@@ -85,9 +85,16 @@ func (db CloutDB1) Save (clout *clout.Clout, urlString string, grammarVersion st
 		if isToscaVertex(vertex, "nodeTemplate") {
 			fillNodeTemplate(&vxItem, &vertex.Properties)
 		} else if isToscaVertex(vertex, "group") {
-			fillTosca(&vxItem, &vertex.Properties, "group", "")
+			//fillTosca(&vxItem, &vertex.Properties, "group", "")
+			fillGroup(&vxItem, &vertex.Properties, "group", "")
 		} else if isToscaVertex(vertex, "workflow") {
 			fillTosca(&vxItem, &vertex.Properties, "workflow", "")
+		} else if isToscaVertex(vertex, "workflowStep") {
+			fillTosca(&vxItem, &vertex.Properties, "workflowStep", "")
+		} else if isToscaVertex(vertex, "workflowActivity") {
+			fillTosca(&vxItem, &vertex.Properties, "workflowActivity", "")
+		} else if isToscaVertex(vertex, "operation") {
+			fillTosca(&vxItem, &vertex.Properties, "operation", "")
 		} else if isToscaVertex(vertex, "policy") {
 			fillTosca(&vxItem, &vertex.Properties, "policy", "")
 		}
@@ -174,30 +181,35 @@ func fillTosca(item *ard.Map, entity *ard.Map, ttype string, prefix string) erro
 	(*item)[prefix+"tosca:entity"] = ttype
 	(*item)[prefix+"tosca:name"] = (*entity)["name"]
 	(*item)[prefix+"tosca:description"] = (*entity)["description"]
-	mapx := ((*entity)["types"]).(ard.Map)
-	bytes, error := json.Marshal(mapx)
-	if error == nil {
-		(*item)[prefix+"tosca:types"] = string(bytes)
+	if (*entity)["types"] != nil {
+		mapx := ((*entity)["types"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:types"] = string(bytes)
+		}
 	}
-	mapx = ((*entity)["properties"]).(ard.Map)
-	//	propmap := make(ard.Map)
-	//	for key, valuemap := range mapx {
-	//		propmap[key] = valuemap.(ard.Map)["value"]
-	//	}
-	//	bytes, error = json.Marshal(propmap)
-	bytes, error = json.Marshal(mapx)
-	if error == nil {
-		(*item)[prefix+"tosca:properties"] = string(bytes)
-		//(*item)[prefix+"tosca:properties"] = mapx
+	
+	if (*entity)["properties"] != nil {
+		mapx := ((*entity)["properties"]).(ard.Map)
+		//	propmap := make(ard.Map)
+		//	for key, valuemap := range mapx {
+		//		propmap[key] = valuemap.(ard.Map)["value"]
+		//	}
+		//	bytes, error = json.Marshal(propmap)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:properties"] = string(bytes)
+			//(*item)[prefix+"tosca:properties"] = mapx
+		}
 	}
 	if (*entity)["attributes"] != nil {
-		mapx = (*entity)["attributes"].(ard.Map)
+		mapx := (*entity)["attributes"].(ard.Map)
 		//	propmap = make(ard.Map)
 		//	for key, valuemap := range mapx {
 		//		propmap[key] = valuemap.(ard.Map)["value"]
 		//	}
 		//	bytes, error = json.Marshal(propmap)
-		bytes, error = json.Marshal(mapx)
+		bytes, error := json.Marshal(mapx)
 
 		if error == nil {
 			(*item)[prefix+"tosca:attributes"] = string(bytes)
@@ -208,23 +220,58 @@ func fillTosca(item *ard.Map, entity *ard.Map, ttype string, prefix string) erro
 	return nil
 }
 
+func fillToscaCapabilities(item *ard.Map, entity *ard.Map, type_ string, prefix string, key string) error {
+	fillTosca(item, entity, "capability", "")
+	(*item)[prefix+"tosca:key"] = key
+	(*item)[prefix+"tosca:maxRelationshipCount"] = (*entity)["maxRelationshipCount"]
+	(*item)[prefix+"tosca:minRelationshipCount"] = (*entity)["minRelationshipCount"]
+	
+	return nil
+}
+
 func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 	fillTosca(item, nodeTemplate, "nodeTemplate", "")
 
 	itemCapabilities := make([]ard.Map, 0)
 	var capabilities ard.Map = (*nodeTemplate)["capabilities"].(ard.Map)
 	var cap ard.Map
-	for _, capability := range capabilities {
+	/*for _, capability := range capabilities {
 		cap = capability.(ard.Map)
 		capabilityItem := make(ard.Map)
 		fillTosca(&capabilityItem, &cap, "capability", "")
 		itemCapabilities = append(itemCapabilities, capabilityItem)
+	}*/
+	
+	for k, capability := range capabilities {
+		cap = capability.(ard.Map)
+		capabilityItem := make(ard.Map)
+		fillToscaCapabilities(&capabilityItem, &cap, "capability", "", k)
+		itemCapabilities = append(itemCapabilities, capabilityItem)
 	}
 
 	(*item)["capabilities"] = itemCapabilities
+	
+	if (*nodeTemplate)["interfaces"] != nil {
+		mapx := (*nodeTemplate)["interfaces"].(ard.Map)
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)["tosca:interfaces"] = string(bytes)
+		}
+	}
+	
+	if (*nodeTemplate)["requirements"] != nil {
+		mapx := (*nodeTemplate)["requirements"].([]interface{})
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)["tosca:requirements"] = string(bytes)
+		}
+	}
 
 	return nil
 }
+
 func fillEdge(item *ard.Map, edge *clout.Edge) error {
 
 	edgeItem := make(ard.Map)
@@ -249,7 +296,36 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 
 func fillRelationship(item *ard.Map, relationship *ard.Map) error {
 	// As facets
-	fillTosca(item, relationship, "relationship", "clout:edge|")
+	//fillTosca(item, relationship, "relationship", "clout:edge|")
+	prefix := "clout:edge|"
+	fillTosca(item, relationship, "relationship", prefix)
+
+	(*item)[prefix+"tosca:capability"] = (*relationship)["capability"]
+	if (*relationship)["interfaces"] != nil {
+		mapx := (*relationship)["interfaces"].(ard.Map)
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)[prefix+"tosca:interfaces"] = string(bytes)
+		}
+	}
+
+	return nil
+}
+
+func fillGroup(item *ard.Map, props *ard.Map, type_ string, prefix string) error {
+	
+	fillTosca(item, props, type_, "")
+	
+	if (*props)["interfaces"] != nil {
+		mapx := (*props)["interfaces"].(ard.Map)
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)["tosca:interfaces"] = string(bytes)
+		}
+	}
+	
 
 	return nil
 }
