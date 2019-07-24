@@ -7,7 +7,8 @@ import (
 	"github.com/tliron/puccini/tosca/parser"
 )
 
-func createScriptNamespace(grammerVersions string) tosca.ScriptNamespace {
+// CreateScriptNamespace - creates java script namespace
+func CreateScriptNamespace(grammerVersions string) tosca.ScriptNamespace {
 
 	versions := strings.Split(grammerVersions, ",")
 
