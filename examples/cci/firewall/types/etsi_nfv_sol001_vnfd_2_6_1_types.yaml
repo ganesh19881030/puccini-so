@@ -1,4 +1,4 @@
-tosca_definitions_version: tosca_simple_yaml_1_2
+tosca_definitions_version: tosca_simple_yaml_1_3
 description: ETSI NFV SOL 001 vnfd types definitions version 2.6.1
 imports:
   - etsi_nfv_sol001_common_2_6_1_types.yaml

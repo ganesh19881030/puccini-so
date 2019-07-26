@@ -5,6 +5,16 @@ description: Firewall VNF Service
 imports:
   - types/firewall_vnf_type.yaml # Firewall VNF node type definition
 
+node_types:
+
+  FWCompute:
+    derived_from: Compute
+    properties:
+      name:
+        type: string
+    capabilities:
+      main: tosca.capabilities.nfv.VirtualLinkable
+
 topology_template:
 
   inputs:
@@ -17,3 +27,16 @@ topology_template:
 
     firewall:
         type: cci.nodes.Firewall
+        properties:
+          flavour_id: { get_input: selected_flavour}
+
+    packet_generator:
+        type: FWCompute
+        properties:
+          name: firewall packet generator
+
+    sink:
+        type: FWCompute
+        properties:
+          name: firewall sink
+  
