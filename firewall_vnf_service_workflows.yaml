@@ -1,0 +1,188 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Firewall VNF Service
+
+imports:
+  - types/firewall_vnf_type_workflows.yaml # Firewall VNF node type definition
+
+node_types:
+
+  FWCompute:
+    derived_from: Compute
+    properties:
+      name:
+        type: string
+    capabilities:
+      main: tosca.capabilities.nfv.VirtualLinkable
+
+topology_template:
+
+  inputs:
+    selected_flavour:
+      type: string
+      description: >-
+        VNF deployment flavour selected by the consumer. 
+
+  node_templates:
+
+    firewall:
+        type: cci.nodes.Firewall
+        properties:
+          flavour_id: { get_input: selected_flavour}
+
+    packet_generator:
+        type: FWCompute
+        properties:
+          name: firewall packet generator
+
+    sink:
+        type: FWCompute
+        properties:
+          name: firewall sink
+
+  workflows:
+
+    create:
+
+        description: Override the TOSCA imperative workflow with the following.
+        steps:
+          create_sink:
+            target: sink
+            activities:
+              - set_state: creating
+              - call_operation: Standard.create
+              - set_state: created
+            on_success:
+              - create_firewall
+            on_failure:
+              - retry_create_sink
+
+          create_firewall:
+            target: firewall
+            activities:
+              - set_state: creating
+              - call_operation: Standard.create
+              - set_state: created
+            on_success:
+              - create_packet_generator
+
+          create_packet_generator:
+            target: packet_generator
+            activities:
+              - set_state: creating
+              - call_operation: Standard.create
+              - set_state: created
+
+          retry_create_sink:
+            target: sink
+            activities:
+            # try to create it once more
+              - call_operation: Standard.create
+              - set_state: created
+
+
+    start:
+
+        description: Override the TOSCA imperative workflow with the following.
+        #
+        # NOTE:  Following preconditions clause is commented out because puccini does not seem to support
+        #        it and gives following error:
+        #            tosca_test.go:80: phase 1: read
+        #            PROBLEMS (1)
+        #               topology_template.workflows["start"].preconditions: "list" instead of "map"
+        #
+        # preconditions:
+        #   - target: sink
+        #     condition:
+        #       - assert:
+        #         - state: [{valid_values: [created, available]}]
+
+        steps:
+          start_sink:
+            target: sink
+            activities:
+              - set_state: starting
+              - call_operation: Standard.start
+              - set_state: started
+            on_success:
+              - start_firewall  
+
+          start_firewall:
+            target: firewall
+            activities:
+              - set_state: starting
+              - call_operation: Standard.start
+              - set_state: started
+            on_success:
+              - start_packet_generator
+            on_failure:
+              - failed_to_start_firewall
+
+          start_packet_generator:
+            target: packet_generator
+            activities:
+              - set_state: starting
+              - call_operation: Standard.start
+              - set_state: started
+
+          failed_to_start_firewall:
+            target: firewall
+            activities:
+              - set_state: stopped
+
+    configure:
+
+        description: Override the TOSCA imperative workflow with the following.
+        steps:
+          configure_sink:
+            target: sink
+            activities:
+              - set_state: configuring
+              - call_operation: Standard.configure
+              - set_state: configured
+            on_success:
+              - configure_firewall
+              - configure_packet_generator
+
+          configure_firewall:
+            target: firewall
+            activities:
+              - set_state: configuring
+              - call_operation: Standard.configure
+              - set_state: configured
+
+          configure_packet_generator:
+            target: packet_generator
+            activities:
+              - set_state: configuring
+              - call_operation: Standard.configure
+              - set_state: configured
+
+    stop:
+       
+        description: Override the TOSCA imperative workflow with the following.
+        steps:
+          stop_packet_generator:
+            target: packet_generator
+            activities:
+              - set_state: stopping
+              - call_operation: Standard.stop
+              - set_state: stopped
+            on_success:
+              - stop_firewall
+
+          stop_firewall:
+            target: firewall
+            activities:
+              - set_state: stopping
+              - call_operation: Standard.stop
+              - set_state: stopped
+            on_success:
+              - stop_sink
+
+          stop_sink:
+            target: sink
+            activities:
+              - set_state: stopping
+              - call_operation: Standard.stop
+              - set_state: stopped
