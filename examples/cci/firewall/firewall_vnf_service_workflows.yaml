@@ -14,6 +14,32 @@ node_types:
         type: string
     capabilities:
       main: tosca.capabilities.nfv.VirtualLinkable
+    
+    # Declare inputs to be used while configuring packet generator.
+    interfaces:
+      Standard:
+        type: tosca.interfaces.node.lifecycle.Standard
+        configure:
+          inputs:
+            trusted_list: #list of trusted links
+              type: list
+              required: false
+              entry_schema:
+                type: string
+
+            untrusted_list: # list of untrusted links
+              type: list
+              required: false
+              entry_schema:
+                type: string
+
+            trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
+              type: integer
+              required: false
+
+            rate: # rate packet generation (packets/sec)
+              type: integer
+              required: false  
 
 topology_template:
 
@@ -21,7 +47,24 @@ topology_template:
     selected_flavour:
       type: string
       description: >-
-        VNF deployment flavour selected by the consumer. 
+        VNF deployment flavour selected by the consumer.
+
+    trusted_list:  #list of trusted links
+      type: list
+      entry_schema:
+        type: string
+
+    untrusted_list: # list of untrusted links
+      type: list
+      entry_schema:
+        type: string
+
+    trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
+      constraints: [ in_range: [ 0, 100 ] ]
+      type: integer
+     
+    rate: # rate packet generation (packets/sec)
+      type: integer 
 
   node_templates:
 
@@ -30,20 +73,36 @@ topology_template:
         properties:
           flavour_id: { get_input: selected_flavour}
 
+        interfaces:
+          Standard:
+            configure:
+              inputs:
+                trusted_list: { get_input: trusted_list }
+                untrusted_list: { get_input: untrusted_list }
+
     packet_generator:
         type: FWCompute
         properties:
           name: firewall packet generator
+
+        interfaces:
+          Standard:
+            configure:
+              inputs:
+                trusted_list: { get_input: trusted_list }
+                untrusted_list: { get_input: trusted_list }
+                trusted_percentage: { get_input: trusted_percentage }
+                rate: { get_input: rate }
 
     sink:
         type: FWCompute
         properties:
           name: firewall sink
 
+
   workflows:
 
     create:
-
         description: Override the TOSCA imperative workflow with the following.
         steps:
           create_sink:
@@ -87,7 +146,7 @@ topology_template:
         #
         # NOTE:  Following preconditions clause is commented out because puccini does not seem to support
         #        it and gives following error:
-        #            tosca_test.go:80: phase 1: read
+        #            tosca_test.go:: phase 1: read
         #            PROBLEMS (1)
         #               topology_template.workflows["start"].preconditions: "list" instead of "map"
         #
@@ -95,7 +154,7 @@ topology_template:
         #   - target: sink
         #     condition:
         #       - assert:
-        #         - state: [{valid_values: [created, available]}]
+        #           - state: [{valid_values: [created, available]}]
 
         steps:
           start_sink:
@@ -105,7 +164,7 @@ topology_template:
               - call_operation: Standard.start
               - set_state: started
             on_success:
-              - start_firewall  
+              - start_firewall
 
           start_firewall:
             target: firewall
