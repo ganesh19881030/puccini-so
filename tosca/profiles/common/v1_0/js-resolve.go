@@ -74,7 +74,7 @@ function resolve(sourceVertex, sourceNodeTemplate, requirement) {
 
 	candidates = gatherCandidateCapabilities(requirement, candidates);
 	if (candidates.length === 0) {
-		unsatisfied(path, name, 'no candidate node template provides required capability');
+		puccini.log.warningf('%s: could not satisfy "%s" because no candidate node template provides required capability', path, name);
 		return;
 	}
 
@@ -201,7 +201,7 @@ function gatherCandidateCapabilities(requirement, candidateNodeTemplates) {
 			var candidateCapability = candidateCapabilities[cc].capability;
 
 			if ((capabilityTypeName !== '') && !(capabilityTypeName in candidateCapability.types)) {
-				puccini.log.debugf('{resolve} %s: capability "%s" in node template "%s" is not of type "%s"', path, candidateCapabilityName, candidateNodeTemplateName, capabilityTypeName);
+				// puccini.log.debugf('{resolve} %s: capability "%s" in node template "%s" is not of type "%s"', path, candidateCapabilityName, candidateNodeTemplateName, capabilityTypeName);
 				continue;
 			}
 
