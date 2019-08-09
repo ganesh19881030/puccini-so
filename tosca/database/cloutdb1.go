@@ -27,7 +27,7 @@ func NewCloutDb1(dburl string) CloutDB {
 //
 // It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
-func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions string) error {
+func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
 	var printout = false
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {
@@ -79,7 +79,9 @@ func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions st
 		ind := vertex.ID
 		vxItem := make(ard.Map)
 		vxItem["uid"] = "_:clout.vertex." + ind
+		vxItem["tosca:vertexId"] = ind
 		vxItem["clout:edge"] = make([]*ard.Map, 0)
+		//vertexItems = append(vertexItems, vxItem)
 
 		if isToscaVertex(vertex, "nodeTemplate") {
 			fillNodeTemplate(&vxItem, &vertex.Properties)
@@ -89,21 +91,24 @@ func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions st
 		} else if isToscaVertex(vertex, "workflow") {
 			fillTosca(&vxItem, &vertex.Properties, "workflow", "")
 		} else if isToscaVertex(vertex, "workflowStep") {
+			//fillWorkflowStep(&vxItem, &vertex.Properties, &vertex.EdgesOut, "workflowStep", "")
 			fillTosca(&vxItem, &vertex.Properties, "workflowStep", "")
 		} else if isToscaVertex(vertex, "workflowActivity") {
-			fillTosca(&vxItem, &vertex.Properties, "workflowActivity", "")
+			//fillTosca(&vxItem, &vertex.Properties, "workflowActivity", "")
+			fillWorkflowActivity(&vxItem, &vertex.Properties, "workflowActivity", "")
 		} else if isToscaVertex(vertex, "operation") {
-			fillTosca(&vxItem, &vertex.Properties, "operation", "")
+			fillPolicyOperation(&vxItem, &vertex.Properties, "operation", "")
 		} else if isToscaVertex(vertex, "policy") {
 			fillTosca(&vxItem, &vertex.Properties, "policy", "")
 		}
 
 		//		var vertexItem string = "{uid: '_:clout.vertex.'" + ind + ", 'clout:edge': []}";
-
+		//if !isToscaVertex(vertex, "workflowStep") {
 		for _, edge := range vertex.EdgesOut {
 			//			var edgeItem = "{uid: '_:clout.vertex.'" + edge.Target.ID + "}"
 			fillEdge(&vxItem, edge)
 		}
+		//}
 
 		vertexItems = append(vertexItems, vxItem)
 
@@ -115,11 +120,12 @@ func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions st
 	cloutItem["clout:name"] = topologyName
 	cloutItem["clout:version"] = clout.Version
 	cloutItem["clout:grammarversion"] = grammarVersions
+	cloutItem["clout:import"] = internalImport
+
 	props := clout.Properties["tosca"].(ard.Map)
 
 	bytes, error := json.Marshal(props)
 	if error == nil {
-		//fmt.Println(" clout properties: \n", string(bytes))
 		cloutItem["clout:properties"] = string(bytes)
 	}
 
@@ -172,6 +178,7 @@ func isToscaEdge(edge *clout.Edge, etype string) bool {
 
 	return false
 }
+
 func fillTosca(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
 	//if prefix == nil {
 	//	prefix = "";
@@ -186,7 +193,7 @@ func fillTosca(item *ard.Map, entity *ard.Map, ttype string, prefix string) erro
 			(*item)[prefix+"tosca:types"] = string(bytes)
 		}
 	}
-	
+
 	if (*entity)["properties"] != nil {
 		mapx := ((*entity)["properties"]).(ard.Map)
 		//	propmap := make(ard.Map)
@@ -223,7 +230,7 @@ func fillToscaCapabilities(item *ard.Map, entity *ard.Map, type_ string, prefix 
 	(*item)[prefix+"tosca:key"] = key
 	(*item)[prefix+"tosca:maxRelationshipCount"] = (*entity)["maxRelationshipCount"]
 	(*item)[prefix+"tosca:minRelationshipCount"] = (*entity)["minRelationshipCount"]
-	
+
 	return nil
 }
 
@@ -239,7 +246,7 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 		fillTosca(&capabilityItem, &cap, "capability", "")
 		itemCapabilities = append(itemCapabilities, capabilityItem)
 	}*/
-	
+
 	for k, capability := range capabilities {
 		cap = capability.(ard.Map)
 		capabilityItem := make(ard.Map)
@@ -248,7 +255,7 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 	}
 
 	(*item)["capabilities"] = itemCapabilities
-	
+
 	if (*nodeTemplate)["interfaces"] != nil {
 		mapx := (*nodeTemplate)["interfaces"].(ard.Map)
 		bytes, error := json.Marshal(mapx)
@@ -257,7 +264,7 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 			(*item)["tosca:interfaces"] = string(bytes)
 		}
 	}
-	
+
 	if (*nodeTemplate)["requirements"] != nil {
 		mapx := (*nodeTemplate)["requirements"].([]interface{})
 		bytes, error := json.Marshal(mapx)
@@ -274,9 +281,23 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 
 	edgeItem := make(ard.Map)
 	edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID
+	prefix := "clout:edge|"
 
 	if isToscaEdge(edge, "relationship") {
 		fillRelationship(&edgeItem, &edge.Properties)
+	} else if isToscaEdge(edge, "nodeTemplateTarget") {
+		fillTosca(&edgeItem, &edge.Properties, "nodeTemplateTarget", prefix)
+	} else if isToscaEdge(edge, "onSuccess") {
+		fillTosca(&edgeItem, &edge.Properties, "onSuccess", prefix)
+	} else if isToscaEdge(edge, "onFailure") {
+		fillTosca(&edgeItem, &edge.Properties, "onFailure", prefix)
+	} else if isToscaEdge(edge, "workflowActivity") {
+		fillTosca(&edgeItem, &edge.Properties, "workflowActivity", prefix)
+		edgeItem[prefix+"tosca:sequence"] = edge.Properties["sequence"]
+	} else if isToscaEdge(edge, "groupTarget") {
+		fillTosca(&edgeItem, &edge.Properties, "groupTarget", prefix)
+	} else if isToscaEdge(edge, "policyTriggerOperation") {
+		fillTosca(&edgeItem, &edge.Properties, "policyTriggerOperation", prefix)
 	}
 
 	var edgeItems []*ard.Map
@@ -294,7 +315,6 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 
 func fillRelationship(item *ard.Map, relationship *ard.Map) error {
 	// As facets
-	//fillTosca(item, relationship, "relationship", "clout:edge|")
 	prefix := "clout:edge|"
 	fillTosca(item, relationship, "relationship", prefix)
 
@@ -312,9 +332,9 @@ func fillRelationship(item *ard.Map, relationship *ard.Map) error {
 }
 
 func fillGroup(item *ard.Map, props *ard.Map, type_ string, prefix string) error {
-	
+
 	fillTosca(item, props, type_, "")
-	
+
 	if (*props)["interfaces"] != nil {
 		mapx := (*props)["interfaces"].(ard.Map)
 		bytes, error := json.Marshal(mapx)
@@ -323,7 +343,37 @@ func fillGroup(item *ard.Map, props *ard.Map, type_ string, prefix string) error
 			(*item)["tosca:interfaces"] = string(bytes)
 		}
 	}
-	
+
+	return nil
+}
+
+func fillWorkflowActivity(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "workflowActivity", "")
+
+	if (*entity)["callOperation"] != nil {
+		mapx := ((*entity)["callOperation"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:callOperation"] = string(bytes)
+		}
+	}
+	(*item)[prefix+"tosca:setNodeState"] = (*entity)["setNodeState"]
+
+	return nil
+}
+
+func fillPolicyOperation(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "operation", "")
+
+	if (*entity)["inputs"] != nil {
+		mapx := ((*entity)["inputs"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:inputs"] = string(bytes)
+		}
+	}
+	(*item)[prefix+"tosca:implementation"] = (*entity)["implementation"]
+	(*item)[prefix+"tosca:dependencies"] = (*entity)["dependencies"]
 
 	return nil
 }
