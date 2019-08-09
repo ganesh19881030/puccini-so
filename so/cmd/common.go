@@ -51,12 +51,12 @@ func ReadClout(path string) (*clout.Clout, error) {
 }
 
 // ReadCloutFromDgraph reads the clout data from Dgraph
-func ReadCloutFromDgraph() (*clout.Clout, error) {
+func ReadCloutFromDgraph(name string) (*clout.Clout, error) {
 	// construct Dgraph url from configuration
 	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
 
 	//f := url_.Format()
-	output := createCloutOutput(dburl)
+	output := createCloutOutput(dburl, name)
 
 	return output, nil
 
