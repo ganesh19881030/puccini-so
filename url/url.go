@@ -3,6 +3,7 @@ package url
 import (
 	"errors"
 	"fmt"
+	"github.com/tliron/puccini/common"
 	"io"
 	gourl "net/url"
 	"path"
@@ -56,6 +57,7 @@ func NewValidURL(url string, origins []URL) (URL, error) {
 		case "http", "https":
 			return NewValidNetURL(u)
 		case "internal":
+			common.InternalImport = url[9:]
 			return NewValidInternalURL(url[9:])
 		case "zip":
 			return NewValidZipURLFromURL(url)
