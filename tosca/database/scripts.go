@@ -11,7 +11,9 @@ import (
 	"github.com/tliron/puccini/url"
 )
 
+// CreateScriptNamespace - creates java script namespace
 func CreateScriptNamespace(grammerVersions string, internalImport string) tosca.ScriptNamespace {
+
 	versions := strings.Split(grammerVersions, ",")
 
 	problems := new(problems.Problems)
