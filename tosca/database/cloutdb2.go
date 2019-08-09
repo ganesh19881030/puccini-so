@@ -20,7 +20,7 @@ func NewCloutDb2(dburl string) CloutDB {
 }
 
 // Save method implementation of CloutDB interface for CloutDB2 instance
-func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersions string) error {
+func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
 	var printout = true
 	var dgraphset = DgraphSet{}
 

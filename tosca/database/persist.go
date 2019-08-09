@@ -11,7 +11,7 @@ type DgraphSet struct {
 }
 
 // Persist clout data
-func Persist(clout *clout.Clout, urlString string, grammarVersions []string) error {
+func Persist(clout *clout.Clout, urlString string, grammarVersions []string, internalImport string) error {
 
 	cloutdbClient := CreateCloutDBClient()
 	var versions string
@@ -22,7 +22,7 @@ func Persist(clout *clout.Clout, urlString string, grammarVersions []string) err
 		versions = versions + val
 	}
 
-	err := cloutdbClient.Save(clout, urlString, versions)
+	err := cloutdbClient.Save(clout, urlString, versions, internalImport)
 
 	return err
 }

@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	//"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
+	//"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/compiler"
 	"github.com/tliron/puccini/tosca/database"
+	//"github.com/tliron/puccini/tosca/parser"
 )
 
 var output string
@@ -43,7 +46,8 @@ var compileCmd = &cobra.Command{
 func Compile(urlString string) {
 	// Parse
 	context, s := Parse(urlString)
-
+	internalImport := common.InternalImport
+	//fmt.Println(internalImport)
 	// Compile
 	clout, err := compiler.Compile(s)
 	common.FailOnError(err)
@@ -76,7 +80,7 @@ func Compile(urlString string) {
 
 		//grammarVersion = grammarVersion[1:strings.LastIndex(grammarVersion, ".")]
 
-		database.Persist(clout, urlString, context.GrammerVersions)
+		database.Persist(clout, urlString, context.GrammerVersions, internalImport)
 	}
 
 	if !common.Quiet || (output != "") {

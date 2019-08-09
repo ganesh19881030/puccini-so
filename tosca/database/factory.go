@@ -9,7 +9,7 @@ import (
 
 // CloutDB interface for defining the db methods
 type CloutDB interface {
-	Save(clout *clout.Clout, urlString string, grammarVersion string) error
+	Save(clout *clout.Clout, urlString string, grammarVersion string, internalImport string) error
 }
 
 // CreateCloutDBClient is the factory method to create the appropriate CloutDB
