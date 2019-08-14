@@ -1,0 +1,123 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Firewall VNF Service
+
+imports:
+  - types/firewall_vnf_type_declarative_workflows.yaml # Firewall VNF node type definition
+  
+node_types:
+
+  # Compute node for packet_generator
+  Packet_Generator_Compute:
+    derived_from: Compute
+    properties:
+      name:
+        type: string
+
+      trusted_list:  #list of trusted links
+        type: list
+        entry_schema:
+          type: string
+
+      untrusted_list: # list of untrusted links
+        type: list
+        entry_schema:
+          type: string
+
+      trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
+        constraints: [ in_range: [ 0, 100 ] ]
+        type: integer
+     
+      rate: # rate packet generation (packets/sec)
+        type: integer   
+    
+    capabilities:
+      main: tosca.capabilities.nfv.VirtualLinkable
+
+    requirements:
+      - host:
+          capability: tosca.capabilities.Compute
+
+      - connection:
+          capability: tosca.capabilities.Endpoint
+          relationship: tosca.relationships.ConnectsTo
+
+  # Compute node for sink
+  Sink_Compute:
+    derived_from: Compute
+    properties:
+      name:
+        type: string
+    capabilities:
+      main: tosca.capabilities.nfv.VirtualLinkable
+      
+    requirements:
+      - host:
+          capability: tosca.capabilities.Compute
+
+topology_template:
+
+  inputs:
+    selected_flavour:
+      type: string
+      description: >-
+        VNF deployment flavour selected by the consumer.
+
+    trusted_list:  #list of trusted links
+      type: list
+      entry_schema:
+        type: string
+
+    untrusted_list: # list of untrusted links
+      type: list
+      entry_schema:
+        type: string
+
+    trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
+      constraints: [ in_range: [ 0, 100 ] ]
+      type: integer
+     
+    rate: # rate packet generation (packets/sec)
+      type: integer 
+
+  node_templates:
+
+    firewall:
+        type: cci.nodes.Firewall
+        properties:
+          flavour_id: { get_input: selected_flavour}
+          trusted_list: { get_input: trusted_list }
+          untrusted_list: { get_input: untrusted_list }
+
+        requirements:
+          - connection:  # Add connection between sink(target) and firewall(source)
+              node: sink
+              relationship: tosca.relationships.ConnectsTo
+
+    packet_generator:
+        type: Packet_Generator_Compute
+        properties:
+          name: firewall packet generator
+          trusted_list: { get_input: trusted_list }
+          untrusted_list: { get_input: untrusted_list }
+          trusted_percentage: { get_input: trusted_percentage }
+          rate: { get_input: rate }
+          
+        requirements:
+          - connection:    # Add connection between firewall(target) and packet_generator(source)
+              node: firewall
+              relationship: tosca.relationships.ConnectsTo
+
+          - host:          # Host packet_generator on compute node
+              node: Packet_Generator_Compute
+              relationship: tosca.relationships.HostedOn
+
+    sink:
+        type: Sink_Compute
+        properties:
+          name: firewall sink
+          
+        requirements:
+          - host:         # Host sink on compute node
+              node: Sink_Compute
+              relationship: tosca.relationships.HostedOn

@@ -1,0 +1,48 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Firewall VNF node type
+
+imports:
+  - etsi_nfv_sol001_vnfd_2_6_1_types.yaml  # all of VNFD types as defined in NFV SOL 001 
+
+node_types:
+  cci.nodes.Firewall:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id: 33eabee9-6ef7-44f1-827b-f909226aecb9
+      provider: CCI
+      product_name: Bonap Firewall
+      software_version: 1.0.0
+      descriptor_version: '1.0'
+      flavour_id:
+        constraints: [ valid_values: [ simple, complex ] ]
+        default: simple
+      flavour_description:
+        default: "Simple Firewall"
+      vnfm_info: [ '0:BONAP' ]
+      
+      trusted_list:  #list of trusted links
+        type: list
+        entry_schema:
+          type: string
+
+      untrusted_list: # list of untrusted links
+        type: list
+        entry_schema:
+          type: string
+
+    requirements:
+      - trusted_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+
+      - untrusted_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+
+      - connection:
+          capability: tosca.capabilities.Endpoint
+          relationship: tosca.relationships.ConnectsTo
+
+    capabilities:
+      main: tosca.capabilities.Endpoint
