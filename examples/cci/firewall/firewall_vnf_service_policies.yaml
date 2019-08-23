@@ -1,0 +1,73 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Firewall VNF Service
+
+imports:
+  - types/firewall_vnf_type.yaml # Firewall VNF node type definition
+
+node_types:
+
+  FWCompute:
+    derived_from: Compute
+    properties:
+      name:
+        type: string
+    capabilities:
+      main: tosca.capabilities.nfv.VirtualLinkable
+
+policy_types:
+
+  notify:
+    description: Policy implemented by a notify process defined within firewall.
+    derived_from: tosca.policies.Root
+    properties:
+      untrusted_list_rate:
+        description: >-
+          This is percentage value which will be used to decide when policy is to be triggered. 
+          If percentage of packets originating from untrusted_links exceeds this value, the policy will be triggered.
+        type: integer
+        constraints: [ in_range: [ 0, 100 ] ]
+    targets:
+      - Root    
+
+topology_template:
+
+  inputs:
+    selected_flavour:
+      type: string
+      description: >-
+        VNF deployment flavour selected by the consumer. 
+        
+    untrusted_list_rate:
+      type: integer
+
+  node_templates:
+
+    firewall:
+        type: cci.nodes.Firewall
+        properties:
+          flavour_id: { get_input: selected_flavour}
+
+    packet_generator:
+        type: FWCompute
+        properties:
+          name: firewall packet generator
+
+    sink:
+        type: FWCompute
+        properties:
+          name: firewall sink
+
+  policies:
+
+    notifyOnHighRate:
+      type: notify
+      properties:
+        untrusted_list_rate: { get_input: untrusted_list_rate }
+      triggers:
+        notify_on_high_untrusted_links_rate:
+          event_type: firewall.untrusted_threshold_exceeded
+          action:
+            implementation: scripts/raise_high_untrusted_link_rate_alarm.sh
+      targets:
+      - firewall
