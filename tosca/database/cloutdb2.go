@@ -7,20 +7,32 @@ import (
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
+	"github.com/tliron/puccini/tosca/normal"
 )
 
 // CloutDB2 defines an implementation of CloutDB
 type CloutDB2 struct {
 	Dburl string
+	clout bool
 }
 
 // NewCloutDb2 creates a CloutDB2 instance
 func NewCloutDb2(dburl string) CloutDB {
-	return CloutDB2{dburl}
+	return CloutDB2{dburl, true}
 }
 
-// Save method implementation of CloutDB interface for CloutDB2 instance
-func (db CloutDB2) Save(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
+// SaveServiceTemplate method implementation of CloutDB interface for CloutDB2 instance
+func (db CloutDB2) SaveServiceTemplate(s *normal.ServiceTemplate, urlString string, grammarVersion string, internalImport string) error {
+	return nil
+}
+
+// IsCloutCapable - true if it handles clout structure, false otherwise
+func (db CloutDB2) IsCloutCapable() bool {
+	return db.clout
+}
+
+// SaveClout method implementation of CloutDB interface for CloutDB2 instance
+func (db CloutDB2) SaveClout(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
 	var printout = true
 	var dgraphset = DgraphSet{}
 

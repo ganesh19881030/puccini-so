@@ -28,6 +28,8 @@ const (
 	Translated CloutDbType = iota + 1
 	// Original Clout structure with minimal changes (minus javascript)
 	Original
+	// Refined in terms of reusable TOSCA entities like node types, data types, etc.
+	Refined
 )
 
 var CloutDbTypeMap map[string]CloutDbType
@@ -41,6 +43,7 @@ func init() {
 	CloutDbTypeMap = make(map[string]CloutDbType)
 	CloutDbTypeMap["original"] = Original
 	CloutDbTypeMap["translated"] = Translated
+	CloutDbTypeMap["refined"] = Refined
 
 	// struct to hold SO configuration
 	SoConfig = SoConfiguration{}
@@ -51,7 +54,7 @@ func init() {
 	}
 	SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
 	if SoConfig.Dgraph.CldbType < Translated ||
-		SoConfig.Dgraph.CldbType > Original {
+		SoConfig.Dgraph.CldbType > Refined {
 
 		err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
 		FailOnError(err)
