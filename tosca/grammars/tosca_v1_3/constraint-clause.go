@@ -9,18 +9,18 @@ import (
 
 // Built-in constraint functions
 var ConstraintClauseSourceCode = map[string]string{
-	"equal":            profile.Profile["/tosca/simple/1.3/js/equal.js"],
-	"greater_than":     profile.Profile["/tosca/simple/1.3/js/greater_than.js"],
-	"greater_or_equal": profile.Profile["/tosca/simple/1.3/js/greater_or_equal.js"],
-	"less_than":        profile.Profile["/tosca/simple/1.3/js/less_than.js"],
-	"less_or_equal":    profile.Profile["/tosca/simple/1.3/js/less_or_equal.js"],
-	"in_range":         profile.Profile["/tosca/simple/1.3/js/in_range.js"],
-	"valid_values":     profile.Profile["/tosca/simple/1.3/js/valid_values.js"],
-	"length":           profile.Profile["/tosca/simple/1.3/js/length.js"],
-	"min_length":       profile.Profile["/tosca/simple/1.3/js/min_length.js"],
-	"max_length":       profile.Profile["/tosca/simple/1.3/js/max_length.js"],
-	"pattern":          profile.Profile["/tosca/simple/1.3/js/pattern.js"],
-	"schema":           profile.Profile["/tosca/simple/1.3/js/schema.js"],
+	"equal":            profile.Profile["/tosca/simple/1.2/js/equal.js"],
+	"greater_than":     profile.Profile["/tosca/simple/1.2/js/greater_than.js"],
+	"greater_or_equal": profile.Profile["/tosca/simple/1.2/js/greater_or_equal.js"],
+	"less_than":        profile.Profile["/tosca/simple/1.2/js/less_than.js"],
+	"less_or_equal":    profile.Profile["/tosca/simple/1.2/js/less_or_equal.js"],
+	"in_range":         profile.Profile["/tosca/simple/1.2/js/in_range.js"],
+	"valid_values":     profile.Profile["/tosca/simple/1.2/js/valid_values.js"],
+	"length":           profile.Profile["/tosca/simple/1.2/js/length.js"],
+	"min_length":       profile.Profile["/tosca/simple/1.2/js/min_length.js"],
+	"max_length":       profile.Profile["/tosca/simple/1.2/js/max_length.js"],
+	"pattern":          profile.Profile["/tosca/simple/1.2/js/pattern.js"],
+	"schema":           profile.Profile["/tosca/simple/1.2/js/schema.js"],
 }
 
 var ConstraintClauseNativeArgumentIndexes = map[string][]uint{
@@ -35,7 +35,6 @@ var ConstraintClauseNativeArgumentIndexes = map[string][]uint{
 //
 // ConstraintClause
 //
-// [TOSCA-Simple-Profile-YAML-v1.3] @ 3.6.3
 // [TOSCA-Simple-Profile-YAML-v1.2] @ 3.6.3
 // [TOSCA-Simple-Profile-YAML-v1.1] @ 3.5.2
 //
@@ -89,7 +88,7 @@ func ReadConstraintClause(context *tosca.Context) interface{} {
 	return self
 }
 
-func (self *ConstraintClause) NewFunction(context *tosca.Context, strict bool) *tosca.Function {
+func (self *ConstraintClause) NewFunctionCall(context *tosca.Context, strict bool) *tosca.FunctionCall {
 	arguments := make([]interface{}, len(self.Arguments))
 	for index, argument := range self.Arguments {
 		if self.IsNativeArgument(uint(index)) {
@@ -103,7 +102,7 @@ func (self *ConstraintClause) NewFunction(context *tosca.Context, strict bool) *
 		}
 		arguments[index] = argument
 	}
-	return tosca.NewFunction(context.Path, self.Operator, arguments)
+	return context.NewFunctionCall(self.Operator, arguments)
 }
 
 func (self *ConstraintClause) IsNativeArgument(index uint) bool {
@@ -131,20 +130,20 @@ func (self ConstraintClauses) Render(constraints *ConstraintClauses, dataType *D
 	}
 }
 
-func (self ConstraintClauses) Normalize(context *tosca.Context) normal.Functions {
-	var functions normal.Functions
+func (self ConstraintClauses) Normalize(context *tosca.Context) normal.FunctionCalls {
+	var functionCalls normal.FunctionCalls
 	for _, constraintClause := range self {
-		function := constraintClause.NewFunction(context, false)
-		NormalizeFunctionArguments(function, context)
-		functions = append(functions, normal.NewFunction(function))
+		functionCall := constraintClause.NewFunctionCall(context, false)
+		NormalizeFunctionCallArguments(functionCall, context)
+		functionCalls = append(functionCalls, normal.NewFunctionCall(functionCall))
 	}
-	return functions
+	return functionCalls
 }
 
 func (self ConstraintClauses) NormalizeConstrainable(context *tosca.Context, constrainable normal.Constrainable) {
 	for _, constraintClause := range self {
-		function := constraintClause.NewFunction(context, true)
-		NormalizeFunctionArguments(function, context)
-		constrainable.AddConstraint(function)
+		functionCall := constraintClause.NewFunctionCall(context, true)
+		NormalizeFunctionCallArguments(functionCall, context)
+		constrainable.AddConstraint(functionCall)
 	}
 }

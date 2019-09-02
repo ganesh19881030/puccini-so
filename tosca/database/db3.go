@@ -61,11 +61,11 @@ func processConstrainables(io *normal.Constrainables, iotype string) ([]ard.Map,
 				toscaInput[addToscaPrefix("constraintype")] = typ.String()
 			}
 		} else if typ.String() == "normal.Function" {
-			val := input.(*normal.Function)
+			val := input.(*normal.FunctionCall)
 			if val != nil {
 				toscaInput[addToscaPrefix("description")] = val.Description
 				toscaInput[addToscaPrefix("constraintype")] = typ.String()
-				err = stringify(&toscaInput, addToscaPrefix("function"), val.Function)
+				err = stringify(&toscaInput, addToscaPrefix("function"), val.FunctionCall)
 				common.FailOnError(err)
 				err = stringify(&toscaInput, addToscaPrefix("constraints"), val.Constraints)
 				common.FailOnError(err)

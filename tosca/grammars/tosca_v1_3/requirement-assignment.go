@@ -70,7 +70,7 @@ func (self *RequirementAssignment) GetDefinition(nodeTemplate *NodeTemplate) (*R
 }
 
 func (self *RequirementAssignment) Normalize(nodeTemplate *NodeTemplate, s *normal.ServiceTemplate, n *normal.NodeTemplate) *normal.Requirement {
-	r := n.NewRequirement(self.Name, self.Context.Path)
+	r := n.NewRequirement(self.Name, self.Context.Path.String())
 
 	if self.TargetCapabilityType != nil {
 		r.CapabilityTypeName = &self.TargetCapabilityType.Name

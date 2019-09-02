@@ -59,9 +59,9 @@ func (self *OperationImplementation) Render(definition *OperationImplementation)
 	if self.OperationHost != nil {
 		// Find root path
 		var path string
-		ancestor := self.Context.GetParent(5)
+		ancestor := self.Context.GetAncestor(5)
 		if ancestor != nil {
-			path = ancestor.Path
+			path = ancestor.Path.String()
 		}
 		supported := false
 		operationHost := *self.OperationHost

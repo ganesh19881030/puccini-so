@@ -17,7 +17,7 @@ type OperationDefinition struct {
 	Name    string
 
 	Description      *string                  `read:"description"`
-	Implementation   *OperationImplementation `read:"implementation,OperationImplementation"`
+	Implementation   *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
 	InputDefinitions PropertyDefinitions      `read:"inputs,PropertyDefinition"`
 }
 
@@ -38,7 +38,7 @@ func ReadOperationDefinition(context *tosca.Context) interface{} {
 		context.ValidateUnsupportedFields(context.ReadFields(self))
 	} else if context.ValidateType("map", "string") {
 		// Short notation
-		self.Implementation = ReadOperationImplementation(context.FieldChild("implementation", context.Data)).(*OperationImplementation)
+		self.Implementation = ReadInterfaceImplementation(context.FieldChild("implementation", context.Data)).(*InterfaceImplementation)
 	}
 
 	return self
@@ -71,7 +71,7 @@ func (self *OperationDefinition) Normalize(o *normal.Operation) {
 	}
 
 	// TODO: input definitions
-	//self.InputsDefinitions.Normalize(o.Inputs)
+	//self.InputDefinitions.Normalize(o.Inputs)
 }
 
 //

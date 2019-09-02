@@ -63,43 +63,46 @@ var ScalarUnitFrequencySizes = ScalarUnitSizes{
 //
 
 type ScalarUnitSize struct {
-	Number  uint64 `json:"$number" yaml:"$number"`
-	String_ string `json:"$string" yaml:"$string"`
+	CanonicalNumber uint64 `json:"$number" yaml:"$number"`
+	CanonicalString string `json:"$string" yaml:"$string"`
 
 	Scalar float64 `json:"scalar" yaml:"scalar"`
 	Unit   string  `json:"unit" yaml:"unit"`
+
+	OriginalString string `json:"originalString" yaml:"originalString"`
 }
 
 // tosca.Reader signature
 func ReadScalarUnitSize(context *tosca.Context) interface{} {
 	var self ScalarUnitSize
 
-	scalar, unit, ok := parseScalarUnit(context, ScalarUnitSizeRE, "scalar-unit.size")
+	originalString, scalar, unit, ok := parseScalarUnit(context, ScalarUnitSizeRE, "scalar-unit.size")
 	if !ok {
 		return self
 	}
 
 	normalUnit, size := ScalarUnitSizeSizes.Get(unit, context)
 
+	self.OriginalString = originalString
 	self.Scalar = scalar
 	self.Unit = normalUnit
-	self.Number = uint64(scalar * size)
-	self.String_ = fmt.Sprintf("%d B", self.Number)
+	self.CanonicalNumber = uint64(scalar * size)
+	self.CanonicalString = fmt.Sprintf("%d B", self.CanonicalNumber)
 
 	return self
 }
 
 // fmt.Stringify interface
 func (self *ScalarUnitSize) String() string {
-	if self.Number == 1 {
+	if self.CanonicalNumber == 1 {
 		return "1 byte"
 	}
-	return fmt.Sprintf("%d bytes", self.Number)
+	return fmt.Sprintf("%d bytes", self.CanonicalNumber)
 }
 
 func (self *ScalarUnitSize) Compare(data interface{}) (int, error) {
 	if scalarUnit, ok := data.(*ScalarUnitSize); ok {
-		return CompareUint64(self.Number, scalarUnit.Number), nil
+		return CompareUint64(self.CanonicalNumber, scalarUnit.CanonicalNumber), nil
 	}
 	return 0, errors.New("incompatible comparison")
 }
@@ -112,43 +115,46 @@ func (self *ScalarUnitSize) Compare(data interface{}) (int, error) {
 //
 
 type ScalarUnitTime struct {
-	Number  float64 `json:"$number" yaml:"$number"`
-	String_ string  `json:"$string" yaml:"$string"`
+	CanonicalNumber float64 `json:"$number" yaml:"$number"`
+	CanonicalString string  `json:"$string" yaml:"$string"`
 
 	Scalar float64 `json:"scalar" yaml:"scalar"`
 	Unit   string  `json:"unit" yaml:"unit"`
+
+	OriginalString string `json:"originalString" yaml:"originalString"`
 }
 
 // tosca.Reader signature
 func ReadScalarUnitTime(context *tosca.Context) interface{} {
 	var self ScalarUnitTime
 
-	scalar, unit, ok := parseScalarUnit(context, ScalarUnitTimeRE, "scalar-unit.time")
+	originalString, scalar, unit, ok := parseScalarUnit(context, ScalarUnitTimeRE, "scalar-unit.time")
 	if !ok {
 		return self
 	}
 
 	normalUnit, size := ScalarUnitTimeSizes.Get(unit, context)
 
+	self.OriginalString = originalString
 	self.Scalar = scalar
 	self.Unit = normalUnit
-	self.Number = scalar * size
-	self.String_ = fmt.Sprintf("%g S", self.Number)
+	self.CanonicalNumber = scalar * size
+	self.CanonicalString = fmt.Sprintf("%g S", self.CanonicalNumber)
 
 	return self
 }
 
 // fmt.Stringify interface
 func (self *ScalarUnitTime) String() string {
-	if self.Number == 1.0 {
+	if self.CanonicalNumber == 1.0 {
 		return "1 second"
 	}
-	return fmt.Sprintf("%g seconds", self.Number)
+	return fmt.Sprintf("%g seconds", self.CanonicalNumber)
 }
 
 func (self *ScalarUnitTime) Compare(data interface{}) (int, error) {
 	if scalarUnit, ok := data.(*ScalarUnitTime); ok {
-		return CompareFloat64(self.Number, scalarUnit.Number), nil
+		return CompareFloat64(self.CanonicalNumber, scalarUnit.CanonicalNumber), nil
 	}
 	return 0, errors.New("incompatible comparison")
 }
@@ -161,63 +167,66 @@ func (self *ScalarUnitTime) Compare(data interface{}) (int, error) {
 //
 
 type ScalarUnitFrequency struct {
-	Number  float64 `json:"$number" yaml:"$number"`
-	String_ string  `json:"$string" yaml:"$string"`
+	CanonicalNumber float64 `json:"$number" yaml:"$number"`
+	CanonicalString string  `json:"$string" yaml:"$string"`
 
 	Scalar float64 `json:"scalar" yaml:"scalar"`
 	Unit   string  `json:"unit" yaml:"unit"`
+
+	OriginalString string `json:"originalString" yaml:"originalString"`
 }
 
 // tosca.Reader signature
 func ReadScalarUnitFrequency(context *tosca.Context) interface{} {
 	var self ScalarUnitFrequency
 
-	scalar, unit, ok := parseScalarUnit(context, ScalarUnitFrequencyRE, "scalar-unit.frequency")
+	originalString, scalar, unit, ok := parseScalarUnit(context, ScalarUnitFrequencyRE, "scalar-unit.frequency")
 	if !ok {
 		return self
 	}
 
 	normalUnit, size := ScalarUnitFrequencySizes.Get(unit, context)
 
+	self.OriginalString = originalString
 	self.Scalar = scalar
 	self.Unit = normalUnit
-	self.Number = scalar * size
-	self.String_ = fmt.Sprintf("%g Hz", self.Number)
+	self.CanonicalNumber = scalar * size
+	self.CanonicalString = fmt.Sprintf("%g Hz", self.CanonicalNumber)
 
 	return self
 }
 
 // fmt.Stringify interface
 func (self *ScalarUnitFrequency) String() string {
-	return fmt.Sprintf("%g Hz", self.Number)
+	return fmt.Sprintf("%g Hz", self.CanonicalNumber)
 }
 
 func (self *ScalarUnitFrequency) Compare(data interface{}) (int, error) {
 	if scalarUnit, ok := data.(*ScalarUnitFrequency); ok {
-		return CompareFloat64(self.Number, scalarUnit.Number), nil
+		return CompareFloat64(self.CanonicalNumber, scalarUnit.CanonicalNumber), nil
 	}
 	return 0, errors.New("incompatible comparison")
 }
 
-func parseScalarUnit(context *tosca.Context, re *regexp.Regexp, typeName string) (float64, string, bool) {
+func parseScalarUnit(context *tosca.Context, re *regexp.Regexp, typeName string) (string, float64, string, bool) {
 	if !context.ValidateType("string") {
-		return 0, "", false
+		return "", 0, "", false
 	}
 
-	s := context.ReadString()
-	matches := re.FindStringSubmatch(*s)
+	originalString := context.ReadString()
+	matches := re.FindStringSubmatch(*originalString)
 	if len(matches) != 3 {
 		context.ReportValueMalformed(typeName, "")
-		return 0, "", false
+		return "", 0, "", false
 	}
 
 	scalar, err := strconv.ParseFloat(matches[1], 64)
 	if err != nil {
 		context.ReportValueMalformed(typeName, fmt.Sprintf("%s", err))
-		return 0, "", false
+		return "", 0, "", false
 	}
 
-	return scalar, matches[2], true
+	return *originalString, scalar, matches[2], true
 }
 
 //

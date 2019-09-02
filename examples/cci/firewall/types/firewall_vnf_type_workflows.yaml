@@ -33,14 +33,15 @@ node_types:
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
-        configure:
-          inputs:
-            trusted_list: #list of trusted links
-              type: list
-              entry_schema:
-                type: string
-            untrusted_list: # list of untrusted links
-              type: list
-              entry_schema:
-                type: string
+        operations:
+          configure:
+            inputs:
+              trusted_list: #list of trusted links
+                type: list
+                entry_schema:
+                  type: string
+              untrusted_list: # list of untrusted links
+                type: list
+                entry_schema:
+                  type: string
               

@@ -1,6 +1,9 @@
 package tosca_v1_3
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
@@ -34,7 +37,7 @@ func NewValue(context *tosca.Context) *Value {
 
 // tosca.Reader signature
 func ReadValue(context *tosca.Context) interface{} {
-	ToFunction(context)
+	ToFunctionCall(context)
 	return NewValue(context)
 }
 
@@ -57,7 +60,7 @@ func ReadAttributeValue(context *tosca.Context) interface{} {
 		}
 	}
 
-	ToFunction(context)
+	ToFunctionCall(context)
 
 	return self
 }
@@ -107,7 +110,7 @@ func (self *Value) RenderAttribute(dataType *DataType, definition *AttributeDefi
 		return
 	}
 
-	if _, ok := self.Context.Data.(*tosca.Function); ok {
+	if _, ok := self.Context.Data.(*tosca.FunctionCall); ok {
 		return
 	}
 
@@ -121,6 +124,19 @@ func (self *Value) RenderAttribute(dataType *DataType, definition *AttributeDefi
 				// Nil data only happens when an attribute is added despite not having a
 				// "default" value; we will give it a valid zero value instead
 				self.Context.Data = tosca.PrimitiveTypeZeroes[typeName]
+			}
+
+			if (typeName == "string") && self.Context.HasQuirk("data_types.string.permissive") {
+				switch self.Context.Data.(type) {
+				case bool:
+					self.Context.Data = strconv.FormatBool(self.Context.Data.(bool))
+				case int:
+					self.Context.Data = strconv.FormatInt(int64(self.Context.Data.(int)), 10)
+				case float64: // YAML parser returns float64
+					self.Context.Data = strconv.FormatFloat(self.Context.Data.(float64), 'f', -1, 64)
+				case time.Time:
+					self.Context.Data = self.Context.Data.(time.Time).String()
+				}
 			}
 
 			// Primitive types
@@ -242,9 +258,9 @@ func (self *Value) Normalize() normal.Constrainable {
 			}
 		}
 		constrainable = m
-	} else if function, ok := self.Context.Data.(*tosca.Function); ok {
-		NormalizeFunctionArguments(function, self.Context)
-		constrainable = normal.NewFunction(function)
+	} else if functionCall, ok := self.Context.Data.(*tosca.FunctionCall); ok {
+		NormalizeFunctionCallArguments(functionCall, self.Context)
+		constrainable = normal.NewFunctionCall(functionCall)
 	} else {
 		constrainable = normal.NewValue(self.Context.Data)
 	}
