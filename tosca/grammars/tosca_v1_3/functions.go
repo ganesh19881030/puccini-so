@@ -15,15 +15,15 @@ import (
 //
 
 var FunctionSourceCode = map[string]string{
-	"concat":               profile.Profile["/tosca/simple/1.2/js/concat.js"],
-	"join":                 profile.Profile["/tosca/simple/1.2/js/join.js"], // introduced in 1.2
-	"token":                profile.Profile["/tosca/simple/1.2/js/token.js"],
-	"get_input":            profile.Profile["/tosca/simple/1.2/js/get_input.js"],
-	"get_property":         profile.Profile["/tosca/simple/1.2/js/get_property.js"],
-	"get_attribute":        profile.Profile["/tosca/simple/1.2/js/get_attribute.js"],
-	"get_operation_output": profile.Profile["/tosca/simple/1.2/js/get_operation_output.js"],
-	"get_nodes_of_type":    profile.Profile["/tosca/simple/1.2/js/get_nodes_of_type.js"],
-	"get_artifact":         profile.Profile["/tosca/simple/1.2/js/get_artifact.js"],
+	"concat":               profile.Profile["/tosca/simple/1.3/js/concat.js"],
+	"join":                 profile.Profile["/tosca/simple/1.3/js/join.js"], // introduced in 1.2
+	"token":                profile.Profile["/tosca/simple/1.3/js/token.js"],
+	"get_input":            profile.Profile["/tosca/simple/1.3/js/get_input.js"],
+	"get_property":         profile.Profile["/tosca/simple/1.3/js/get_property.js"],
+	"get_attribute":        profile.Profile["/tosca/simple/1.3/js/get_attribute.js"],
+	"get_operation_output": profile.Profile["/tosca/simple/1.3/js/get_operation_output.js"],
+	"get_nodes_of_type":    profile.Profile["/tosca/simple/1.3/js/get_nodes_of_type.js"],
+	"get_artifact":         profile.Profile["/tosca/simple/1.3/js/get_artifact.js"],
 }
 
 func ToFunctionCall(context *tosca.Context) bool {

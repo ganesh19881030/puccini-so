@@ -9,18 +9,18 @@ import (
 
 // Built-in constraint functions
 var ConstraintClauseSourceCode = map[string]string{
-	"equal":            profile.Profile["/tosca/simple/1.2/js/equal.js"],
-	"greater_than":     profile.Profile["/tosca/simple/1.2/js/greater_than.js"],
-	"greater_or_equal": profile.Profile["/tosca/simple/1.2/js/greater_or_equal.js"],
-	"less_than":        profile.Profile["/tosca/simple/1.2/js/less_than.js"],
-	"less_or_equal":    profile.Profile["/tosca/simple/1.2/js/less_or_equal.js"],
-	"in_range":         profile.Profile["/tosca/simple/1.2/js/in_range.js"],
-	"valid_values":     profile.Profile["/tosca/simple/1.2/js/valid_values.js"],
-	"length":           profile.Profile["/tosca/simple/1.2/js/length.js"],
-	"min_length":       profile.Profile["/tosca/simple/1.2/js/min_length.js"],
-	"max_length":       profile.Profile["/tosca/simple/1.2/js/max_length.js"],
-	"pattern":          profile.Profile["/tosca/simple/1.2/js/pattern.js"],
-	"schema":           profile.Profile["/tosca/simple/1.2/js/schema.js"],
+	"equal":            profile.Profile["/tosca/simple/1.3/js/equal.js"],
+	"greater_than":     profile.Profile["/tosca/simple/1.3/js/greater_than.js"],
+	"greater_or_equal": profile.Profile["/tosca/simple/1.3/js/greater_or_equal.js"],
+	"less_than":        profile.Profile["/tosca/simple/1.3/js/less_than.js"],
+	"less_or_equal":    profile.Profile["/tosca/simple/1.3/js/less_or_equal.js"],
+	"in_range":         profile.Profile["/tosca/simple/1.3/js/in_range.js"],
+	"valid_values":     profile.Profile["/tosca/simple/1.3/js/valid_values.js"],
+	"length":           profile.Profile["/tosca/simple/1.3/js/length.js"],
+	"min_length":       profile.Profile["/tosca/simple/1.3/js/min_length.js"],
+	"max_length":       profile.Profile["/tosca/simple/1.3/js/max_length.js"],
+	"pattern":          profile.Profile["/tosca/simple/1.3/js/pattern.js"],
+	"schema":           profile.Profile["/tosca/simple/1.3/js/schema.js"],
 }
 
 var ConstraintClauseNativeArgumentIndexes = map[string][]uint{
