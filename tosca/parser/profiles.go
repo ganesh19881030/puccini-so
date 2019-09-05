@@ -18,7 +18,7 @@ import (
 
 var InternalProfilePaths = map[string]map[string]string{
 	"tosca_definitions_version": {
-		"tosca_simple_yaml_1_3":            simple_v1_2.ProfileInternalPath,
+		"tosca_simple_yaml_1_3":            simple_v1_3.ProfileInternalPath,
 		"tosca_simple_yaml_1_2":            simple_v1_2.ProfileInternalPath,
 		"tosca_simple_yaml_1_1":            simple_v1_1.ProfileInternalPath,
 		"tosca_simple_yaml_1_0":            simple_v1_1.ProfileInternalPath, // TODO: properly support 1.0
