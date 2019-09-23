@@ -66,6 +66,8 @@ func init() {
 	Grammar["scalar-unit.frequency"] = ReadScalarUnitFrequency
 	Grammar["ServiceTemplate"] = ReadServiceTemplate
 	Grammar["SubstitutionMappings"] = ReadSubstitutionMappings
+	Grammar["SubstitutionFilter"] = ReadSubstitutionFilter
+	Grammar["SubstitutionFilterCapability"] = ReadSubstitutionFilterCapability
 	Grammar["timestamp"] = ReadTimestamp
 	Grammar["TopologyTemplate"] = ReadTopologyTemplate
 	Grammar["TriggerDefinition"] = ReadTriggerDefinition

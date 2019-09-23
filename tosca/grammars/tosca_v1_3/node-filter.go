@@ -15,7 +15,7 @@ import (
 type NodeFilter struct {
 	*Entity `name:"node filter"`
 
-	PropertyFilters   PropertyFilters   `read:"properties,PropertyFilter"`
+	PropertyFilters   PropertyFilters   `read:"properties,{}PropertyFilter"`
 	CapabilityFilters CapabilityFilters `read:"capabilities,CapabilityFilter"`
 }
 

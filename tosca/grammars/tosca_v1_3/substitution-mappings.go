@@ -20,14 +20,18 @@ type SubstitutionMappings struct {
 	NodeTypeName        *string             `read:"node_type" require:"node_type"`
 	CapabilityMappings  CapabilityMappings  `read:"capabilities,CapabilityMapping"`
 	RequirementMappings RequirementMappings `read:"requirements,RequirementMapping"`
-	PropertyMappings    PropertyMappings    `read:"properties,PropertyMapping"`
+	PropertyMappings    Values              `read:"properties,Value"`
 	InterfaceMappings   InterfaceMappings   `read:"interfaces,InterfaceMapping"`
+	SubstitutionFilter  *SubstitutionFilter `read:"substitution_filter,SubstitutionFilter"`
 
 	NodeType *NodeType `lookup:"node_type,NodeTypeName" json:"-" yaml:"-"`
 }
 
 func NewSubstitutionMappings(context *tosca.Context) *SubstitutionMappings {
-	return &SubstitutionMappings{Entity: NewEntity(context)}
+	return &SubstitutionMappings{
+		Entity:           NewEntity(context),
+		PropertyMappings: make(Values),
+	}
 }
 
 // tosca.Reader signature
@@ -92,14 +96,12 @@ func (self *SubstitutionMappings) Normalize(s *normal.ServiceTemplate) *normal.S
 		}
 	}
 
-	for _, mapping := range self.PropertyMappings {
-		if (mapping.NodeTemplate == nil) || (mapping.PropertyName == nil) {
-			continue
-		}
+	if self.PropertyMappings != nil {
+		self.PropertyMappings.Normalize(t.PropertyMappings)
+	}
 
-		if n, ok := s.NodeTemplates[mapping.NodeTemplate.Name]; ok {
-			s.Substitution.PropertyMappings[n] = *mapping.PropertyName
-		}
+	if self.SubstitutionFilter != nil {
+		self.SubstitutionFilter.Normalize(t.NewSubstitutionFilter())
 	}
 
 	for _, mapping := range self.InterfaceMappings {

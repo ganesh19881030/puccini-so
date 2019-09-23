@@ -37,6 +37,19 @@ func NewValue(context *tosca.Context) *Value {
 
 // tosca.Reader signature
 func ReadValue(context *tosca.Context) interface{} {
+
+	parentName := context.Parent.Parent.Name
+	fieldName := context.Parent.Name
+
+	if parentName == "substitution_mappings" &&
+		fieldName == "properties" {
+
+		propData := context.Data.(ard.List)
+		newMap := make(map[string]interface{})
+		newMap["get_input"] = propData
+		context.Data = newMap
+	}
+
 	ToFunctionCall(context)
 	return NewValue(context)
 }
@@ -310,6 +323,26 @@ func (self Values) RenderProperties(definitions PropertyDefinitions, kind string
 		}
 	}
 }
+
+// func (self Values) RenderProperties(definitions ParameterDefinitions, kind string, context *tosca.Context) {
+// 	for key, definition := range definitions {
+// 		if value, ok := self[key]; !ok {
+// 			// PropertyDefinition.Required defaults to true
+// 			required := (definition.Required == nil) || *definition.Required
+// 			self.RenderMissingValue(definition.AttributeDefinition, kind, required, context)
+// 			// (If the above assigns the "default" value -- it has already been rendered elsewhere)
+// 		} else if definition.DataType != nil {
+// 			value.RenderProperty(definition.DataType, definition)
+// 		}
+// 	}
+
+// 	for key, value := range self {
+// 		if _, ok := definitions[key]; !ok {
+// 			value.Context.ReportUndefined(kind)
+// 			delete(self, key)
+// 		}
+// 	}
+// }
 
 func (self Values) RenderAttributes(definitions AttributeDefinitions, context *tosca.Context) {
 	for key, definition := range definitions {

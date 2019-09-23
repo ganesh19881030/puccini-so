@@ -224,6 +224,8 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 		SetMetadata(v, "substitution")
 		v.Properties["type"] = s.Substitution.Type
 		v.Properties["typeMetadata"] = s.Substitution.TypeMetadata
+		v.Properties["properties"] = s.Substitution.PropertyMappings
+		v.Properties["substitutionFilter"] = s.Substitution.SubstitutionFilters
 
 		for nodeTemplate, capability := range s.Substitution.CapabilityMappings {
 			vv := nodeTemplates[nodeTemplate.Name]
@@ -239,14 +241,6 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 
 			SetMetadata(e, "requirementMapping")
 			e.Properties["requirement"] = requirement
-		}
-
-		for nodeTemplate, property := range s.Substitution.PropertyMappings {
-			vv := nodeTemplates[nodeTemplate.Name]
-			e := v.NewEdgeTo(vv)
-
-			SetMetadata(e, "propertyMapping")
-			e.Properties["property"] = property
 		}
 
 		for nodeTemplate, interface_ := range s.Substitution.InterfaceMappings {
