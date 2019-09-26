@@ -95,7 +95,7 @@ func (self OperationAssignments) Render(definitions OperationDefinitions, contex
 			assignment.Implementation.Render(definition.Implementation)
 		}
 
-		assignment.Inputs.RenderProperties(definition.InputDefinitions, "input", assignment.Context.FieldChild("inputs", nil))
+		assignment.Inputs.RenderPropertiesForParameterDefinitions(definition.InputDefinitions, "input", assignment.Context.FieldChild("inputs", nil))
 	}
 
 	for key, assignment := range self {

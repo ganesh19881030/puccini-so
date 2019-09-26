@@ -68,7 +68,7 @@ func (self *InterfaceAssignment) GetDefinitionForRelationship(relationship *Rela
 }
 
 func (self *InterfaceAssignment) Render(definition *InterfaceDefinition) {
-	self.Inputs.RenderProperties(definition.InputDefinitions, "input", self.Context.FieldChild("inputs", nil))
+	self.Inputs.RenderPropertiesForParameterDefinitions(definition.InputDefinitions, "input", self.Context.FieldChild("inputs", nil))
 	self.Operations.Render(definition.OperationDefinitions, self.Context)
 }
 

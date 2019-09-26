@@ -8,6 +8,7 @@ import (
 //
 // ParameterDefinition
 //
+// [TOSCA-Simple-Profile-YAML-v1.3] @ 3.6.14
 // [TOSCA-Simple-Profile-YAML-v1.2] @ 3.6.13
 // [TOSCA-Simple-Profile-YAML-v1.1] @ 3.5.12
 //
@@ -74,5 +75,47 @@ func (self ParameterDefinitions) Render(kind string, context *tosca.Context) {
 func (self ParameterDefinitions) Normalize(c normal.Constrainables, context *tosca.Context) {
 	for key, definition := range self {
 		c[key] = definition.Normalize(context)
+	}
+}
+
+func (self *ParameterDefinition) Inherit(parentDefinition *ParameterDefinition) {
+
+	// type is not required in ParameterDefinition
+	// [TOSCA-Simple-Profile-YAML-v1.3] @ 3.6.14
+	if self.DataTypeName == nil {
+		self.typeMissingProblemReported = true
+	}
+
+	if parentDefinition != nil {
+		self.PropertyDefinition.Inherit(parentDefinition.PropertyDefinition)
+
+		if (self.Value == nil) && (parentDefinition.Value != nil) {
+			self.Value = parentDefinition.Value
+		}
+
+	} else {
+		self.PropertyDefinition.Inherit(nil)
+
+	}
+}
+
+func (self ParameterDefinitions) Inherit(parentDefinitions ParameterDefinitions) {
+	for name, definition := range parentDefinitions {
+		if _, ok := self[name]; !ok {
+			self[name] = definition
+		}
+	}
+
+	for name, definition := range self {
+		if parentDefinitions != nil {
+			if parentDefinition, ok := parentDefinitions[name]; ok {
+				if definition != parentDefinition {
+					definition.Inherit(parentDefinition)
+				}
+				continue
+			}
+		}
+
+		definition.Inherit(nil)
 	}
 }

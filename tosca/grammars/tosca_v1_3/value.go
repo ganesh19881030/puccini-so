@@ -304,6 +304,33 @@ func (self Values) RenderMissingValue(definition *AttributeDefinition, kind stri
 	}
 }
 
+func (self Values) RenderPropertiesForParameterDefinitions(definitions ParameterDefinitions, kind string, context *tosca.Context) {
+	for key, definition := range definitions {
+		if value, ok := self[key]; !ok {
+
+			self.RenderMissingValue(definition.AttributeDefinition, kind, false, context)
+			if definition.Value != nil {
+				self[definition.Name] = definition.Value
+			}
+			// (If the above assigns the "default" value -- it has already been rendered elsewhere)
+		} else if definition.DataType != nil {
+			if definition == nil {
+				value.RenderAttribute(definition.DataType, nil, false)
+			} else {
+				value.RenderAttribute(definition.DataType, definition.AttributeDefinition, false)
+				definition.ConstraintClauses.Render(&value.ConstraintClauses, definition.DataType)
+			}
+		}
+	}
+
+	for key, value := range self {
+		if _, ok := definitions[key]; !ok {
+			value.Context.ReportUndefined(kind)
+			delete(self, key)
+		}
+	}
+}
+
 func (self Values) RenderProperties(definitions PropertyDefinitions, kind string, context *tosca.Context) {
 	for key, definition := range definitions {
 		if value, ok := self[key]; !ok {
@@ -323,26 +350,6 @@ func (self Values) RenderProperties(definitions PropertyDefinitions, kind string
 		}
 	}
 }
-
-// func (self Values) RenderProperties(definitions ParameterDefinitions, kind string, context *tosca.Context) {
-// 	for key, definition := range definitions {
-// 		if value, ok := self[key]; !ok {
-// 			// PropertyDefinition.Required defaults to true
-// 			required := (definition.Required == nil) || *definition.Required
-// 			self.RenderMissingValue(definition.AttributeDefinition, kind, required, context)
-// 			// (If the above assigns the "default" value -- it has already been rendered elsewhere)
-// 		} else if definition.DataType != nil {
-// 			value.RenderProperty(definition.DataType, definition)
-// 		}
-// 	}
-
-// 	for key, value := range self {
-// 		if _, ok := definitions[key]; !ok {
-// 			value.Context.ReportUndefined(kind)
-// 			delete(self, key)
-// 		}
-// 	}
-// }
 
 func (self Values) RenderAttributes(definitions AttributeDefinitions, context *tosca.Context) {
 	for key, definition := range definitions {

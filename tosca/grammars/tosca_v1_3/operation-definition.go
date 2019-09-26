@@ -18,14 +18,14 @@ type OperationDefinition struct {
 
 	Description      *string                  `read:"description"`
 	Implementation   *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
-	InputDefinitions PropertyDefinitions      `read:"inputs,PropertyDefinition"`
+	InputDefinitions ParameterDefinitions     `read:"inputs,ParameterDefinition"`
 }
 
 func NewOperationDefinition(context *tosca.Context) *OperationDefinition {
 	return &OperationDefinition{
 		Entity:           NewEntity(context),
 		Name:             context.Name,
-		InputDefinitions: make(PropertyDefinitions),
+		InputDefinitions: make(ParameterDefinitions),
 	}
 }
 
