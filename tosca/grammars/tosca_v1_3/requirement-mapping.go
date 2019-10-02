@@ -57,7 +57,7 @@ func (self *RequirementMapping) Render() {
 	}
 
 	if !found {
-		self.Context.ListChild(1, name).ReportReferenceNotFound("requirement", self.NodeTemplate)
+		log.Warningf("%s: unknown requirement reference in Node Template \"%s\": %s", self.Context.Path, tosca.GetContext(self.NodeTemplate).Name, self.Context.Name)
 	}
 }
 
