@@ -1,6 +1,8 @@
 package tosca_v1_3
 
 import (
+	"fmt"
+
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -130,7 +132,7 @@ func (self *RequirementAssignments) Render(definitions RequirementDefinitions, c
 			}
 
 			if !definition.Occurrences.Range.InRange(count) {
-				log.Warningf("%s: number of requirement \"%s\" assignments is %d, must be >= %d and <= %d", context.Path, definition.Name, count, definition.Occurrences.Range.Lower, definition.Occurrences.Range.Upper)
+				context.ReportNotInRange(fmt.Sprintf("number of requirement \"%s\" assignments", definition.Name), count, definition.Occurrences.Range.Lower, definition.Occurrences.Range.Upper)
 			}
 		}
 	}

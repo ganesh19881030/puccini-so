@@ -51,8 +51,6 @@ node_types:
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
-      Configure:
-        type: tosca.interfaces.relationship.Configure
     capabilities:
       feature:
         type: tosca.capabilities.Node
