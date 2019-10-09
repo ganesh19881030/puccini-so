@@ -16,16 +16,18 @@ type OperationDefinition struct {
 	*Entity `name:"operation definition"`
 	Name    string
 
-	Description      *string                  `read:"description"`
-	Implementation   *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
-	InputDefinitions ParameterDefinitions     `read:"inputs,ParameterDefinition"`
+	Description       *string                  `read:"description"`
+	Implementation    *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
+	InputDefinitions  ParameterDefinitions     `read:"inputs,ParameterDefinition"`
+	OutputDefinitions AttributeMappings        `read:"outputs,AttributeMapping"`
 }
 
 func NewOperationDefinition(context *tosca.Context) *OperationDefinition {
 	return &OperationDefinition{
-		Entity:           NewEntity(context),
-		Name:             context.Name,
-		InputDefinitions: make(ParameterDefinitions),
+		Entity:            NewEntity(context),
+		Name:              context.Name,
+		InputDefinitions:  make(ParameterDefinitions),
+		OutputDefinitions: make(AttributeMappings),
 	}
 }
 
@@ -56,6 +58,7 @@ func (self *OperationDefinition) Inherit(parentDefinition *OperationDefinition) 
 		}
 
 		self.InputDefinitions.Inherit(parentDefinition.InputDefinitions)
+		self.OutputDefinitions.Inherit(parentDefinition.OutputDefinitions)
 	} else {
 		self.InputDefinitions.Inherit(nil)
 	}

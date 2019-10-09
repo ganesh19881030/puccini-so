@@ -19,13 +19,15 @@ type OperationAssignment struct {
 	Description    *string                  `read:"description"`
 	Implementation *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
 	Inputs         Values                   `read:"inputs,Value"`
+	Outputs        AttributeMappings        `read:"outputs,AttributeMapping"`
 }
 
 func NewOperationAssignment(context *tosca.Context) *OperationAssignment {
 	return &OperationAssignment{
-		Entity: NewEntity(context),
-		Name:   context.Name,
-		Inputs: make(Values),
+		Entity:  NewEntity(context),
+		Name:    context.Name,
+		Inputs:  make(Values),
+		Outputs: make(AttributeMappings),
 	}
 }
 
@@ -63,6 +65,7 @@ func (self *OperationAssignment) Normalize(i *normal.Interface) *normal.Operatio
 	}
 
 	self.Inputs.Normalize(o.Inputs)
+	self.Outputs.Normalize(i.NodeTemplate, o.Outputs)
 
 	return o
 }
@@ -96,6 +99,7 @@ func (self OperationAssignments) Render(definitions OperationDefinitions, contex
 		}
 
 		assignment.Inputs.RenderPropertiesForParameterDefinitions(definition.InputDefinitions, "input", assignment.Context.FieldChild("inputs", nil))
+		assignment.Outputs.Inherit(definition.OutputDefinitions)
 	}
 
 	for key, assignment := range self {
