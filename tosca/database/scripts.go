@@ -2,9 +2,10 @@ package database
 
 import (
 	//"fmt"
+	"strings"
+
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca/problems"
-	"strings"
 
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/parser"
@@ -21,21 +22,27 @@ func CreateScriptNamespace(grammerVersions string, internalImport string) tosca.
 	toscaContext := tosca.NewContext(problems, nil)
 
 	for _, ver := range versions {
+		var grammar tosca.Grammar
+		if toscaDef := parser.Grammars["tosca_definitions_version"]; toscaDef != nil {
+			grammar = toscaDef[ver]
+		} else if toscaDef := parser.Grammars["heat_template_version"]; toscaDef != nil {
+			grammar = toscaDef[ver]
+		}
 
-		grammar := parser.Grammars[ver]
 		reader := grammar["MergeScriptNamespace"]
 
 		reader(toscaContext)
 		paths := make([]string, 0)
 
-		toscaPath := parser.ProfileInternalPaths[ver]
+		toscaDef := parser.InternalProfilePaths["tosca_definitions_version"]
+		toscaPath := toscaDef[ver]
 		//kubePath := "/tosca/kubernetes/1.0/profile.yaml"
 		paths = append(paths, toscaPath)
 		paths = append(paths, internalImport)
 
 		for _, path := range paths {
 			if profileURL, err := url.NewValidInternalURL(path); err == nil {
-				data, _ := ard.ReadURL(profileURL)
+				data, _, _ := ard.ReadURL(profileURL, true)
 				toscaContext.URL = profileURL
 				toscaContext.Data = data["metadata"]
 				reader := grammar["Metadata"]

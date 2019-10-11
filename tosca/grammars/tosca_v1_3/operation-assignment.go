@@ -17,15 +17,17 @@ type OperationAssignment struct {
 	Name    string
 
 	Description    *string                  `read:"description"`
-	Implementation *OperationImplementation `read:"implementation,OperationImplementation"`
+	Implementation *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
 	Inputs         Values                   `read:"inputs,Value"`
+	Outputs        AttributeMappings        `read:"outputs,AttributeMapping"`
 }
 
 func NewOperationAssignment(context *tosca.Context) *OperationAssignment {
 	return &OperationAssignment{
-		Entity: NewEntity(context),
-		Name:   context.Name,
-		Inputs: make(Values),
+		Entity:  NewEntity(context),
+		Name:    context.Name,
+		Inputs:  make(Values),
+		Outputs: make(AttributeMappings),
 	}
 }
 
@@ -38,7 +40,7 @@ func ReadOperationAssignment(context *tosca.Context) interface{} {
 		context.ValidateUnsupportedFields(context.ReadFields(self))
 	} else if context.ValidateType("map", "string") {
 		// Short notation
-		self.Implementation = ReadOperationImplementation(context.FieldChild("implementation", context.Data)).(*OperationImplementation)
+		self.Implementation = ReadInterfaceImplementation(context.FieldChild("implementation", context.Data)).(*InterfaceImplementation)
 	}
 
 	return self
@@ -63,6 +65,7 @@ func (self *OperationAssignment) Normalize(i *normal.Interface) *normal.Operatio
 	}
 
 	self.Inputs.Normalize(o.Inputs)
+	self.Outputs.Normalize(i.NodeTemplate, o.Outputs)
 
 	return o
 }
@@ -88,14 +91,15 @@ func (self OperationAssignments) Render(definitions OperationDefinitions, contex
 
 		if (assignment.Implementation == nil) && (definition.Implementation != nil) {
 			// If the definition has an implementation then we must have one, too
-			assignment.Implementation = NewOperationImplementation(assignment.Context.FieldChild("implementation", nil))
+			assignment.Implementation = NewInterfaceImplementation(assignment.Context.FieldChild("implementation", nil))
 		}
 
 		if assignment.Implementation != nil {
 			assignment.Implementation.Render(definition.Implementation)
 		}
 
-		assignment.Inputs.RenderProperties(definition.InputDefinitions, "input", assignment.Context.FieldChild("inputs", nil))
+		assignment.Inputs.RenderPropertiesForParameterDefinitions(definition.InputDefinitions, "input", assignment.Context.FieldChild("inputs", nil))
+		assignment.Outputs.Inherit(definition.OutputDefinitions)
 	}
 
 	for key, assignment := range self {

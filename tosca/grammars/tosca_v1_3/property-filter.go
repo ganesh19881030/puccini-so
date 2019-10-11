@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -29,11 +30,25 @@ func NewPropertyFilter(context *tosca.Context) *PropertyFilter {
 // tosca.Reader signature
 func ReadPropertyFilter(context *tosca.Context) interface{} {
 	self := NewPropertyFilter(context)
+	if context.Is("list") {
+		//Extended notation
 
-	context.ReadListItems(ReadConstraintClause, func(item interface{}) {
-		self.ConstraintClauses = append(self.ConstraintClauses, item.(*ConstraintClause))
-	})
+		context.ReadListItems(ReadConstraintClause, func(item interface{}) {
+			self.ConstraintClauses = append(self.ConstraintClauses, item.(*ConstraintClause))
+		})
+	}
+	if context.ValidateType("map", "string") {
+		//Short notation
 
+		oldMap := context.Data.(ard.Map)
+		newMap := make(ard.Map)
+		newMap["data"] = oldMap
+		context.Data = newMap
+
+		context.ReadMapItems(ReadConstraintClause, func(item interface{}) {
+			self.ConstraintClauses = append(self.ConstraintClauses, item.(*ConstraintClause))
+		})
+	}
 	return self
 }
 
@@ -42,14 +57,14 @@ func (self *PropertyFilter) GetKey() string {
 	return self.Name
 }
 
-func (self *PropertyFilter) Normalize(functionsMap normal.FunctionsMap) normal.Functions {
+func (self *PropertyFilter) Normalize(functionCallMap normal.FunctionCallMap) normal.FunctionCalls {
 	if len(self.ConstraintClauses) == 0 {
 		return nil
 	}
 
-	functions := self.ConstraintClauses.Normalize(self.Context)
-	functionsMap[self.Name] = functions
-	return functions
+	functionCalls := self.ConstraintClauses.Normalize(self.Context)
+	functionCallMap[self.Name] = functionCalls
+	return functionCalls
 }
 
 //
@@ -58,8 +73,8 @@ func (self *PropertyFilter) Normalize(functionsMap normal.FunctionsMap) normal.F
 
 type PropertyFilters map[string]*PropertyFilter
 
-func (self PropertyFilters) Normalize(functionsMap normal.FunctionsMap) {
+func (self PropertyFilters) Normalize(functionCallMap normal.FunctionCallMap) {
 	for _, propertyFilter := range self {
-		propertyFilter.Normalize(functionsMap)
+		propertyFilter.Normalize(functionCallMap)
 	}
 }

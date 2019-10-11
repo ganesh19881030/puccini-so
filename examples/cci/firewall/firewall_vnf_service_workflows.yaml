@@ -19,27 +19,28 @@ node_types:
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
-        configure:
-          inputs:
-            trusted_list: #list of trusted links
-              type: list
-              required: false
-              entry_schema:
-                type: string
+        operations:
+          configure:
+            inputs:
+              trusted_list: #list of trusted links
+                type: list
+                required: false
+                entry_schema:
+                  type: string
 
-            untrusted_list: # list of untrusted links
-              type: list
-              required: false
-              entry_schema:
-                type: string
+              untrusted_list: # list of untrusted links
+                type: list
+                required: false
+                entry_schema:
+                  type: string
 
-            trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
-              type: integer
-              required: false
+              trusted_percentage: # % of packets which will be generated with trusted link as source, rest will be untrusted
+                type: integer
+                required: false
 
-            rate: # rate packet generation (packets/sec)
-              type: integer
-              required: false  
+              rate: # rate packet generation (packets/sec)
+                type: integer
+                required: false  
 
 topology_template:
 
@@ -75,10 +76,11 @@ topology_template:
 
         interfaces:
           Standard:
-            configure:
-              inputs:
-                trusted_list: { get_input: trusted_list }
-                untrusted_list: { get_input: untrusted_list }
+            operations:
+              configure:
+                inputs:
+                  trusted_list: { get_input: trusted_list }
+                  untrusted_list: { get_input: untrusted_list }
 
     packet_generator:
         type: FWCompute
@@ -87,12 +89,13 @@ topology_template:
 
         interfaces:
           Standard:
-            configure:
-              inputs:
-                trusted_list: { get_input: trusted_list }
-                untrusted_list: { get_input: trusted_list }
-                trusted_percentage: { get_input: trusted_percentage }
-                rate: { get_input: rate }
+            operations:
+              configure:
+                inputs:
+                  trusted_list: { get_input: trusted_list }
+                  untrusted_list: { get_input: trusted_list }
+                  trusted_percentage: { get_input: trusted_percentage }
+                  rate: { get_input: rate }
 
     sink:
         type: FWCompute

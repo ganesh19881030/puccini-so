@@ -3,7 +3,7 @@
 package v1_3
 
 func init() {
-	Profile["/tosca/simple/1.2/js/equal.js"] = `
+	Profile["/tosca/simple/1.3/js/equal.js"] = `
 
 // [TOSCA-Simple-Profile-YAML-v1.3] @ 3.6.3
 // [TOSCA-Simple-Profile-YAML-v1.2] @ 3.6.3

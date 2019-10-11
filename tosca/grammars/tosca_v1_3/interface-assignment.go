@@ -16,23 +16,25 @@ type InterfaceAssignment struct {
 	*Entity `name:"interface" json:"-" yaml:"-"`
 	Name    string
 
-	Inputs     Values               `read:"inputs,Value"`
-	Operations OperationAssignments `read:"?,OperationAssignment"`
+	Inputs        Values                  `read:"inputs,Value"`
+	Operations    OperationAssignments    `read:"operations,OperationAssignment"`
+	Notifications NotificationAssignments `read:"notifications,NotificationAssignment"`
 }
 
 func NewInterfaceAssignment(context *tosca.Context) *InterfaceAssignment {
 	return &InterfaceAssignment{
-		Entity:     NewEntity(context),
-		Name:       context.Name,
-		Inputs:     make(Values),
-		Operations: make(OperationAssignments),
+		Entity:        NewEntity(context),
+		Name:          context.Name,
+		Inputs:        make(Values),
+		Operations:    make(OperationAssignments),
+		Notifications: make(NotificationAssignments),
 	}
 }
 
 // tosca.Reader signature
 func ReadInterfaceAssignment(context *tosca.Context) interface{} {
 	self := NewInterfaceAssignment(context)
-	context.ReadFields(self)
+	context.ValidateUnsupportedFields(context.ReadFields(self))
 	return self
 }
 
@@ -66,7 +68,7 @@ func (self *InterfaceAssignment) GetDefinitionForRelationship(relationship *Rela
 }
 
 func (self *InterfaceAssignment) Render(definition *InterfaceDefinition) {
-	self.Inputs.RenderProperties(definition.InputDefinitions, "input", self.Context.FieldChild("inputs", nil))
+	self.Inputs.RenderPropertiesForParameterDefinitions(definition.InputDefinitions, "input", self.Context.FieldChild("inputs", nil))
 	self.Operations.Render(definition.OperationDefinitions, self.Context)
 }
 
@@ -108,6 +110,8 @@ func (self InterfaceAssignments) Render(definitions InterfaceDefinitions, contex
 			delete(self, key)
 		}
 	}
+
+	// TODO: notifications
 }
 
 func (self InterfaceAssignments) NormalizeForNodeTemplate(nodeTemplate *NodeTemplate, n *normal.NodeTemplate) {

@@ -2,11 +2,11 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
-	"encoding/json"
 
 	"github.com/tliron/puccini/common"
 
@@ -93,4 +93,33 @@ func SaveCloutGraph(dgraphSet *DgraphSet, dburl string) {
 			fmt.Println("name:", key, ",  value:", value)
 		}
 	}
+}
+
+func getDgraphClient(dburl string) (*dgo.Dgraph, error) {
+	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
+	if err != nil {
+		common.FailOnError(err)
+	}
+	defer conn.Close()
+	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+
+	return dgraphClient, err
+
+}
+func SaveSchema(dburl string) error {
+	ctx := context.Background()
+	op := &api.Operation{}
+	op.Schema = `
+		<tosca:name>: string @index(exact) .
+		<tosca:type>: string @index(exact) .
+	`
+	dg, err := getDgraphClient(dburl)
+	if err != nil {
+		common.FailOnError(err)
+	}
+	if err := dg.Alter(ctx, op); err != nil {
+		log.Fatal(err)
+	}
+
+	return err
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
+
 	//"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/compiler"
 	"github.com/tliron/puccini/tosca/database"
@@ -80,7 +81,7 @@ func Compile(urlString string) {
 
 		//grammarVersion = grammarVersion[1:strings.LastIndex(grammarVersion, ".")]
 
-		database.Persist(clout, urlString, context.GrammerVersions, internalImport)
+		database.Persist(clout, s, urlString, context.GrammerVersions, internalImport)
 	}
 
 	if !common.Quiet || (output != "") {

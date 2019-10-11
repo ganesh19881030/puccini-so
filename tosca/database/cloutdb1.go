@@ -11,23 +11,35 @@ import (
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
+	"github.com/tliron/puccini/tosca/normal"
 )
 
 // CloutDB1 defines an implementation of CloutDB
 type CloutDB1 struct {
 	Dburl string
+	clout bool
 }
 
 // NewCloutDb1 creates a CloutDB1 instance
 func NewCloutDb1(dburl string) CloutDB {
-	return CloutDB1{dburl}
+	return CloutDB1{dburl, true}
 }
 
-// Save method implementation of CloutDB interface for CloutDB1 instance
+// SaveServiceTemplate method implementation of CloutDB interface for CloutDB1 instance
+func (db CloutDB1) SaveServiceTemplate(s *normal.ServiceTemplate, urlString string, grammarVersion string, internalImport string) error {
+	return nil
+}
+
+// IsCloutCapable - true if it handles clout structure, false otherwise
+func (db CloutDB1) IsCloutCapable() bool {
+	return db.clout
+}
+
+// SaveClout method implementation of CloutDB interface for CloutDB1 instance
 //
 // It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
-func (db CloutDB1) Save(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
+func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
 	var printout = false
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {

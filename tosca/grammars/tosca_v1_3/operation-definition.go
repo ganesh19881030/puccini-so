@@ -16,16 +16,18 @@ type OperationDefinition struct {
 	*Entity `name:"operation definition"`
 	Name    string
 
-	Description      *string                  `read:"description"`
-	Implementation   *OperationImplementation `read:"implementation,OperationImplementation"`
-	InputDefinitions PropertyDefinitions      `read:"inputs,PropertyDefinition"`
+	Description       *string                  `read:"description"`
+	Implementation    *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
+	InputDefinitions  ParameterDefinitions     `read:"inputs,ParameterDefinition"`
+	OutputDefinitions AttributeMappings        `read:"outputs,AttributeMapping"`
 }
 
 func NewOperationDefinition(context *tosca.Context) *OperationDefinition {
 	return &OperationDefinition{
-		Entity:           NewEntity(context),
-		Name:             context.Name,
-		InputDefinitions: make(PropertyDefinitions),
+		Entity:            NewEntity(context),
+		Name:              context.Name,
+		InputDefinitions:  make(ParameterDefinitions),
+		OutputDefinitions: make(AttributeMappings),
 	}
 }
 
@@ -38,7 +40,7 @@ func ReadOperationDefinition(context *tosca.Context) interface{} {
 		context.ValidateUnsupportedFields(context.ReadFields(self))
 	} else if context.ValidateType("map", "string") {
 		// Short notation
-		self.Implementation = ReadOperationImplementation(context.FieldChild("implementation", context.Data)).(*OperationImplementation)
+		self.Implementation = ReadInterfaceImplementation(context.FieldChild("implementation", context.Data)).(*InterfaceImplementation)
 	}
 
 	return self
@@ -56,6 +58,7 @@ func (self *OperationDefinition) Inherit(parentDefinition *OperationDefinition) 
 		}
 
 		self.InputDefinitions.Inherit(parentDefinition.InputDefinitions)
+		self.OutputDefinitions.Inherit(parentDefinition.OutputDefinitions)
 	} else {
 		self.InputDefinitions.Inherit(nil)
 	}
@@ -71,7 +74,7 @@ func (self *OperationDefinition) Normalize(o *normal.Operation) {
 	}
 
 	// TODO: input definitions
-	//self.InputsDefinitions.Normalize(o.Inputs)
+	//self.InputDefinitions.Normalize(o.Inputs)
 }
 
 //

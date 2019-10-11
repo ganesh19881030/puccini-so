@@ -62,15 +62,16 @@ type Interfaces map[string]*Interface
 //
 
 type Operation struct {
-	Interface      *Interface     `json:"-" yaml:"-"`
-	PolicyTrigger  *PolicyTrigger `json:"-" yaml:"-"`
-	Name           string         `json:"-" yaml:"-"`
-	Description    string         `json:"description" yaml:"description"`
-	Implementation string         `json:"implementation" yaml:"implementation"`
-	Dependencies   []string       `json:"dependencies" yaml:"dependencies"`
-	Inputs         Constrainables `json:"inputs" yaml:"inputs"`
-	Timeout        int64          `json:"timeout" yaml:"timeout"`
-	Host           string         `json:"host" yaml:"host"`
+	Interface      *Interface        `json:"-" yaml:"-"`
+	PolicyTrigger  *PolicyTrigger    `json:"-" yaml:"-"`
+	Name           string            `json:"-" yaml:"-"`
+	Description    string            `json:"description" yaml:"description"`
+	Implementation string            `json:"implementation" yaml:"implementation"`
+	Dependencies   []string          `json:"dependencies" yaml:"dependencies"`
+	Inputs         Constrainables    `json:"inputs" yaml:"inputs"`
+	Timeout        int64             `json:"timeout" yaml:"timeout"`
+	Host           string            `json:"host" yaml:"host"`
+	Outputs        AttributeMappings `json:"outputs" yaml:"outputs"`
 }
 
 func (self *Interface) NewOperation(name string) *Operation {
@@ -79,6 +80,7 @@ func (self *Interface) NewOperation(name string) *Operation {
 		Name:         name,
 		Dependencies: make([]string, 0),
 		Inputs:       make(Constrainables),
+		Outputs:      make(AttributeMappings),
 		Timeout:      -1,
 	}
 	self.Operations[name] = operation

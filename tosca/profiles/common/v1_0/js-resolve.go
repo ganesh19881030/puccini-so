@@ -68,7 +68,7 @@ function resolve(sourceVertex, sourceNodeTemplate, requirement) {
 
 	var candidates = gatherCandidateNodeTemplates(sourceVertex, requirement);
 	if (candidates.length === 0) {
-		unsatisfied(path, name, 'there are no candidate node templates');
+		puccini.log.warningf(path, name, 'there are no candidate node templates');
 		return;
 	}
 

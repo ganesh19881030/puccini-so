@@ -1,8 +1,6 @@
 package tosca_v1_3
 
 import (
-	"fmt"
-
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -70,7 +68,7 @@ func (self *RequirementAssignment) GetDefinition(nodeTemplate *NodeTemplate) (*R
 }
 
 func (self *RequirementAssignment) Normalize(nodeTemplate *NodeTemplate, s *normal.ServiceTemplate, n *normal.NodeTemplate) *normal.Requirement {
-	r := n.NewRequirement(self.Name, self.Context.Path)
+	r := n.NewRequirement(self.Name, self.Context.Path.String())
 
 	if self.TargetCapabilityType != nil {
 		r.CapabilityTypeName = &self.TargetCapabilityType.Name
@@ -132,7 +130,7 @@ func (self *RequirementAssignments) Render(definitions RequirementDefinitions, c
 			}
 
 			if !definition.Occurrences.Range.InRange(count) {
-				context.ReportNotInRange(fmt.Sprintf("number of requirement \"%s\" assignments", definition.Name), count, definition.Occurrences.Range.Lower, definition.Occurrences.Range.Upper)
+				log.Warningf("%s: number of requirement \"%s\" assignments is %d, must be >= %d and <= %d", context.Path, definition.Name, count, definition.Occurrences.Range.Lower, definition.Occurrences.Range.Upper)
 			}
 		}
 	}

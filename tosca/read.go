@@ -58,7 +58,7 @@ func (self *Context) ReadFields(entityPtr interface{}) []string {
 	*/
 	if self.Parent != nil &&
 		strings.EqualFold(self.Parent.Name, "properties") &&
-		strings.HasPrefix(self.Path, "node_types") &&
+		strings.HasPrefix(self.Path.String(), "node_types") &&
 		!self.Is("map") {
 
 		value := self.Data
