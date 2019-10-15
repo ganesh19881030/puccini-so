@@ -28,7 +28,7 @@ var execCmd = &cobra.Command{
 		//}
 
 		//clout_, err := ReadClout(path)
-		clout_, _, err := ReadCloutFromDgraph(name)
+		clout_, err := ReadCloutFromDgraph(name)
 		common.FailOnError(err)
 
 		// Try loading JavaScript from Clout

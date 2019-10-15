@@ -25,7 +25,7 @@ import (
 
 var VERSION string
 
-func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
+func createCloutOutput(dburl string, name string) *clout.Clout {
 
 	//conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
 	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
@@ -54,7 +54,6 @@ func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 	// Query the clout vertex by name
 	const q = `query all($name: string) {
 		all(func: eq(<clout:name>, $name)) {
-			uid
 			expand(_all_) {
 				expand(_all_) {
 				  expand(_all_)
@@ -68,7 +67,7 @@ func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
 	if err != nil {
 		//log.Fatal(err)
-		return nil, ""
+		return nil
 	}
 
 	var result map[string]interface{}
@@ -77,19 +76,19 @@ func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 		log.Fatal(err)
 	}
 
-	cloutOutput, uid := createClout(result)
+	cloutOutput := createClout(result)
 
 	// Write into a file
-	file, _ := json.MarshalIndent(cloutOutput, "", "  ")
+	//file, _ := json.MarshalIndent(cloutOutput, "", "  ")
 	//file, _ := yaml.Marshal(cloutOutput)
 
-	_ = ioutil.WriteFile("workflows_dgraph.json", file, 0644)
+	//_ = ioutil.WriteFile("workflows_dgraph.json", file, 0644)
 
-	return cloutOutput, uid
+	return cloutOutput
 
 }
 
-func createClout(result map[string]interface{}) (*clout.Clout, string) {
+func createClout(result map[string]interface{}) *clout.Clout {
 	cloutOutput := clout.NewClout()
 	queryData := result["all"].([]interface{})
 
@@ -97,8 +96,6 @@ func createClout(result map[string]interface{}) (*clout.Clout, string) {
 		log.Fatal("No results retrieved from the database")
 	}
 	cloutMap := queryData[0].(map[string]interface{})
-
-	uid := cloutMap["uid"].(string)
 
 	timestamp, err := common.Timestamp()
 	if err != nil {
@@ -167,7 +164,7 @@ func createClout(result map[string]interface{}) (*clout.Clout, string) {
 
 	addPolicies(vertexList, nodeTemplates, groups, operations, cloutOutput)
 
-	return cloutOutput, uid
+	return cloutOutput
 }
 
 func addNodeTemplates(vertexList []interface{}, cloutOutput *clout.Clout) map[string]*clout.Vertex {
