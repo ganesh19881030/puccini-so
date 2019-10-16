@@ -4,7 +4,7 @@ import (
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
-	profile "github.com/tliron/puccini/tosca/profiles/simple/v1_2"
+	profile "github.com/tliron/puccini/tosca/profiles/simple/v1_3"
 )
 
 //

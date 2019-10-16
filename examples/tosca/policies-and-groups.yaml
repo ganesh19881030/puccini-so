@@ -73,13 +73,13 @@ topology_template:
 
   policies:
 
-    backup:
-      type: ContinuousBackup
-      properties:
-        frequency: .5 d
-      targets:
-      # Target node templates and groups must match our definition at the policy type
-      # (Can include derived types)
-      - storage
-      - server2
-      - redundants
+    - backup:
+        type: ContinuousBackup
+        properties:
+          frequency: .5 d
+        targets:
+        # Target node templates and groups must match our definition at the policy type
+        # (Can include derived types)
+        - storage
+        - server2
+        - redundants
