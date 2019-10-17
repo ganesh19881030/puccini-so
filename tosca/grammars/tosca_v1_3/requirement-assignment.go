@@ -78,7 +78,8 @@ func (self *RequirementAssignment) Normalize(nodeTemplate *NodeTemplate, s *norm
 
 	if self.TargetNodeType != nil {
 		r.NodeTypeName = &self.TargetNodeType.Name
-	} else if self.TargetNodeTemplate != nil {
+	}
+	if self.TargetNodeTemplate != nil {
 		r.NodeTemplate = s.NodeTemplates[self.TargetNodeTemplate.Name]
 	}
 
@@ -131,6 +132,9 @@ func (self *RequirementAssignments) Render(definitions RequirementDefinitions, c
 
 			if !definition.Occurrences.Range.InRange(count) {
 				log.Warningf("%s: number of requirement \"%s\" assignments is %d, must be >= %d and <= %d", context.Path, definition.Name, count, definition.Occurrences.Range.Lower, definition.Occurrences.Range.Upper)
+
+				//store dangling requirements
+				*self = append(*self, NewDefaultRequirementAssignment(len(*self), definition, context))
 			}
 		}
 	}

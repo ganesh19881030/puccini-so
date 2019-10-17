@@ -15,3 +15,4 @@ build () {
 
 build puccini-tosca
 build puccini-js
+build so
