@@ -22,8 +22,9 @@ type NotificationDefinition struct {
 
 func NewNotificationDefinition(context *tosca.Context) *NotificationDefinition {
 	return &NotificationDefinition{
-		Entity: NewEntity(context),
-		Name:   context.Name,
+		Entity:            NewEntity(context),
+		Name:              context.Name,
+		OutputDefinitions: make(AttributeMappings),
 	}
 }
 

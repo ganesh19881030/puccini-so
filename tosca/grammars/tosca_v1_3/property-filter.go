@@ -36,8 +36,7 @@ func ReadPropertyFilter(context *tosca.Context) interface{} {
 		context.ReadListItems(ReadConstraintClause, func(item interface{}) {
 			self.ConstraintClauses = append(self.ConstraintClauses, item.(*ConstraintClause))
 		})
-	}
-	if context.ValidateType("map", "string") {
+	} else if context.ValidateType("map", "string") {
 		//Short notation
 
 		oldMap := context.Data.(ard.Map)
