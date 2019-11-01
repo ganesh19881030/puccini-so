@@ -15,10 +15,10 @@ import (
 type InterfaceImplementation struct {
 	*Entity `name:"operation implementation"`
 
-	Primary       *string   `read:"primary"`
-	Dependencies  *[]string `read:"dependencies"`
-	Timeout       *int64    `read:"timeout"`
-	OperationHost *string   `read:"operation_host"`
+	Primary       *string                `read:"primary"`
+	Dependencies  ArtifactDefinitionList `read:"dependencies,[]ArtifactDefinition"`
+	Timeout       *int64                 `read:"timeout"`
+	OperationHost *string                `read:"operation_host"`
 }
 
 func NewInterfaceImplementation(context *tosca.Context) *InterfaceImplementation {
@@ -85,7 +85,7 @@ func (self *InterfaceImplementation) Normalize(o *normal.Operation) {
 	}
 
 	if self.Dependencies != nil {
-		o.Dependencies = *self.Dependencies
+		self.Dependencies.Normalize(o)
 	}
 
 	if self.Timeout != nil {

@@ -25,8 +25,20 @@ func (self *NodeTemplate) NewArtifact(name string) *Artifact {
 	return artifact
 }
 
+func (self *Operation) NewArtifact(name string) *Artifact {
+	artifact := &Artifact{
+		Name:       name,
+		Types:      make(Types),
+		Properties: make(Constrainables),
+	}
+	self.Dependencies = append(self.Dependencies, artifact)
+
+	return artifact
+}
+
 //
 // Artifacts
 //
 
 type Artifacts map[string]*Artifact
+type ArtifactList []*Artifact

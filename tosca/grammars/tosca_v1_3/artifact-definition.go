@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/tliron/puccini/tosca"
+	"github.com/tliron/puccini/tosca/normal"
 )
 
 //
@@ -121,6 +122,7 @@ func (self *ArtifactDefinition) Inherit(parentDefinition *ArtifactDefinition) {
 //
 
 type ArtifactDefinitions map[string]*ArtifactDefinition
+type ArtifactDefinitionList []*ArtifactDefinition
 
 func (self ArtifactDefinitions) Inherit(parentDefinitions ArtifactDefinitions) {
 	for name, definition := range parentDefinitions {
@@ -136,6 +138,30 @@ func (self ArtifactDefinitions) Inherit(parentDefinitions ArtifactDefinitions) {
 			}
 		} else {
 			definition.Inherit(nil)
+		}
+	}
+}
+
+func (selfList ArtifactDefinitionList) Normalize(o *normal.Operation) {
+	for _, self := range selfList {
+		log.Debugf("{normalize} artifact: %s", self.Name)
+		a := o.NewArtifact(self.Name)
+
+		if self.Description != nil {
+			a.Description = *self.Description
+		}
+
+		if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
+			a.Types = types
+		}
+
+		self.Properties.Normalize(a.Properties)
+
+		if self.File != nil {
+			a.SourcePath = *self.File
+		}
+		if self.DeployPath != nil {
+			a.TargetPath = *self.DeployPath
 		}
 	}
 }

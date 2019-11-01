@@ -15,6 +15,7 @@ type RequirementDefinition struct {
 	*Entity `name:"requirement definition"`
 	Name    string
 
+	Description              *string                 `read:"description"`
 	TargetCapabilityTypeName *string                 `read:"capability"` // required only if cannot be inherited
 	TargetNodeTypeName       *string                 `read:"node"`
 	RelationshipDefinition   *RelationshipDefinition `read:"relationship,RelationshipDefinition"`
@@ -72,6 +73,9 @@ func (self *RequirementDefinition) Inherit(parentDefinition *RequirementDefiniti
 		}
 		if (self.TargetNodeType == nil) && (parentDefinition.TargetNodeType != nil) {
 			self.TargetNodeType = parentDefinition.TargetNodeType
+		}
+		if (self.Description == nil) && (parentDefinition.Description != nil) {
+			self.Description = parentDefinition.Description
 		}
 
 		// Validate type compatibility
