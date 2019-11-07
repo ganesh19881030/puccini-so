@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -44,7 +45,16 @@ func ReadSubstitutionMappings(context *tosca.Context) interface{} {
 	}
 
 	self := NewSubstitutionMappings(context)
-	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.Is("map") {
+		oldMap := context.Data.(ard.Map)
+		newMap := make(ard.Map)
+		newMap[context.Name] = oldMap
+		context.Data = newMap
+		context.ValidateUnsupportedFields(context.ReadFields(self))
+	} else if context.ValidateType("map", "string") {
+		self.NodeTypeName = context.FieldChild("node_type", context.Data).ReadString()
+	}
+
 	return self
 }
 
@@ -110,9 +120,18 @@ func (self *SubstitutionMappings) Normalize(s *normal.ServiceTemplate) *normal.S
 		}
 
 		if n, ok := s.NodeTemplates[mapping.NodeTemplate.Name]; ok {
-			s.Substitution.InterfaceMappings[n] = *mapping.InterfaceName
+			t.InterfaceMappings[n] = *mapping.InterfaceName
 		}
 	}
 
 	return t
 }
+
+func (self SubstitutionMappingsList) Normalize(s *normal.ServiceTemplate) {
+	for _, sub := range self {
+		sub.Normalize(s)
+	}
+}
+
+//SubstitutionMappingsList ...
+type SubstitutionMappingsList []*SubstitutionMappings

@@ -24,15 +24,18 @@ type Meta struct {
 	CsarVersion      *Version
 	Creator          string
 	EntryDefinitions string
+	OtherDefinitions []string
 }
 
 func ReadMeta(reader io.Reader) (*Meta, error) {
 	scanner := bufio.NewScanner(reader)
 
 	data := make(map[string]string)
+	otherDefData := make(map[string][]string)
 
 	var l uint
 	var current string
+	var otherDefName string
 	for scanner.Scan() {
 		line := scanner.Text()
 		l += 1
@@ -50,18 +53,25 @@ func ReadMeta(reader io.Reader) (*Meta, error) {
 		}
 
 		split := strings.Split(line, ": ")
-		if len(split) != 2 {
-			return nil, fmt.Errorf("malformed line %d in TOSCA.meta: %s", l, line)
-		}
+		if len(split) == 2 {
+			// New current name
+			current = split[0]
 
-		// New current name
-		current = split[0]
-
-		switch current {
-		case "TOSCA-Meta-File-Version", "CSAR-Version", "Created-By", "Entry-Definitions":
-			data[current] += split[1]
-		default:
-			return nil, fmt.Errorf("unsupported name in TOSCA.meta line %d: %s", l, current)
+			switch current {
+			case "TOSCA-Meta-File-Version", "CSAR-Version", "Created-By", "Entry-Definitions":
+				data[current] += split[1]
+			default:
+				return nil, fmt.Errorf("unsupported name in TOSCA.meta line %d: %s", l, current)
+			}
+		} else if split[0] == "Other-Definitions:" {
+			otherDefName = split[0]
+		} else {
+			if otherDefName != "" {
+				current = split[0]
+				otherDefData[otherDefName] = append(otherDefData[otherDefName], current)
+			} else {
+				return nil, fmt.Errorf("malformed line %d in TOSCA.meta: %s", l, line)
+			}
 		}
 	}
 
@@ -87,6 +97,10 @@ func ReadMeta(reader io.Reader) (*Meta, error) {
 		case "Entry-Definitions":
 			self.EntryDefinitions = value
 		}
+	}
+
+	for _, value := range otherDefData {
+		self.OtherDefinitions = value
 	}
 
 	if err := require(data, "TOSCA-Meta-File-Version", "CSAR-Version", "Created-By"); err != nil {

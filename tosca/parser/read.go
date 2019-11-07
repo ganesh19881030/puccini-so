@@ -39,15 +39,62 @@ func (self *Context) read(promise Promise, toscaContext *tosca.Context, containe
 
 	log.Infof("{read} %s: %s", readerName, toscaContext.URL.Key())
 
+	serviceTemplateURLs := []url.URL{}
+	var serviceTemplateUnit *Unit
+	isServiceTemplateReady := false
 	switch toscaContext.URL.Format() {
 	case "csar", "zip":
 		var err error
-		if toscaContext.URL, err = csar.GetServiceTemplateURL(toscaContext.URL); err != nil {
+
+		if serviceTemplateURLs, err = csar.GetServiceTemplateURL(toscaContext.URL); err != nil {
 			toscaContext.ReportError(err)
 			return nil, false
 		}
+
+		var serviceTemplateEntityPtr interface{}
+
+		for index, serviceTemplateURL := range serviceTemplateURLs {
+			toscaContext.URL = serviceTemplateURL
+			log.Infof("{read} toscaContext.URL: %s", toscaContext.URL)
+			if index == 0 {
+				serviceTemplateEntityPtr, _ = createEntityPtr(toscaContext, readerName)
+				// Detect CallFunction
+				if !DetectCallFunction(toscaContext) {
+					return nil, false
+				}
+			} else {
+				currentEntityPtr, _ := createEntityPtr(toscaContext, readerName)
+
+				read, _ := toscaContext.CallFunction["AppendUnitsInServiceTemplate"]
+				read(currentEntityPtr, serviceTemplateEntityPtr, "")
+				readName, _ := toscaContext.CallFunction["AppendTopologyTemplatesInServiceTemplate"]
+				readName(currentEntityPtr, serviceTemplateEntityPtr, serviceTemplateURL.(*url.ZipURL).Path)
+			}
+		}
+
+		toscaContext.URL = serviceTemplateURLs[0]
+		unit := NewUnit(serviceTemplateEntityPtr, container, nameTransfomer)
+		self.AddUnit(unit)
+		self.goReadImports(unit)
+		isServiceTemplateReady = true
+		serviceTemplateUnit = unit
 	}
 
+	if !isServiceTemplateReady {
+		log.Infof("{read} toscaContext.URL: %s", toscaContext.URL)
+		entityPtr, success := createEntityPtr(toscaContext, readerName)
+		if !success {
+			return nil, false
+		}
+		serviceTemplateUnit = NewUnit(entityPtr, container, nameTransfomer)
+		self.AddUnit(serviceTemplateUnit)
+		self.goReadImports(serviceTemplateUnit)
+	}
+
+	return serviceTemplateUnit, true
+}
+
+func createEntityPtr(toscaContext *tosca.Context, readerName string) (interface{}, bool) {
 	// Read ARD
 	var err error
 	if toscaContext.Data, toscaContext.Locator, err = ard.ReadURL(toscaContext.URL, true); err != nil {
@@ -76,12 +123,7 @@ func (self *Context) read(promise Promise, toscaContext *tosca.Context, containe
 
 	cache.Store(toscaContext.URL.Key(), entityPtr)
 
-	unit := NewUnit(entityPtr, container, nameTransfomer)
-	self.AddUnit(unit)
-
-	self.goReadImports(unit)
-
-	return unit, true
+	return entityPtr, true
 }
 
 // From Importer interface

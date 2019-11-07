@@ -15,15 +15,15 @@ import (
 type TopologyTemplate struct {
 	*Entity `name:"topology template"`
 
-	Description                *string               `read:"description"`
-	NodeTemplates              NodeTemplates         `read:"node_templates,NodeTemplate"`
-	RelationshipTemplates      RelationshipTemplates `read:"relationship_templates,RelationshipTemplate"`
-	Groups                     Groups                `read:"groups,Group"`
-	Policies                   Policies              `read:"policies,{}Policy"`
-	InputParameterDefinitions  ParameterDefinitions  `read:"inputs,ParameterDefinition"`
-	OutputParameterDefinitions ParameterDefinitions  `read:"outputs,ParameterDefinition"`
-	WorkflowDefinitions        WorkflowDefinitions   `read:"workflows,WorkflowDefinition"`
-	SubstitutionMappings       *SubstitutionMappings `read:"substitution_mappings,SubstitutionMappings"`
+	Description                *string                  `read:"description"`
+	NodeTemplates              NodeTemplates            `read:"node_templates,NodeTemplate"`
+	RelationshipTemplates      RelationshipTemplates    `read:"relationship_templates,RelationshipTemplate"`
+	Groups                     Groups                   `read:"groups,Group"`
+	Policies                   Policies                 `read:"policies,{}Policy"`
+	InputParameterDefinitions  ParameterDefinitions     `read:"inputs,ParameterDefinition"`
+	OutputParameterDefinitions ParameterDefinitions     `read:"outputs,ParameterDefinition"`
+	WorkflowDefinitions        WorkflowDefinitions      `read:"workflows,WorkflowDefinition"`
+	SubstitutionMappings       SubstitutionMappingsList `read:"substitution_mappings,SubstitutionMappings"`
 }
 
 func NewTopologyTemplate(context *tosca.Context) *TopologyTemplate {
@@ -39,6 +39,7 @@ func NewTopologyTemplate(context *tosca.Context) *TopologyTemplate {
 func ReadTopologyTemplate(context *tosca.Context) interface{} {
 	self := NewTopologyTemplate(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	setSubstitutionMapping(self)
 	return self
 }
 
@@ -117,4 +118,41 @@ func (self *TopologyTemplate) Normalize(s *normal.ServiceTemplate) {
 	if self.SubstitutionMappings != nil {
 		self.SubstitutionMappings.Normalize(s)
 	}
+}
+
+func setSubstitutionMapping(self *TopologyTemplate) {
+	substitutionMappingList := self.SubstitutionMappings
+	if substitutionMappingList == nil || len(substitutionMappingList) == 0 {
+		return
+	}
+
+	var substitutionMapping SubstitutionMappings
+	for _, substitution := range substitutionMappingList {
+		if substitution.NodeTypeName != nil {
+			substitutionMapping.NodeTypeName = substitution.NodeTypeName
+		}
+		if substitution.CapabilityMappings != nil {
+			substitutionMapping.CapabilityMappings = substitution.CapabilityMappings
+		}
+		if substitution.RequirementMappings != nil {
+			substitutionMapping.RequirementMappings = substitution.RequirementMappings
+		}
+		if substitution.PropertyMappings != nil && len(substitution.PropertyMappings) != 0 {
+			substitutionMapping.PropertyMappings = substitution.PropertyMappings
+		}
+		if substitution.InterfaceMappings != nil {
+			substitutionMapping.InterfaceMappings = substitution.InterfaceMappings
+		}
+		if substitution.SubstitutionFilter != nil {
+			substitutionMapping.SubstitutionFilter = substitution.SubstitutionFilter
+		}
+		if substitution.NodeType != nil {
+			substitutionMapping.NodeType = substitution.NodeType
+		}
+		substitutionMapping.Entity = substitution.Entity
+	}
+	self.SubstitutionMappings = nil
+	substitutionMapping.Entity.Context.Name = "substitution_mappings"
+	substitutionMapping.Entity.Context.Data = substitutionMapping
+	self.SubstitutionMappings = append(self.SubstitutionMappings, &substitutionMapping)
 }

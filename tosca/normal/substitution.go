@@ -29,9 +29,11 @@ func (self *ServiceTemplate) NewSubstitution() *Substitution {
 		InterfaceMappings:   make(map[*NodeTemplate]string),
 		SubstitutionFilters: make(SubstitutionFilters, 0),
 	}
-	self.Substitution = substitutionMappings
+	self.Substitution = append(self.Substitution, substitutionMappings)
 	return substitutionMappings
 }
+
+type Substitutions []*Substitution
 
 func (self *Substitution) Marshalable() interface{} {
 	capabilityMappings := make(map[string]string)

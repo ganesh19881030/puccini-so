@@ -16,7 +16,7 @@ type ServiceTemplate struct {
 	Inputs          Constrainables        `json:"inputs" yaml:"inputs"`
 	Outputs         Constrainables        `json:"outputs" yaml:"outputs"`
 	Workflows       Workflows             `json:"workflows" yaml:"workflows"`
-	Substitution    *Substitution         `json:"substitution" yaml:"substitution"`
+	Substitution    Substitutions         `json:"substitution" yaml:"substitution"`
 	Metadata        map[string]string     `json:"metadata" yaml:"metadata"`
 	ScriptNamespace tosca.ScriptNamespace `json:"scriptNamespace" yaml:"scriptNamespace"`
 }

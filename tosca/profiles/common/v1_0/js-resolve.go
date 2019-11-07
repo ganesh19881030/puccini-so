@@ -302,9 +302,6 @@ function isSubstituted(nodeTemplateName, requirementName) {
 				if ((edge.target.properties.name === nodeTemplateName) && (edge.properties.requirement === requirementName))
 					return true;
 			}
-
-			// There's only ever one substitution
-			return false;
 		}
 	}
 

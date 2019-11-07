@@ -218,37 +218,39 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 	}
 
 	// Substitution
-	if s.Substitution != nil {
-		v := clout_.NewVertex(clout.NewKey())
+	for _, substitution := range s.Substitution {
+		if substitution != nil {
+			v := clout_.NewVertex(clout.NewKey())
 
-		SetMetadata(v, "substitution")
-		v.Properties["type"] = s.Substitution.Type
-		v.Properties["typeMetadata"] = s.Substitution.TypeMetadata
-		v.Properties["properties"] = s.Substitution.PropertyMappings
-		v.Properties["substitutionFilter"] = s.Substitution.SubstitutionFilters
+			SetMetadata(v, "substitution")
+			v.Properties["type"] = substitution.Type
+			v.Properties["typeMetadata"] = substitution.TypeMetadata
+			v.Properties["properties"] = substitution.PropertyMappings
+			v.Properties["substitutionFilter"] = substitution.SubstitutionFilters
 
-		for nodeTemplate, capability := range s.Substitution.CapabilityMappings {
-			vv := nodeTemplates[nodeTemplate.Name]
-			e := v.NewEdgeTo(vv)
+			for nodeTemplate, capability := range substitution.CapabilityMappings {
+				vv := nodeTemplates[nodeTemplate.Name]
+				e := v.NewEdgeTo(vv)
 
-			SetMetadata(e, "capabilityMapping")
-			e.Properties["capability"] = capability.Name
-		}
+				SetMetadata(e, "capabilityMapping")
+				e.Properties["capability"] = capability.Name
+			}
 
-		for nodeTemplate, requirement := range s.Substitution.RequirementMappings {
-			vv := nodeTemplates[nodeTemplate.Name]
-			e := v.NewEdgeTo(vv)
+			for nodeTemplate, requirement := range substitution.RequirementMappings {
+				vv := nodeTemplates[nodeTemplate.Name]
+				e := v.NewEdgeTo(vv)
 
-			SetMetadata(e, "requirementMapping")
-			e.Properties["requirement"] = requirement
-		}
+				SetMetadata(e, "requirementMapping")
+				e.Properties["requirement"] = requirement
+			}
 
-		for nodeTemplate, interface_ := range s.Substitution.InterfaceMappings {
-			vv := nodeTemplates[nodeTemplate.Name]
-			e := v.NewEdgeTo(vv)
+			for nodeTemplate, interface_ := range substitution.InterfaceMappings {
+				vv := nodeTemplates[nodeTemplate.Name]
+				e := v.NewEdgeTo(vv)
 
-			SetMetadata(e, "interfaceMapping")
-			e.Properties["interface"] = interface_
+				SetMetadata(e, "interfaceMapping")
+				e.Properties["interface"] = interface_
+			}
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 var log = logging.MustGetLogger("grammars.tosca_v1_3")
 
 var Grammar = make(tosca.Grammar)
+var CallFunction = make(tosca.CallFunction)
 
 var DefaultScriptNamespace = make(tosca.ScriptNamespace)
 
@@ -81,6 +82,8 @@ func init() {
 	Grammar["WorkflowPreconditionDefinition"] = ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = ReadWorkflowStepDefinition
 	Grammar["MergeScriptNamespace"] = MergeScriptNamespace
+	CallFunction["AppendTopologyTemplatesInServiceTemplate"] = AppendTopologyTemplatesInServiceTemplate
+	CallFunction["AppendUnitsInServiceTemplate"] = AppendUnitsInServiceTemplate
 
 	for name, sourceCode := range FunctionSourceCode {
 		DefaultScriptNamespace[name] = &tosca.Script{

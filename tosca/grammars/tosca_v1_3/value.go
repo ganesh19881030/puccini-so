@@ -38,7 +38,7 @@ func NewValue(context *tosca.Context) *Value {
 // tosca.Reader signature
 func ReadValue(context *tosca.Context) interface{} {
 
-	parentName := context.Parent.Parent.Name
+	parentName := context.Parent.Parent.Parent.Name
 	fieldName := context.Parent.Name
 
 	if parentName == "substitution_mappings" &&

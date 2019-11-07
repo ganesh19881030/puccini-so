@@ -52,3 +52,137 @@ func (self *ServiceTemplate) Normalize() *normal.ServiceTemplate {
 
 	return s
 }
+
+func AppendTopologyTemplatesInServiceTemplate(currentEntityPtr interface{}, serviceTemplateEntityPtr interface{}, serviceTemplateURLName string) {
+
+	serviceTemplate := serviceTemplateEntityPtr.(*ServiceTemplate).TopologyTemplate
+	topologyTemplate := currentEntityPtr.(*ServiceTemplate).TopologyTemplate
+
+	// 1.  NodeTemplates
+	for _, nodeTemplate := range topologyTemplate.NodeTemplates {
+
+		for _, nodeTemp := range topologyTemplate.NodeTemplates {
+			for _, requirement := range nodeTemp.Requirements {
+				if requirement.TargetNodeTemplateNameOrTypeName != nil && nodeTemplate.Name == *requirement.TargetNodeTemplateNameOrTypeName {
+					*requirement.TargetNodeTemplateNameOrTypeName = serviceTemplateURLName + "." + nodeTemplate.Name
+				}
+			}
+		}
+
+		for _, substitution := range topologyTemplate.SubstitutionMappings {
+			for _, requirement := range substitution.RequirementMappings {
+				if requirement.NodeTemplateName != nil && nodeTemplate.Name == *requirement.NodeTemplateName {
+					*requirement.NodeTemplateName = serviceTemplateURLName + "." + nodeTemplate.Name
+				}
+			}
+			for _, capapability := range substitution.CapabilityMappings {
+				if capapability.NodeTemplateName != nil && nodeTemplate.Name == *capapability.NodeTemplateName {
+					*capapability.NodeTemplateName = serviceTemplateURLName + "." + nodeTemplate.Name
+				}
+			}
+		}
+		nodeTemplate.Name = serviceTemplateURLName + "." + nodeTemplate.Name
+		serviceTemplate.NodeTemplates = append(serviceTemplate.NodeTemplates, nodeTemplate)
+	}
+
+	// 2. RelationshipTemplates
+	for _, relationshipTemplate := range topologyTemplate.RelationshipTemplates {
+		relationshipTemplate.Name = serviceTemplateURLName + "." + relationshipTemplate.Name
+		serviceTemplate.RelationshipTemplates = append(serviceTemplate.RelationshipTemplates, relationshipTemplate)
+	}
+
+	// 3. Groups
+	for _, group := range topologyTemplate.Groups {
+		group.Name = serviceTemplateURLName + "." + group.Name
+		serviceTemplate.Groups = append(serviceTemplate.Groups, group)
+	}
+
+	// 4. Policies
+	for _, policy := range topologyTemplate.Policies {
+		policy.Name = serviceTemplateURLName + "." + policy.Name
+		serviceTemplate.Policies = append(serviceTemplate.Policies, policy)
+	}
+
+	// 5. InputParameterDefinitions
+	for name, input := range topologyTemplate.InputParameterDefinitions {
+		serviceTemplate.InputParameterDefinitions[name] = input
+	}
+	// 6. OutputParameterDefinitions
+	for name, output := range topologyTemplate.OutputParameterDefinitions {
+		serviceTemplate.OutputParameterDefinitions[name] = output
+	}
+
+	// 7. WorkflowDefinitions
+	for name, workflow := range topologyTemplate.WorkflowDefinitions {
+		name = serviceTemplateURLName + "." + name
+		for _, step := range workflow.StepDefinitions {
+			*step.TargetNodeTemplateOrGroupName = serviceTemplateURLName + "." + *step.TargetNodeTemplateOrGroupName
+		}
+		workflow.Name = name
+		serviceTemplate.WorkflowDefinitions[name] = workflow
+	}
+
+	// 8. SubstitutionMappings
+	for _, substitution := range topologyTemplate.SubstitutionMappings {
+		serviceTemplate.SubstitutionMappings = append(serviceTemplate.SubstitutionMappings, substitution)
+	}
+
+}
+
+func AppendUnitsInServiceTemplate(currentEntityPtr interface{}, serviceTemplateEntityPtr interface{}, serviceTemplateName string) {
+
+	serviceTemplate := serviceTemplateEntityPtr.(*ServiceTemplate).Unit
+	currentUnit := currentEntityPtr.(*ServiceTemplate).Unit
+
+	// 1. Metadata
+
+	// 2. Repositories
+	for _, repository := range currentUnit.Repositories {
+		serviceTemplate.Repositories = append(serviceTemplate.Repositories, repository)
+	}
+
+	// 3.Imports
+	for _, imports := range currentUnit.Imports {
+		serviceTemplate.Imports = append(serviceTemplate.Imports, imports)
+	}
+
+	// 4. ArtifactTypes
+	for _, artifactType := range currentUnit.ArtifactTypes {
+		serviceTemplate.ArtifactTypes = append(serviceTemplate.ArtifactTypes, artifactType)
+	}
+
+	// 5. CapabilityTypes
+	for _, capabilityType := range currentUnit.CapabilityTypes {
+		serviceTemplate.CapabilityTypes = append(serviceTemplate.CapabilityTypes, capabilityType)
+	}
+
+	// 6. DataTypes
+	for _, dataType := range currentUnit.DataTypes {
+		serviceTemplate.DataTypes = append(serviceTemplate.DataTypes, dataType)
+	}
+
+	// 7. GroupTypes
+	for _, groupType := range currentUnit.GroupTypes {
+		serviceTemplate.GroupTypes = append(serviceTemplate.GroupTypes, groupType)
+	}
+
+	// 8. InterfaceTypes
+	for _, interfaceType := range currentUnit.InterfaceTypes {
+		serviceTemplate.InterfaceTypes = append(serviceTemplate.InterfaceTypes, interfaceType)
+	}
+
+	// 9. NodeTypes
+	for _, nodeType := range currentUnit.NodeTypes {
+		serviceTemplate.NodeTypes = append(serviceTemplate.NodeTypes, nodeType)
+	}
+
+	// 10. PolicyTypes
+	for _, policyType := range currentUnit.PolicyTypes {
+		serviceTemplate.PolicyTypes = append(serviceTemplate.PolicyTypes, policyType)
+	}
+
+	// 11. RelationshipTypes
+	for _, relationshipType := range currentUnit.RelationshipTypes {
+		serviceTemplate.RelationshipTypes = append(serviceTemplate.RelationshipTypes, relationshipType)
+	}
+}

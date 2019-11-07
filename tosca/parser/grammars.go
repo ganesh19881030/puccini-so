@@ -45,12 +45,35 @@ var Grammars = map[string]map[string]tosca.Grammar{
 	},
 }
 
+var CallFunction = map[string]map[string]tosca.CallFunction{
+	"tosca_definitions_version": {
+		"tosca_simple_yaml_1_3": tosca_v1_3.CallFunction,
+		"tosca_simple_yaml_1_2": tosca_v1_2.CallFunction,
+		"tosca_simple_yaml_1_1": tosca_v1_1.CallFunction,
+		"tosca_simple_yaml_1_0": tosca_v1_0.CallFunction,
+	},
+}
+
 // DetectGrammar finds the grammar version being used by the TOSCA service template
 func DetectGrammar(context *tosca.Context) bool {
 	if versionContext, version := GetVersion(context); version != nil {
 		GrammerVersions[*version] = true
 		if grammars, ok := Grammars[versionContext.Name]; ok {
 			if context.Grammar, ok = grammars[*version]; ok {
+				return true
+			}
+		}
+		versionContext.ReportFieldUnsupportedValue()
+	}
+
+	return false
+}
+
+func DetectCallFunction(context *tosca.Context) bool {
+	if versionContext, version := GetVersion(context); version != nil {
+		GrammerVersions[*version] = true
+		if grammars, ok := CallFunction[versionContext.Name]; ok {
+			if context.CallFunction, ok = grammars[*version]; ok {
 				return true
 			}
 		}

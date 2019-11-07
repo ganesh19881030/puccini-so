@@ -11,6 +11,7 @@ import (
 var log = logging.MustGetLogger("grammars.tosca_v1_1")
 
 var Grammar = make(tosca.Grammar)
+var CallFunction = make(tosca.CallFunction)
 
 var DefaultScriptNamespace = make(tosca.ScriptNamespace)
 
@@ -76,6 +77,8 @@ func init() {
 	Grammar["WorkflowPreconditionDefinition"] = tosca_v1_3.ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = tosca_v1_3.ReadWorkflowStepDefinition
 	Grammar["MergeScriptNamespace"] = tosca_v1_3.MergeScriptNamespace
+	CallFunction["AppendTopologyTemplatesInServiceTemplate"] = tosca_v1_3.AppendTopologyTemplatesInServiceTemplate
+	CallFunction["AppendUnitsInServiceTemplate"] = tosca_v1_3.AppendUnitsInServiceTemplate
 
 	for name, sourceCode := range tosca_v1_3.FunctionSourceCode {
 		// Unsupported functions

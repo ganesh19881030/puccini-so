@@ -10,7 +10,7 @@ import (
 	"github.com/tliron/puccini/url"
 )
 
-func GetServiceTemplateURL(csarUrl url.URL) (url.URL, error) {
+func GetServiceTemplateURL(csarUrl url.URL) ([]url.URL, error) {
 	csarFileUrl, ok := csarUrl.(*url.FileURL)
 	if !ok {
 		return nil, fmt.Errorf("can't process CSAR file: %s", csarUrl.String())
@@ -34,9 +34,19 @@ func GetServiceTemplateURL(csarUrl url.URL) (url.URL, error) {
 		return nil, err
 	}
 
+	serviceTemplateURLs := []url.URL{}
+	var er error
+	var templateURL *url.ZipURL
 	if meta.EntryDefinitions != "" {
 		// Use entry point in TOSCA.meta
-		return url.NewValidZipURL(meta.EntryDefinitions, csarFileUrl)
+		templateURL, er = url.NewValidZipURL(meta.EntryDefinitions, csarFileUrl)
+		serviceTemplateURLs = append(serviceTemplateURLs, templateURL)
+		for _, otherDef := range meta.OtherDefinitions {
+			templateURL, er = url.NewValidZipURL(strings.TrimSpace(otherDef), csarFileUrl)
+			serviceTemplateURLs = append(serviceTemplateURLs, templateURL)
+		}
+
+		return serviceTemplateURLs, er
 	}
 
 	// Find entry point in root of zip
@@ -62,5 +72,7 @@ func GetServiceTemplateURL(csarUrl url.URL) (url.URL, error) {
 		return nil, fmt.Errorf("CSAR does not contain a service template: %s", csarUrl.String())
 	}
 
-	return url.NewValidZipURL(found.Name, csarFileUrl)
+	templateURL, er = url.NewValidZipURL(found.Name, csarFileUrl)
+	serviceTemplateURLs = append(serviceTemplateURLs, templateURL)
+	return serviceTemplateURLs, er
 }

@@ -42,6 +42,7 @@ type Context struct {
 	Problems        *problems.Problems
 	Quirks          []string
 	Grammar         Grammar
+	CallFunction    CallFunction
 	ReadOverrides   map[string]string
 }
 

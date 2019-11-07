@@ -13,6 +13,9 @@ type Reader func(*Context) interface{}
 
 type Grammar map[string]Reader
 
+type CallFunctionReader func(interface{}, interface{}, string)
+type CallFunction map[string]CallFunctionReader
+
 const (
 	ReadFieldModeDefault       = 0
 	ReadFieldModeList          = 1
