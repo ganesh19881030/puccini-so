@@ -260,6 +260,51 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 		return clout_, err
 	}
 
+	// When csar/zip is passed to compiler, make connection of abstract
+	// node template and 'substitution mappings'(implementation of abstract node)
+	cloutVertexes := clout_.Vertexes
+	for _, vertex := range cloutVertexes {
+
+		// ignore vertexes other than "node-template"
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := vertex.Properties
+		directiveList := vertexProperties["directives"].([]interface{})
+		length := len(directiveList)
+		if length == 0 {
+			continue
+		}
+		var newDirectives []string
+		for _, directive := range directiveList {
+			if directive == "substitute" {
+				sourceVertexTypes := vertexProperties["types"].(map[string]interface{})
+				for sourceVertexType := range sourceVertexTypes {
+					for _, vertex := range cloutVertexes {
+
+						// ignore vertexes other than "substitution"
+						if !isVertexOfSpecificKind(vertex, "substitution") {
+							continue
+						}
+						vertexPropeties := vertex.Properties
+						vertexType := vertexPropeties["type"].(string)
+						if sourceVertexType == vertexType {
+							newDirectiveName := directive.(string) + ":" + vertex.ID
+							newDirectives = append(newDirectives, newDirectiveName)
+						}
+					}
+				}
+			} else {
+				newDirectives = append(newDirectives, directive.(string))
+			}
+		}
+		if len(newDirectives) != 0 {
+			vertex.Properties["directives"] = newDirectives
+		}
+
+	}
+
 	// TODO: call JavaScript plugins
 
 	return clout_, nil
@@ -270,4 +315,17 @@ func SetMetadata(entity clout.Entity, kind string) {
 	metadata["version"] = VERSION
 	metadata["kind"] = kind
 	entity.GetMetadata()["puccini-tosca"] = metadata
+}
+
+func isVertexOfSpecificKind(vertex *clout.Vertex, vertexKind string) bool {
+	isVertexKindMatch := false
+	vertexMetadata := vertex.Metadata
+	if vertexMetadata != nil {
+		metaDataName := vertexMetadata["puccini-tosca"].(map[string]interface{})
+		kindName := metaDataName["kind"].(interface{})
+		if kindName.(string) == vertexKind {
+			isVertexKindMatch = true
+		}
+	}
+	return isVertexKindMatch
 }
