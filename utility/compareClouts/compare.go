@@ -334,33 +334,32 @@ func compareDirectivesOfVertexes(vertex1DirectivesData interface{}, vertex2Direc
 
 	//compare directives of vertex1 with vertex2.
 	for _, directiveOfVertex1 := range vertex1Directives {
-		match = false
 		directivesOfVertex1 := strings.Split(directiveOfVertex1.(string), ":")
 		directiveNameOfVertex1 := directivesOfVertex1[0]
 
-		//if directive contains target id then find target vertex based on id
-		if len(directivesOfVertex1) == 2 {
-			vertex1 = findVertexBasedOnID(directivesOfVertex1[1], vertexesOfClout1)
-		}
+		for _, vertexIDFromDirectives := range directivesOfVertex1 {
+			match = false
+			vertex1 = findVertexBasedOnID(vertexIDFromDirectives, vertexesOfClout1)
 
-		for _, directiveOfVertex2 := range vertex2Directives {
-			directivesOfVertex2 := strings.Split(directiveOfVertex2.(string), ":")
-			directiveNameOfVertex2 := directivesOfVertex2[0]
+			for _, directiveOfVertex2 := range vertex2Directives {
+				directivesOfVertex2 := strings.Split(directiveOfVertex2.(string), ":")
+				directiveNameOfVertex2 := directivesOfVertex2[0]
 
-			//if directive contains target id then find target vertex based on id
-			if len(directivesOfVertex2) == 2 {
-				vertex2 = findVertexBasedOnID(directivesOfVertex2[1], vertexesOfClout2)
+				for _, vertexIDFromDirectives2 := range directivesOfVertex2 {
+					vertex2 = findVertexBasedOnID(vertexIDFromDirectives2, vertexesOfClout2)
+
+					//compare both name of directives and target vertexes for directive
+					if equal(vertex1, vertex2, vertexesOfClout1, vertexesOfClout2) &&
+						(directiveNameOfVertex1 == directiveNameOfVertex2) {
+						match = true
+						break
+					}
+				}
 			}
 
-			//compare both name of directives and target vertexes for directive
-			if equal(vertex1, vertex2, vertexesOfClout1, vertexesOfClout2) &&
-				(directiveNameOfVertex1 == directiveNameOfVertex2) {
-				match = true
-				break
+			if !match {
+				return false
 			}
-		}
-		if !match {
-			return false
 		}
 	}
 	return true

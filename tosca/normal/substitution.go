@@ -13,7 +13,7 @@ type Substitution struct {
 	Type                string
 	TypeMetadata        map[string]string
 	CapabilityMappings  map[*NodeTemplate]*Capability
-	RequirementMappings map[*NodeTemplate]string
+	RequirementMappings map[string]*Requirement
 	PropertyMappings    Constrainables
 	InterfaceMappings   map[*NodeTemplate]string
 	SubstitutionFilters SubstitutionFilters
@@ -24,7 +24,7 @@ func (self *ServiceTemplate) NewSubstitution() *Substitution {
 		ServiceTemplate:     self,
 		TypeMetadata:        make(map[string]string),
 		CapabilityMappings:  make(map[*NodeTemplate]*Capability),
-		RequirementMappings: make(map[*NodeTemplate]string),
+		RequirementMappings: make(map[string]*Requirement),
 		PropertyMappings:    make(Constrainables),
 		InterfaceMappings:   make(map[*NodeTemplate]string),
 		SubstitutionFilters: make(SubstitutionFilters, 0),
@@ -41,9 +41,9 @@ func (self *Substitution) Marshalable() interface{} {
 		capabilityMappings[n.Name] = c.Name
 	}
 
-	requirementMappings := make(map[string]string)
+	requirementMappings := make(map[string]*Requirement)
 	for n, r := range self.RequirementMappings {
-		requirementMappings[n.Name] = r
+		requirementMappings[n] = r
 	}
 
 	interfaceMappings := make(map[string]string)
@@ -52,13 +52,13 @@ func (self *Substitution) Marshalable() interface{} {
 	}
 
 	return &struct {
-		Type                string              `json:"type" yaml:"type"`
-		TypeMetadata        map[string]string   `json:"typeMetadata" yaml:"typeMetadata"`
-		CapabilityMappings  map[string]string   `json:"capabilityMappings" yaml:"capabilityMappings"`
-		RequirementMappings map[string]string   `json:"requirementMappings" yaml:"requirementMappings"`
-		PropertyMappings    Constrainables      `json:"propertyMappings" yaml:"propertyMappings"`
-		InterfaceMappings   map[string]string   `json:"interfaceMappings" yaml:"interfaceMappings"`
-		SubstitutionFilters SubstitutionFilters `json:"substitutionFilters" yaml:"substitutionFilters"`
+		Type                string                  `json:"type" yaml:"type"`
+		TypeMetadata        map[string]string       `json:"typeMetadata" yaml:"typeMetadata"`
+		CapabilityMappings  map[string]string       `json:"capabilityMappings" yaml:"capabilityMappings"`
+		RequirementMappings map[string]*Requirement `json:"requirementMappings" yaml:"requirementMappings"`
+		PropertyMappings    Constrainables          `json:"propertyMappings" yaml:"propertyMappings"`
+		InterfaceMappings   map[string]string       `json:"interfaceMappings" yaml:"interfaceMappings"`
+		SubstitutionFilters SubstitutionFilters     `json:"substitutionFilters" yaml:"substitutionFilters"`
 	}{
 		Type:                self.Type,
 		TypeMetadata:        self.TypeMetadata,

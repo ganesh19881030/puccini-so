@@ -102,7 +102,11 @@ func (self *SubstitutionMappings) Normalize(s *normal.ServiceTemplate) *normal.S
 		}
 
 		if n, ok := s.NodeTemplates[mapping.NodeTemplate.Name]; ok {
-			t.RequirementMappings[n] = *mapping.RequirementName
+			for _, requirement := range n.Requirements {
+				if requirement.Name == *mapping.RequirementName {
+					t.RequirementMappings[mapping.Entity.Context.Name] = requirement
+				}
+			}
 		}
 	}
 

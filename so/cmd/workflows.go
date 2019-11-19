@@ -11,6 +11,7 @@ import (
 )
 
 const version = "1.0"
+const separatorSymbol = "."
 
 var targetNodeOperations map[string]string
 var sourceNodeOperations map[string]string
@@ -67,6 +68,76 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 
 	cloutVertexes := c.Vertexes
 
+	// Go through all clout vertexes and find out if clout is of multiple service templates or not
+	isCloutFromMultipleServiceTemplates := isCloutFromMultipleServiceTemplatesFile(cloutVertexes)
+
+	if !isCloutFromMultipleServiceTemplates {
+		createWorkFlowsSteps(cloutVertexes, workFlows, workFlowDef, nil, nil, isCloutFromMultipleServiceTemplates)
+	} else {
+
+		// Find out abstract vertexes(node templates), get/store substitution mapping and its implementation
+		// vertexes(node templates) and create workflow steps.
+
+		for _, vertex := range cloutVertexes {
+
+			// ignore vertexes other than "node-template"
+			if !isVertexNodeTemplate(vertex) {
+				continue
+			}
+
+			serviceTemplateVertexes := make(clout.Vertexes)
+
+			// get vertex properties
+			vertexProperties := vertex.Properties
+
+			directives := vertexProperties["directives"].([]interface{})
+			vertexName := vertexProperties["name"]
+
+			// if this is not abstract node, skip
+			if len(directives) == 0 {
+				continue
+			}
+
+			// look for substitute directive
+			for _, directive := range directives {
+				var substituteDirective []string
+				if !strings.Contains(directive.(string), "substitute") {
+					continue
+				}
+
+				substituteDirective = strings.Split(directive.(string), ":")
+
+				if len(substituteDirective) <= 1 {
+					log.Warningf("Implementation of abstract node template '%v' not found", vertexName.(string))
+				}
+
+				for _, vertexID := range substituteDirective {
+					vertexFromClout := findVertexFromID(vertexID, cloutVertexes)
+					if vertexFromClout != nil && isVertexNodeTemplate(vertexFromClout) {
+						serviceTemplateVertexes[vertexFromClout.ID] = vertexFromClout
+					}
+				}
+			}
+			createWorkFlowsSteps(serviceTemplateVertexes, workFlows, workFlowDef, vertex, cloutVertexes, isCloutFromMultipleServiceTemplates)
+		}
+	}
+	// create workflow steps of orphan vertexes (i.e those vertexes which are not part of
+	// abstract vertex/substitution vertex
+	createStepsForOrphanVertexes(cloutVertexes, workFlows, workFlowDef)
+
+	return workFlows
+}
+
+func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, workFlowDef *WorkflowDefinition,
+	abstractVertex *clout.Vertex, cloutVertexesOfCSAR clout.Vertexes, isCloutFromMultipleServiceTemplates bool) *Workflows {
+
+	// Find name of abstract vertex if provided	and it's used while creating name of workflow steps
+	var abstractVertexName string
+	if abstractVertex != nil {
+		abstractvertexProperties := abstractVertex.Properties
+		abstractVertexName = abstractvertexProperties["name"].(string)
+	}
+
 	// [TOSCA-Simple-Profile-YAML-v1.3] @  5.8.5
 	// create maps for target and source node operations
 	targetNodeOperations = make(map[string]string)
@@ -91,7 +162,7 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 
 		if vertexProperties != nil {
 
-			// getvertex name
+			// get vertex name
 			vertexName := vertexProperties["name"].(string)
 
 			// get vertex requirements
@@ -110,10 +181,106 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 				// if a node has no requirements, its a target node. otherwise, its a source node.
 				if requirementLength == 0 {
 					configureName := targetNodeOperations[operationName]
-					createTargetNodeWorkFlowSteps(vertexName, cloutVertexes, workFlowDef, operationName, configureName)
+					createTargetNodeWorkFlowSteps(vertexName, cloutVertexes, workFlowDef, operationName, configureName, abstractVertexName)
 				} else {
 					configureName := sourceNodeOperations[operationName]
-					createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowDef, "Standard", operationName, cloutVertexes, configureName, "")
+					createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowDef, "Standard", operationName, cloutVertexes, configureName, "", abstractVertexName)
+				}
+			}
+		}
+	}
+
+	// in case of multiple service templates, need to create connections between workflow steps
+	// of various service templates (eg. decide sequence of steps across service templates)
+	if isCloutFromMultipleServiceTemplates {
+		// Find leaf vertexes(node templates) of single service template
+		leafVertexes := getLeafVertexesFromServiceTemplate(cloutVertexes)
+
+		// Find leaf workflow step of single service template
+		leafWorkSteps := getLeafWorkFlowStepsOFServiceTemplate(leafVertexes, workFlowDef, abstractVertexName)
+
+		// Find out in which vertexes(node templates), abstract vertex(node template) is used(as a requirements)
+		// and add those node-tempates on the 'OnSuccess' of work flow steps
+		for _, leafWorkStep := range leafWorkSteps {
+			for _, vertex := range cloutVertexesOfCSAR {
+				// ignore vertexes other than "node-template"
+				if !isVertexNodeTemplate(vertex) {
+					continue
+				}
+
+				vertexProperties := vertex.Properties
+				requirements := vertexProperties["requirements"].([]interface{})
+				vertexName := vertexProperties["name"].(string)
+
+				requirementLength := len(requirements)
+
+				if requirementLength == 0 {
+					continue
+				}
+				for _, vertexRequirement := range requirements {
+					if vertexRequirement != nil {
+
+						vertexRequirementMap := vertexRequirement.(map[string]interface{})
+						requirementName := vertexRequirementMap["name"].(string)
+						nodeTemplateName := vertexRequirementMap["nodeTemplateName"].(string)
+
+						if (requirementName == abstractVertexName) || (nodeTemplateName == abstractVertexName) {
+							directives := vertexProperties["directives"].([]interface{})
+
+							// if non-abstract node template depends on abstract node template then add dependency between them
+							if len(directives) == 0 {
+								onSuccess := leafWorkStep.OnSuccessSteps
+								stepName := vertexName + separatorSymbol + "create"
+								onSuccess = append(onSuccess, stepName)
+								leafWorkStep.OnSuccessSteps = onSuccess
+								continue
+							}
+							var substituteVertexID string
+							for _, directive := range directives {
+
+								if !strings.Contains(directive.(string), "substitute") {
+									continue
+								}
+
+								substituteDirective := strings.Split(directive.(string), ":")
+								for index, vertexID := range substituteDirective {
+									if index == 1 {
+										substituteVertexID = vertexID
+									}
+								}
+							}
+
+							//if implementation for abstract node template is not available then vertexID should be empty
+							if substituteVertexID == "" {
+								continue
+							}
+
+							substituteVertex := findVertexFromID(substituteVertexID, cloutVertexesOfCSAR)
+							for _, edge := range substituteVertex.EdgesOut {
+								edgeMap := edge.GetMetadata()
+								ptosca := edgeMap["puccini-tosca"].(map[string]interface{})
+								kind := ptosca["kind"]
+								if kind.(string) != "requirementMapping" {
+									continue
+								}
+
+								edgeProperties := edge.GetProperties()
+								edgeRequirementName := edgeProperties["requirementName"].(string)
+								if (edgeRequirementName == requirementName) || (edgeRequirementName == nodeTemplateName) {
+									edgeTargetID := edge.TargetID
+
+									targetIDVertex := findVertexFromID(edgeTargetID, cloutVertexesOfCSAR)
+									targetIDVertexProperties := targetIDVertex.Properties
+									targetIDNameVertex := targetIDVertexProperties["name"].(string)
+
+									onSuccess := leafWorkStep.OnSuccessSteps
+									stepName := vertexName + separatorSymbol + targetIDNameVertex + separatorSymbol + "create"
+									onSuccess = append(onSuccess, stepName)
+									leafWorkStep.OnSuccessSteps = onSuccess
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -129,7 +296,7 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 
 // create workflow steps for a target node
 func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertexes,
-	workFlowsDef *WorkflowDefinition, standardOperationName string, configureName string) error {
+	workFlowsDef *WorkflowDefinition, standardOperationName string, configureName string, abstractVertexName string) error {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -138,7 +305,8 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 	workFlowActivityDef := NewWorkflowActivityDefinition()
 
 	// create workflow step name
-	workFlowStepName := vertexName + "_" + standardOperationName
+	stepName := vertexName + separatorSymbol + standardOperationName
+	workFlowStepName := createStepName(stepName, abstractVertexName)
 
 	// set 'target' property of work flow step
 	workFlowStepsDef.TargetNodeTemplateOrGroupName = vertexName
@@ -162,19 +330,21 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 				for _, vertexRequirement := range vertexRequirements {
 					if vertexRequirement != nil {
 						vertexRequirementMap := vertexRequirement.(map[string]interface{})
-						vertexRequirementName := vertexRequirementMap["name"]
+						vertexRequirementName := vertexRequirementMap["nodeTemplateName"]
 
 						// if this vertex has a requirement for the target vertex, create its workflow steps
 						if vertexRequirementName == vertexName {
 
-							onSuccessName := sourceVertextName + "_" + vertexName + "_" + configureName
+							successName := sourceVertextName + separatorSymbol + vertexName + separatorSymbol + configureName
+							onSuccessName := createStepName(successName, abstractVertexName)
 
 							if standardOperationName == "start" {
 								// for start, don't need any more steps
-								onSuccessName = sourceVertextName + "_" + "create"
+								successName := sourceVertextName + separatorSymbol + "create"
+								onSuccessName = createStepName(successName, abstractVertexName)
 							} else {
 								// for create and configure, create steps
-								createOnSuccessStepsForTarget(sourceVertextName, vertexName, configureName, onSuccessName, workFlowsDef)
+								createOnSuccessStepsForTarget(sourceVertextName, vertexName, configureName, onSuccessName, workFlowsDef, abstractVertexName)
 							}
 							workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 						}
@@ -183,6 +353,19 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 			}
 		}
 	}
+
+	if len(workFlowStepsDef.OnSuccessSteps) == 0 {
+		if standardOperationName == "create" {
+			successName := vertexName + separatorSymbol + "configure"
+			onSuccessName := createStepName(successName, abstractVertexName)
+			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
+		} else if standardOperationName == "configure" {
+			successName := vertexName + separatorSymbol + "start"
+			onSuccessName := createStepName(successName, abstractVertexName)
+			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
+		}
+	}
+
 	workFlowActivityDef.CallOperation = "Standard." + standardOperationName
 	workFlowStepsDef.Activities = append(workFlowStepsDef.Activities, workFlowActivityDef)
 	workFlowStepsDef.Name = workFlowStepName
@@ -193,7 +376,7 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 
 // create onSuccess steps for target node
 func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementName string,
-	activityName string, keyName string, workFlowsDef *WorkflowDefinition) *WorkflowStepDefinition {
+	activityName string, keyName string, workFlowsDef *WorkflowDefinition, abstractVertexName string) *WorkflowStepDefinition {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -209,9 +392,11 @@ func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementN
 
 	var onSuccessName string
 	if activityName == "pre_configure_target" {
-		onSuccessName = targetNodeRequirementName + "_" + "configure"
+		successName := targetNodeRequirementName + separatorSymbol + "configure"
+		onSuccessName = createStepName(successName, abstractVertexName)
 	} else if activityName == "post_configure_target" {
-		onSuccessName = targetNodeRequirementName + "_" + "start"
+		successName := targetNodeRequirementName + separatorSymbol + "start"
+		onSuccessName = createStepName(successName, abstractVertexName)
 	}
 
 	workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
@@ -224,7 +409,7 @@ func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementN
 
 // create workflow steps for a source node
 func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}, workFlowsDef *WorkflowDefinition,
-	operationType string, operationName string, cloutVertexes clout.Vertexes, configureName string, key string) error {
+	operationType string, operationName string, cloutVertexes clout.Vertexes, configureName string, key string, abstractVertexName string) error {
 
 	workFlowStepsDef := NewWorkflowStepDefinition()
 	workFlowActivityDef := NewWorkflowActivityDefinition()
@@ -233,13 +418,14 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 	if key != "" {
 		keyName = key
 	} else {
-		keyName = vertexName + "_" + operationName
+		name := vertexName + separatorSymbol + operationName
+		keyName = createStepName(name, abstractVertexName)
 	}
 
 	workFlowActivityDef.CallOperation = operationType + "." + operationName
 	workFlowStepsDef.Activities = append(workFlowStepsDef.Activities, workFlowActivityDef)
 
-	createOnSuccessStepsForSource(vertexName, cloutVertexes, workFlowsDef, workFlowStepsDef, operationName, targetNodeOperations[operationName])
+	createOnSuccessStepsForSource(vertexName, cloutVertexes, workFlowsDef, workFlowStepsDef, operationName, targetNodeOperations[operationName], abstractVertexName)
 
 	var vertexRequirementName interface{}
 	var endSuccessName string
@@ -252,7 +438,8 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 			vertexRequirementMap := requirement.(map[string]interface{})
 			vertexRequirementName = vertexRequirementMap["name"]
 
-			onSuccessName = vertexName + "_" + vertexRequirementName.(string) + "_" + configureName
+			successName := vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
+			onSuccessName = createStepName(successName, abstractVertexName)
 			workFlowStepsDef.TargetNodeTemplateOrGroupName = vertexName
 			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 			workFlowStepsDef.Name = keyName
@@ -267,12 +454,13 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 
 			if operationName == "start" {
 				// create add_source and add_target steps for start operation's onSucess
-				targetSuccessName := vertexName + "_" + vertexRequirementName.(string) + "_" + "add_target"
+				successName := vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + "add_target"
+				targetSuccessName := createStepName(successName, abstractVertexName)
 				workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, targetSuccessName)
 				workFlowsDef.Steps[keyName] = workFlowStepsDef
 
-				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_source", cloutVertexes, "add_source", onSuccessName)
-				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_target", cloutVertexes, "add_target", targetSuccessName)
+				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_source", cloutVertexes, "add_source", onSuccessName, abstractVertexName)
+				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_target", cloutVertexes, "add_target", targetSuccessName, abstractVertexName)
 				break
 			}
 
@@ -295,9 +483,11 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 	}
 
 	if operationName == "create" {
-		endSuccessName = vertexName + "_" + "configure"
+		successName := vertexName + separatorSymbol + "configure"
+		endSuccessName = createStepName(successName, abstractVertexName)
 	} else if operationName == "configure" {
-		endSuccessName = vertexName + "_" + "start"
+		successName := vertexName + separatorSymbol + "start"
+		endSuccessName = createStepName(successName, abstractVertexName)
 	}
 
 	if endSuccessName != "" {
@@ -313,7 +503,7 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 
 // create onSuccess steps for source nodes
 func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.Vertexes, workFlowsDef *WorkflowDefinition,
-	workFlowStepsDefCalled *WorkflowStepDefinition, standardOperationName string, configureName string) error {
+	workFlowStepsDefCalled *WorkflowStepDefinition, standardOperationName string, configureName string, abstractVertexName string) error {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -356,12 +546,15 @@ func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.V
 							var onSuccessName string
 
 							if standardOperationName == "create" {
-								onSuccessName = vertexName.(string) + "_" + "configure"
+								successName := vertexName.(string) + separatorSymbol + "configure"
+								onSuccessName = createStepName(successName, abstractVertexName)
 							} else if standardOperationName == "configure" {
-								onSuccessName = vertexName.(string) + "_" + "start"
+								successName := vertexName.(string) + separatorSymbol + "start"
+								onSuccessName = createStepName(successName, abstractVertexName)
 							} else {
 								if standardOperationName == "start" {
-									onSuccessName = sourceVertextName + "_" + "create"
+									successName := sourceVertextName + separatorSymbol + "create"
+									onSuccessName = createStepName(successName, abstractVertexName)
 									workFlowStepsDefCalled.OnSuccessSteps = append(workFlowStepsDefCalled.OnSuccessSteps, onSuccessName)
 								}
 								continue
@@ -375,7 +568,8 @@ func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.V
 							workFlowStepsDef.Activities = append(workFlowStepsDef.Activities, workFlowActivityDef)
 							workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 
-							workFlowStepName := sourceVertextName + "_" + vertexRequirementName.(string) + "_" + configureName
+							successName := sourceVertextName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
+							workFlowStepName := createStepName(successName, abstractVertexName)
 							workFlowStepsDef.Name = workFlowStepName
 							workFlowsDef.Steps[workFlowStepName] = workFlowStepsDef
 
@@ -504,16 +698,15 @@ func getInterfacesOperationsOfVertex(propertiesMap map[string]interface{}) []str
 }
 
 func isVertexNodeTemplate(vertex *clout.Vertex) bool {
-	isVertexNodeTemplate := false
 	vertexMetadata := vertex.Metadata
 	if vertexMetadata != nil {
 		metaDataName := vertexMetadata["puccini-tosca"].(map[string]interface{})
 		kindName := metaDataName["kind"].(interface{})
 		if kindName.(string) == "nodeTemplate" {
-			isVertexNodeTemplate = true
+			return true
 		}
 	}
-	return isVertexNodeTemplate
+	return false
 }
 
 func setVertexMetadata(entity clout.Entity, kind string) {
@@ -521,6 +714,183 @@ func setVertexMetadata(entity clout.Entity, kind string) {
 	metadata["version"] = version
 	metadata["kind"] = kind
 	entity.GetMetadata()["puccini-tosca"] = metadata
+}
+
+func getLeafWorkFlowStepsOFServiceTemplate(leafVertexes []*clout.Vertex, workFlowDef *WorkflowDefinition, abstractVertexName string) []*WorkflowStepDefinition {
+	var leafWorkSteps []*WorkflowStepDefinition
+
+	for _, leafVertex := range leafVertexes {
+		vertexProperties := leafVertex.Properties
+		leafVertexName := vertexProperties["name"].(string)
+
+		// Find leaf workflow steps from workflowDef
+		for _, step := range workFlowDef.Steps {
+			targetName := step.TargetNodeTemplateOrGroupName
+			stepName := step.Name
+
+			if !strings.HasPrefix(stepName, abstractVertexName) {
+				continue
+			}
+			if targetName != leafVertexName {
+				continue
+			}
+
+			for _, activity := range step.Activities {
+				callOperationName := activity.CallOperation
+				if callOperationName == "Standard.start" {
+					leafWorkSteps = append(leafWorkSteps, step)
+				}
+			}
+		}
+	}
+	return leafWorkSteps
+}
+
+// Find out leaf vertexes of a service templates
+func getLeafVertexesFromServiceTemplate(cloutVertexes clout.Vertexes) []*clout.Vertex {
+	var leafVertexes []*clout.Vertex
+	var tempLeafVertex *clout.Vertex
+
+	for _, cloutvertex := range cloutVertexes {
+		isReference := false
+		tempLeafVertex = cloutvertex
+		vertexProperties := cloutvertex.Properties
+		vertexName := vertexProperties["name"].(string)
+		for _, cloutvertex := range cloutVertexes {
+			vertexProperties := cloutvertex.Properties
+			childVertexName := vertexProperties["name"].(string)
+			if vertexName == childVertexName {
+				continue
+			}
+			requirements := vertexProperties["requirements"].([]interface{})
+			requirementLength := len(requirements)
+
+			if requirementLength == 0 {
+				continue
+			}
+			for _, vertexRequirement := range requirements {
+				if vertexRequirement != nil {
+
+					vertexRequirementMap := vertexRequirement.(map[string]interface{})
+					nodeTemplateName := vertexRequirementMap["nodeTemplateName"]
+					if nodeTemplateName == "" {
+						continue
+					}
+					if nodeTemplateName.(string) == vertexName {
+						isReference = true
+					}
+				}
+			}
+
+		}
+		if !isReference {
+			leafVertexes = append(leafVertexes, tempLeafVertex)
+		}
+	}
+	return leafVertexes
+}
+
+// Find vertex in clout from their ID
+func findVertexFromID(vertexid string, vertexes clout.Vertexes) *clout.Vertex {
+	for ID, vertex := range vertexes {
+		if vertexid == ID {
+			return vertex
+		}
+	}
+	return nil
+}
+
+// Go through all clout vertexes and find out clout is of multiple service template or not
+func isCloutFromMultipleServiceTemplatesFile(cloutVertexes clout.Vertexes) bool {
+
+	for _, vertex := range cloutVertexes {
+		// ignore vertexes other than "node-template"
+		if !isVertexNodeTemplate(vertex) {
+			continue
+		}
+
+		// get vertex properties
+		vertexProperties := vertex.Properties
+
+		directives := vertexProperties["directives"].([]interface{})
+
+		if len(directives) == 0 {
+			continue
+		}
+
+		for _, directive := range directives {
+			if !strings.Contains(directive.(string), "substitute") {
+				continue
+			}
+
+			substituteDirective := strings.Split(directive.(string), ":")
+
+			if len(substituteDirective) > 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// create workflow steps of orphan vertex(i.e those vertexes are not part of abstract vertex/substitution vertex)
+func createStepsForOrphanVertexes(cloutVertexes clout.Vertexes, workFlows *Workflows, workFlowDef *WorkflowDefinition) {
+
+	nonOrphanVertexesList := make(clout.Vertexes)
+
+	// Find out non-orphan vertexes
+	for _, vertex := range cloutVertexes {
+		if !isVertexNodeTemplate(vertex) {
+			continue
+		}
+		vertexProperties := vertex.Properties
+		directives, _ := vertexProperties["directives"].([]interface{})
+		if len(directives) == 0 {
+			continue
+		}
+
+		for _, directive := range directives {
+			var substituteDirective []string
+			if !strings.Contains(directive.(string), "substitute") {
+				continue
+			}
+
+			substituteDirective = strings.Split(directive.(string), ":")
+
+			for _, vertexID := range substituteDirective {
+				vertexFromClout := findVertexFromID(vertexID, cloutVertexes)
+				if vertexFromClout != nil && isVertexNodeTemplate(vertexFromClout) {
+					nonOrphanVertexesList[vertexFromClout.ID] = vertexFromClout
+				}
+			}
+		}
+		nonOrphanVertexesList[vertex.ID] = vertex
+	}
+
+	// Find out orphan vertexes
+	orphanVertexesList := make(clout.Vertexes)
+	var isVertexFound bool
+	for vertexID, vertex := range cloutVertexes {
+
+		isVertexFound = false
+		for _, traversedVertex := range nonOrphanVertexesList {
+			if vertexID == traversedVertex.ID {
+				isVertexFound = true
+			}
+		}
+		if !isVertexFound {
+			orphanVertexesList[vertexID] = vertex
+		}
+	}
+
+	createWorkFlowsSteps(orphanVertexesList, workFlows, workFlowDef, nil, cloutVertexes, false)
+}
+
+func createStepName(stepName string, abstractNodeTemplateName string) string {
+	if abstractNodeTemplateName != "" {
+		stepName = abstractNodeTemplateName + separatorSymbol + stepName
+	}
+	return stepName
 }
 
 // Workflows ...

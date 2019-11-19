@@ -1,6 +1,8 @@
 package tosca_v1_3
 
 import (
+	"strings"
+
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -57,6 +59,7 @@ func AppendTopologyTemplatesInServiceTemplate(currentEntityPtr interface{}, serv
 
 	serviceTemplate := serviceTemplateEntityPtr.(*ServiceTemplate).TopologyTemplate
 	topologyTemplate := currentEntityPtr.(*ServiceTemplate).TopologyTemplate
+	serviceTemplateURLName = strings.ReplaceAll(serviceTemplateURLName, "/", "__")
 
 	// 1.  NodeTemplates
 	for _, nodeTemplate := range topologyTemplate.NodeTemplates {
