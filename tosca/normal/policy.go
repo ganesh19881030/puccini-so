@@ -39,10 +39,12 @@ type Policies map[string]*Policy
 //
 
 type PolicyTrigger struct {
-	Policy    *Policy    `json:"-" yaml:"-"`
-	EventType string     `json:"eventType" yaml:"eventType"`
-	Operation *Operation `json:"operation" yaml:"operation"`
-	Workflow  *Workflow  `json:"workflow" yaml:"workflow"`
+	Policy    *Policy           `json:"-" yaml:"-"`
+	EventType string            `json:"eventType" yaml:"eventType"`
+	Operation *Operation        `json:"operation" yaml:"operation"`
+	Workflow  *Workflow         `json:"workflow" yaml:"workflow"`
+	Condition *Condition        `json:"condition" yaml:"condition"`
+	Action    *WorkflowActivity `json:"action" yaml:"action"`
 	// TODO: missing fields
 }
 
@@ -52,4 +54,20 @@ func (self *Policy) NewTrigger() *PolicyTrigger {
 	}
 	self.Triggers = append(self.Triggers, trigger)
 	return trigger
+}
+
+//
+// Condition
+//
+
+type Condition struct {
+	ConditionClauseConstraints FunctionCallMap `json:"-" yaml:"-"`
+}
+
+func (self *PolicyTrigger) NewCondition() *Condition {
+	condition := &Condition{
+		ConditionClauseConstraints: make(FunctionCallMap),
+	}
+	self.Condition = condition
+	return condition
 }

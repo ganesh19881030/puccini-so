@@ -214,6 +214,30 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 				e := v.NewEdgeTo(wv)
 				SetMetadata(e, "policyTriggerWorkflow")
 			}
+			if trigger.Condition != nil {
+				conditionClauses := make(map[string]normal.FunctionCalls)
+				tc := clout_.NewVertex(clout.NewKey())
+				SetMetadata(tc, "condition")
+
+				for name, conditionClause := range trigger.Condition.ConditionClauseConstraints {
+					conditionClauses[name] = conditionClause
+				}
+				tc.Properties["conditionClauses"] = conditionClauses
+
+				e := v.NewEdgeTo(tc)
+				SetMetadata(e, "policyTriggerCondition")
+			}
+			if trigger.Action != nil {
+				ta := clout_.NewVertex(clout.NewKey())
+				SetMetadata(ta, "action")
+
+				if trigger.Action.Update != nil {
+					ta.Properties["update"] = trigger.Action.Update
+				}
+
+				e := v.NewEdgeTo(ta)
+				SetMetadata(e, "policyTriggerAction")
+			}
 		}
 	}
 

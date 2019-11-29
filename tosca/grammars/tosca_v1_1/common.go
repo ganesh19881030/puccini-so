@@ -72,7 +72,7 @@ func init() {
 	Grammar["Unit"] = ReadUnit // override
 	Grammar["Value"] = tosca_v1_3.ReadValue
 	Grammar["version"] = tosca_v1_3.ReadVersion
-	Grammar["WorkflowActivityDefinition"] = tosca_v1_3.ReadWorkflowActivityDefinition
+	Grammar["ActivityDefinition"] = tosca_v1_3.ReadActivityDefinition
 	Grammar["WorkflowDefinition"] = tosca_v1_3.ReadWorkflowDefinition
 	Grammar["WorkflowPreconditionDefinition"] = tosca_v1_3.ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = tosca_v1_3.ReadWorkflowStepDefinition

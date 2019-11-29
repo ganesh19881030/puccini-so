@@ -77,7 +77,7 @@ func init() {
 	Grammar["Value"] = ReadValue
 	Grammar["version"] = ReadVersion
 	Grammar["WorkflowActivityCallOperation"] = ReadWorkflowActivityCallOperation // introduced in 1.3
-	Grammar["WorkflowActivityDefinition"] = ReadWorkflowActivityDefinition
+	Grammar["ActivityDefinition"] = ReadActivityDefinition
 	Grammar["WorkflowDefinition"] = ReadWorkflowDefinition
 	Grammar["WorkflowPreconditionDefinition"] = ReadWorkflowPreconditionDefinition
 	Grammar["WorkflowStepDefinition"] = ReadWorkflowStepDefinition

@@ -9,19 +9,21 @@ import (
 )
 
 //
-// WorkflowActivityDefinition
+// ActivityDefinition
 //
+// [TOSCA-Simple-Profile-YAML-v1.3] @ 3.6.23
 // [TOSCA-Simple-Profile-YAML-v1.2] @ 3.6.19
 // [TOSCA-Simple-Profile-YAML-v1.1] @ 3.5.17
 //
 
-type WorkflowActivityDefinition struct {
+type ActivityDefinition struct {
 	*Entity `name:"workflow activity definition"`
 
 	DelegateWorkflowDefinitionName *string
 	InlineWorkflowDefinitionName   *string
 	SetNodeState                   *string
 	CallOperationSpec              *string
+	Update                         ParameterDefinitions `read:"update,ParameterDefinition"`
 
 	DelegateWorkflowDefinition *WorkflowDefinition  `lookup:"delegate,DelegateWorkflowDefinitionName" json:"-" yaml:"-"`
 	InlineWorkflowDefinition   *WorkflowDefinition  `lookup:"inline,InlineWorkflowDefinitionName" json:"-" yaml:"-"`
@@ -29,13 +31,16 @@ type WorkflowActivityDefinition struct {
 	CallOperation              *OperationAssignment `json:"-" yaml:"-"`
 }
 
-func NewWorkflowActivityDefinition(context *tosca.Context) *WorkflowActivityDefinition {
-	return &WorkflowActivityDefinition{Entity: NewEntity(context)}
+func NewActivityDefinition(context *tosca.Context) *ActivityDefinition {
+	return &ActivityDefinition{
+		Entity: NewEntity(context),
+		Update: make(ParameterDefinitions),
+	}
 }
 
 // tosca.Reader signature
-func ReadWorkflowActivityDefinition(context *tosca.Context) interface{} {
-	self := NewWorkflowActivityDefinition(context)
+func ReadActivityDefinition(context *tosca.Context) interface{} {
+	self := NewActivityDefinition(context)
 
 	if context.ValidateType("map") {
 		map_ := context.Data.(ard.Map)
@@ -56,6 +61,8 @@ func ReadWorkflowActivityDefinition(context *tosca.Context) interface{} {
 				self.SetNodeState = childContext.ReadString()
 			case "call_operation":
 				self.CallOperationSpec = childContext.ReadString()
+			case "update":
+				context.ValidateUnsupportedFields(context.ReadFields(self))
 			default:
 				context.ReportValueMalformed("workflow activity definition", "unsupported operator")
 				return self
@@ -69,7 +76,7 @@ func ReadWorkflowActivityDefinition(context *tosca.Context) interface{} {
 	return self
 }
 
-func (self *WorkflowActivityDefinition) Render(stepDefinition *WorkflowStepDefinition) {
+func (self *ActivityDefinition) Render(stepDefinition *WorkflowStepDefinition) {
 	if self.CallOperationSpec == nil {
 		return
 	}
@@ -105,7 +112,7 @@ func (self *WorkflowActivityDefinition) Render(stepDefinition *WorkflowStepDefin
 	}
 }
 
-func (self *WorkflowActivityDefinition) Normalize(st *normal.WorkflowStep, s *normal.ServiceTemplate) *normal.WorkflowActivity {
+func (self *ActivityDefinition) Normalize(st *normal.WorkflowStep, s *normal.ServiceTemplate) *normal.WorkflowActivity {
 	log.Info("{normalize} workflow activity")
 
 	a := st.NewActivity()
@@ -131,7 +138,29 @@ func (self *WorkflowActivityDefinition) Normalize(st *normal.WorkflowStep, s *no
 }
 
 //
-// WorkflowActivityDefinitions
+// ActivityDefinitions
 //
 
-type WorkflowActivityDefinitions []*WorkflowActivityDefinition
+type ActivityDefinitions []*ActivityDefinition
+
+func (self ActivityDefinitions) Normalize(action *normal.WorkflowActivity) {
+	for _, definition := range self {
+		definition.NormalizeUpdate(action.Update)
+	}
+}
+
+func (self *ActivityDefinition) NormalizeUpdate(constraints normal.Constrainables) {
+	self.Update.Normalize(constraints, self.Context)
+}
+
+func (self ActivityDefinitions) Render() {
+	for _, definition := range self {
+		definition.RenderUpdate()
+	}
+}
+
+func (self *ActivityDefinition) RenderUpdate() {
+	if self.Update != nil {
+		self.Update.Render("update", self.Context)
+	}
+}

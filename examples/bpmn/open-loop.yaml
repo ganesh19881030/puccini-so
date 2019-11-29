@@ -61,10 +61,7 @@ topology_template:
             event_type: BPMN
             # Action can be an operation *or* a workflow ID, which can be used for closed loops
             action:
-              implementation: scripts/get_cpu_metrics.sh
-              inputs:
-                format:
-                  type: string
+              - call_operation: scripts/get_cpu_metrics.sh
         targets:
         - host1
         - host2

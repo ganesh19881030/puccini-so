@@ -16,13 +16,13 @@ type WorkflowStepDefinition struct {
 	*Entity `name:"workflow step definition"`
 	Name    string
 
-	TargetNodeTemplateOrGroupName *string                     `read:"target" require:"target"`
-	TargetNodeRequirementName     *string                     `read:"target_relationship"`
-	OperationHost                 *string                     `read:"operation_host"`
-	FilterConstraintClauses       ConstraintClauses           `read:"filter,[]ConstraintClause"`
-	ActivityDefinitions           WorkflowActivityDefinitions `read:"activities,[]WorkflowActivityDefinition" require:"activities"`
-	OnSuccessStepNames            *[]string                   `read:"on_success"`
-	OnFailureStepNames            *[]string                   `read:"on_failure"`
+	TargetNodeTemplateOrGroupName *string             `read:"target" require:"target"`
+	TargetNodeRequirementName     *string             `read:"target_relationship"`
+	OperationHost                 *string             `read:"operation_host"`
+	FilterConstraintClauses       ConstraintClauses   `read:"filter,[]ConstraintClause"`
+	ActivityDefinitions           ActivityDefinitions `read:"activities,[]ActivityDefinition" require:"activities"`
+	OnSuccessStepNames            *[]string           `read:"on_success"`
+	OnFailureStepNames            *[]string           `read:"on_failure"`
 
 	TargetNodeTemplate *NodeTemplate             `lookup:"target,TargetNodeTemplateOrGroupName" json:"-" yaml:"-"`
 	TargetGroup        *Group                    `lookup:"target,TargetNodeTemplateOrGroupName" json:"-" yaml:"-"`

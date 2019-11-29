@@ -1,7 +1,6 @@
 package tosca_v1_3
 
 import (
-	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -20,13 +19,14 @@ type TriggerDefinition struct {
 	Name    string
 
 	Description     *string                     `read:"description"`
-	EventType       *string                     `read:"event_type"`
+	EventType       *string                     `read:"event_type" require:"event_type"`
 	Schedule        *Value                      `read:"schedule,Value"` // tosca.datatypes.TimeInterval
 	TargetFilter    *EventFilter                `read:"target_filter,EventFilter"`
 	Condition       *TriggerDefinitionCondition `read:"condition,TriggerDefinitionCondition"`
 	Period          *ScalarUnitTime             `read:"period,scalar-unit.time"`
 	Evaluations     *int                        `read:"evaluations"`
 	Method          *string                     `read:"method"`
+	Action          ActivityDefinitions         `read:"action,[]ActivityDefinition" require:"action"`
 	OperationAction *OperationDefinition
 	WorkflowAction  *string
 
@@ -43,28 +43,7 @@ func NewTriggerDefinition(context *tosca.Context) *TriggerDefinition {
 // tosca.Reader signature
 func ReadTriggerDefinition(context *tosca.Context) interface{} {
 	self := NewTriggerDefinition(context)
-	context.ValidateUnsupportedFields(append(context.ReadFields(self), "action"))
-
-	if context.Is("map") {
-		map_ := context.Data.(ard.Map)
-		childContext := context.FieldChild("action", nil)
-		var ok bool
-		if childContext.Data, ok = map_["action"]; ok {
-			if childContext.ValidateType("map", "string") {
-				if childContext.Is("map") {
-					// Note that OperationDefinition can also be a string, but there is no way
-					// for us to differentiate between that and a workflow ID, so we support only
-					// the long notation
-					self.OperationAction = ReadOperationDefinition(childContext).(*OperationDefinition)
-				} else {
-					self.WorkflowAction = childContext.ReadString()
-				}
-			}
-		} else {
-			childContext.ReportFieldMissing()
-		}
-	}
-
+	context.ValidateUnsupportedFields(context.ReadFields(self))
 	return self
 }
 
@@ -79,6 +58,9 @@ func (self *TriggerDefinition) Render() {
 	if self.Schedule != nil {
 		self.Schedule.RenderDataType("tosca.datatypes.TimeInterval")
 	}
+	if self.Action != nil {
+		self.Action.Render()
+	}
 }
 
 func (self *TriggerDefinition) Normalize(p *normal.Policy, s *normal.ServiceTemplate) *normal.PolicyTrigger {
@@ -88,6 +70,13 @@ func (self *TriggerDefinition) Normalize(p *normal.Policy, s *normal.ServiceTemp
 		self.OperationAction.Normalize(t.NewOperation())
 	} else if self.WorkflowDefinition != nil {
 		t.Workflow = s.Workflows[self.WorkflowDefinition.Name]
+	}
+
+	if self.Condition != nil {
+		self.Condition.Normalize(t.NewCondition())
+	}
+	if self.Action != nil {
+		self.Action.Normalize(t.NewActivity())
 	}
 
 	// TODO: missing fields

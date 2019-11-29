@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -26,8 +27,33 @@ func NewParameterDefinition(context *tosca.Context) *ParameterDefinition {
 // tosca.Reader signature
 func ReadParameterDefinition(context *tosca.Context) interface{} {
 	self := NewParameterDefinition(context)
-	context.ValidateUnsupportedFields(context.ReadFields(self))
+
+	if isShortNotation(context) {
+		// Short notation
+		self.Value = ReadValue(context.FieldChild("value", context.Data)).(*Value)
+	} else {
+		// Extended notation
+		context.ValidateUnsupportedFields(context.ReadFields(self))
+	}
 	return self
+}
+
+// function to determine if the type of notation being used is short notation
+// it checks for presence of one or more extended notation keys
+func isShortNotation(context *tosca.Context) bool {
+
+	parameterDefinitionKeys := [...]string{"type", "description", "value", "required", "default", "status",
+		"constraints", "key_schema ", "entry_schema"}
+
+	contextDataMap, _ := context.Data.(ard.Map)
+	for key := range contextDataMap {
+		for _, paramDefKey := range parameterDefinitionKeys {
+			if key == paramDefKey {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (self *ParameterDefinition) Render(kind string) {
