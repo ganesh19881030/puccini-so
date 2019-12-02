@@ -300,9 +300,11 @@ func compareEdgesOutOfVertexes(vertex1EdgeData interface{}, vertex2EdgeData inte
 				break
 			}
 
-			//if target vertex is of type workflowActivity or operation then compare that whole vertexes
+			//if target vertex is of type workflowActivity, operation, action or condition then compare that whole vertexes
 			if (checkVertexType("workflowActivity", targetVertexOfEdgeFromVertex2) && checkVertexType("workflowActivity", targetVertexOfEdgeFromVertex1)) ||
-				(checkVertexType("operation", targetVertexOfEdgeFromVertex2) && checkVertexType("operation", targetVertexOfEdgeFromVertex1)) {
+				(checkVertexType("operation", targetVertexOfEdgeFromVertex2) && checkVertexType("operation", targetVertexOfEdgeFromVertex1)) ||
+				(checkVertexType("action", targetVertexOfEdgeFromVertex2) && checkVertexType("action", targetVertexOfEdgeFromVertex1)) ||
+				(checkVertexType("condition", targetVertexOfEdgeFromVertex2) && checkVertexType("condition", targetVertexOfEdgeFromVertex1)) {
 
 				if (equal(targetVertexOfEdgeFromVertex1, targetVertexOfEdgeFromVertex2, vertexesOfClout1, vertexesOfClout2)) &&
 					(compareVersionMetadataAndProperties(edgeOfVertex1.(map[string]interface{}), edge2.(map[string]interface{}), "", "", nil)) {
