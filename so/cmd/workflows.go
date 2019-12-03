@@ -90,7 +90,8 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 			// get vertex properties
 			vertexProperties := vertex.Properties
 
-			directives := vertexProperties["directives"].([]interface{})
+			//directives := vertexProperties["directives"].([]interface{})
+			directives := vertexProperties["directives"].([]string)
 			vertexName := vertexProperties["name"]
 
 			// if this is not abstract node, skip
@@ -101,11 +102,13 @@ func createWorkFlows(c *clout.Clout) *Workflows {
 			// look for substitute directive
 			for _, directive := range directives {
 				var substituteDirective []string
-				if !strings.Contains(directive.(string), "substitute") {
+				//if !strings.Contains(directive.(string), "substitute") {
+				if !strings.Contains(directive, "substitute") {
 					continue
 				}
 
-				substituteDirective = strings.Split(directive.(string), ":")
+				//substituteDirective = strings.Split(directive.(string), ":")
+				substituteDirective = strings.Split(directive, ":")
 
 				if len(substituteDirective) <= 1 {
 					log.Warningf("Implementation of abstract node template '%v' not found", vertexName.(string))
@@ -225,7 +228,8 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 						nodeTemplateName := vertexRequirementMap["nodeTemplateName"].(string)
 
 						if (requirementName == abstractVertexName) || (nodeTemplateName == abstractVertexName) {
-							directives := vertexProperties["directives"].([]interface{})
+							//directives := vertexProperties["directives"].([]interface{})
+							directives := vertexProperties["directives"].([]string)
 
 							// if non-abstract node template depends on abstract node template then add dependency between them
 							if len(directives) == 0 {
@@ -238,11 +242,13 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 							var substituteVertexID string
 							for _, directive := range directives {
 
-								if !strings.Contains(directive.(string), "substitute") {
+								//if !strings.Contains(directive.(string), "substitute") {
+								if !strings.Contains(directive, "substitute") {
 									continue
 								}
 
-								substituteDirective := strings.Split(directive.(string), ":")
+								//substituteDirective := strings.Split(directive.(string), ":")
+								substituteDirective := strings.Split(directive, ":")
 								for index, vertexID := range substituteDirective {
 									if index == 1 {
 										substituteVertexID = vertexID
@@ -265,7 +271,11 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 								}
 
 								edgeProperties := edge.GetProperties()
-								edgeRequirementName := edgeProperties["requirementName"].(string)
+								edgeRequirementName := ""
+								if edgeProperties["requirementName"] != nil {
+									edgeRequirementName = edgeProperties["requirementName"].(string)
+								}
+								//edgeRequirementName := edgeProperties["requirementName"].(string)
 								if (edgeRequirementName == requirementName) || (edgeRequirementName == nodeTemplateName) {
 									edgeTargetID := edge.TargetID
 
@@ -812,18 +822,21 @@ func isCloutFromMultipleServiceTemplatesFile(cloutVertexes clout.Vertexes) bool 
 		// get vertex properties
 		vertexProperties := vertex.Properties
 
-		directives := vertexProperties["directives"].([]interface{})
+		//directives := vertexProperties["directives"].([]interface{})
+		directives := vertexProperties["directives"].([]string)
 
 		if len(directives) == 0 {
 			continue
 		}
 
 		for _, directive := range directives {
-			if !strings.Contains(directive.(string), "substitute") {
+			//if !strings.Contains(directive.(string), "substitute") {
+			if !strings.Contains(directive, "substitute") {
 				continue
 			}
 
-			substituteDirective := strings.Split(directive.(string), ":")
+			//substituteDirective := strings.Split(directive.(string), ":")
+			substituteDirective := strings.Split(directive, ":")
 
 			if len(substituteDirective) > 1 {
 				return true

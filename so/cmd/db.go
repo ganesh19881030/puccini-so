@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	//"fmt"
-	// "io/ioutil"
+	"io/ioutil"
 	//"github.com/tliron/puccini/url"
 
 	//"log"
@@ -23,9 +23,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-var VERSION string
+var TemplateVersion string
 
-func createCloutOutput(dburl string, name string) *clout.Clout {
+func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 
 	//conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
 	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
@@ -54,6 +54,7 @@ func createCloutOutput(dburl string, name string) *clout.Clout {
 	// Query the clout vertex by name
 	const q = `query all($name: string) {
 		all(func: eq(<clout:name>, $name)) {
+			uid
 			expand(_all_) {
 				expand(_all_) {
 				  expand(_all_)
@@ -67,7 +68,7 @@ func createCloutOutput(dburl string, name string) *clout.Clout {
 	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
 	if err != nil {
 		//log.Fatal(err)
-		return nil
+		return nil, ""
 	}
 
 	var result map[string]interface{}
@@ -76,19 +77,19 @@ func createCloutOutput(dburl string, name string) *clout.Clout {
 		log.Fatal(err)
 	}
 
-	cloutOutput := createClout(result)
+	cloutOutput, uid := createClout(result)
 
 	// Write into a file
-	//file, _ := json.MarshalIndent(cloutOutput, "", "  ")
+	file, _ := json.MarshalIndent(cloutOutput, "", "  ")
 	//file, _ := yaml.Marshal(cloutOutput)
 
-	//_ = ioutil.WriteFile("workflows_dgraph.json", file, 0644)
+	_ = ioutil.WriteFile("fw1_csar_dgraph.json", file, 0644)
 
-	return cloutOutput
+	return cloutOutput, uid
 
 }
 
-func createClout(result map[string]interface{}) *clout.Clout {
+func createClout(result map[string]interface{}) (*clout.Clout, string) {
 	cloutOutput := clout.NewClout()
 	queryData := result["all"].([]interface{})
 
@@ -96,6 +97,8 @@ func createClout(result map[string]interface{}) *clout.Clout {
 		log.Fatal("No results retrieved from the database")
 	}
 	cloutMap := queryData[0].(map[string]interface{})
+
+	uid := cloutMap["uid"].(string)
 
 	timestamp, err := common.Timestamp()
 	if err != nil {
@@ -119,8 +122,8 @@ func createClout(result map[string]interface{}) *clout.Clout {
 	cloutOutput.Metadata["puccini-js"] = metadata
 
 	metadata = make(ard.Map)
-	VERSION = cloutMap["clout:version"].(string)
-	metadata["version"] = VERSION
+	TemplateVersion = cloutMap["clout:version"].(string)
+	metadata["version"] = TemplateVersion
 	metadata["history"] = []string{timestamp}
 	cloutOutput.Metadata["puccini-tosca"] = metadata
 
@@ -159,12 +162,17 @@ func createClout(result map[string]interface{}) *clout.Clout {
 	// Add WorkFlows
 	addWorkflows(vertexList, workflowSteps, cloutOutput)
 
-	// Add WorkflowActivity
+	// Add Operations
 	operations := addOperations(vertexList, cloutOutput)
+	
+	// Add Conditions and Actions
+	conditions, actions := addConditionsAndActions(vertexList, cloutOutput)
 
-	addPolicies(vertexList, nodeTemplates, groups, operations, cloutOutput)
+	addPolicies(vertexList, nodeTemplates, groups, operations, conditions, actions, cloutOutput)
 
-	return cloutOutput
+	addSubstitutions(vertexList, nodeTemplates, groups, operations, cloutOutput)
+
+	return cloutOutput, uid
 }
 
 func addNodeTemplates(vertexList []interface{}, cloutOutput *clout.Clout) map[string]*clout.Vertex {
@@ -179,7 +187,7 @@ func addNodeTemplates(vertexList []interface{}, cloutOutput *clout.Clout) map[st
 				//nodeTemplates[templateMap["tosca:name"].(string)] = v
 				nodeTemplates[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "nodeTemplate", VERSION)
+				setMetadata(v, "nodeTemplate", TemplateVersion)
 				v.Properties["name"] = templateMap["tosca:name"]
 				v.Properties["description"] = templateMap["tosca:description"]
 				v.Properties["types"] = getPropMap(templateMap["tosca:types"])
@@ -235,7 +243,7 @@ func addEdges(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex) 
 						//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
 						vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
 						edgeOut := v.NewEdgeTo(vv)
-						setMetadata(edgeOut, "relationship", VERSION)
+						setMetadata(edgeOut, "relationship", TemplateVersion)
 						edgeOut.Properties["attributes"] = getPropMap(edgeMap["clout:edge|tosca:attributes"])
 						edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
 						edgeOut.Properties["description"] = edgeMap["clout:edge|tosca:description"]
@@ -266,7 +274,7 @@ func addGroups(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex,
 				//groups[templateMap["tosca:name"].(string)] = v
 				groups[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "group", VERSION)
+				setMetadata(v, "group", TemplateVersion)
 				v.Properties["name"] = templateMap["tosca:name"]
 				v.Properties["description"] = templateMap["tosca:description"]
 				v.Properties["types"] = getPropMap(templateMap["tosca:types"])
@@ -280,7 +288,7 @@ func addGroups(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex,
 					nv := nodeTemplates[nodeMap["tosca:vertexId"].(string)]
 					e := v.NewEdgeTo(nv)
 
-					setMetadata(e, "member", VERSION)
+					setMetadata(e, "member", TemplateVersion)
 				}
 			}
 		}
@@ -301,7 +309,7 @@ func addWorkflows(vertexList []interface{}, workflowSteps map[string]*clout.Vert
 				//workflows[templateMap["tosca:name"].(string)] = v
 				//workflows[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "workflow", VERSION)
+				setMetadata(v, "workflow", TemplateVersion)
 				v.Properties["name"] = templateMap["tosca:name"]
 				v.Properties["description"] = templateMap["tosca:description"]
 				cloutEdge := templateMap["clout:edge"]
@@ -313,7 +321,7 @@ func addWorkflows(vertexList []interface{}, workflowSteps map[string]*clout.Vert
 							//vv := workflowSteps[edgeMap["tosca:name"].(string)]
 							vv := workflowSteps[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, "workflowStep", VERSION)
+							setMetadata(edgeOut, "workflowStep", TemplateVersion)
 							edgeOut.TargetID = vv.ID
 							edgeOuts = append(edgeOuts, edgeOut)
 							//edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
@@ -346,7 +354,7 @@ func addWorkflowSteps(vertexList []interface{}, nodeTemplates map[string]*clout.
 				//workflowSteps[templateMap["tosca:name"].(string)] = v
 				workflowSteps[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "workflowStep", VERSION)
+				setMetadata(v, "workflowStep", TemplateVersion)
 				v.Properties["name"] = templateMap["tosca:name"]
 				//v.Properties["firstStep"] = templateMap["tosca:firstStep"]
 			}
@@ -389,7 +397,7 @@ func addWorkflowStepEdges(nodes []interface{}, workflowSteps map[string]*clout.V
 				if vv != nil {
 					edgeEntity := edgeMap["clout:edge|tosca:entity"].(string)
 					edgeOut = v.NewEdgeTo(vv)
-					setMetadata(edgeOut, edgeEntity, VERSION)
+					setMetadata(edgeOut, edgeEntity, TemplateVersion)
 					if edgeMap["clout:edge|tosca:sequence"] != nil {
 						edgeOut.Properties["sequence"] = edgeMap["clout:edge|tosca:sequence"]
 					}
@@ -421,7 +429,7 @@ func addWorkflowActivities(vertexList []interface{}, cloutOutput *clout.Clout) m
 
 				workflowActivities[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "workflowActivity", VERSION)
+				setMetadata(v, "workflowActivity", TemplateVersion)
 				if templateMap["tosca:setNodeState"] != nil {
 					v.Properties["setNodeState"] = templateMap["tosca:setNodeState"]
 				}
@@ -453,7 +461,7 @@ func addOperations(vertexList []interface{}, cloutOutput *clout.Clout) map[strin
 
 				operations[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "operation", VERSION)
+				setMetadata(v, "operation", TemplateVersion)
 				v.Properties["dependencies"] = getPropList(templateMap["tosca:dependencies"])
 				v.Properties["description"] = templateMap["tosca:description"]
 				v.Properties["implementation"] = templateMap["tosca:implementation"]
@@ -465,7 +473,39 @@ func addOperations(vertexList []interface{}, cloutOutput *clout.Clout) map[strin
 	return operations
 }
 
-func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
+func addConditionsAndActions(vertexList []interface{}, cloutOutput *clout.Clout) (map[string]*clout.Vertex, map[string]*clout.Vertex) {
+	conditions := make(map[string]*clout.Vertex)
+	//conditionNodes := make([]interface{}, 0)
+	actions := make(map[string]*clout.Vertex)
+	//actionNodes := make([]interface{}, 0)
+	for _, node := range vertexList {
+		templateMap := node.(map[string]interface{})
+		if entity, ok := templateMap["tosca:entity"]; ok {
+			if entity == "condition" {
+				//conditionNodes = append(conditionNodes, node)
+				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
+
+				conditions[templateMap["tosca:vertexId"].(string)] = v
+
+				setMetadata(v, "condition", TemplateVersion)
+				v.Properties["conditionClauses"] = getPropMap(templateMap["tosca:conditionClauses"])
+				
+			} else if entity == "action" {
+				//actionNodes = append(actionNodes, node)
+				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
+
+				actions[templateMap["tosca:vertexId"].(string)] = v
+
+				setMetadata(v, "action", TemplateVersion)
+				v.Properties["update"] = getPropMap(templateMap["tosca:update"])
+			}
+		}
+	}
+	return conditions, actions
+}
+
+func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex, 
+				conditions map[string]*clout.Vertex, actions map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
 	policies := make(map[string]*clout.Vertex)
 	for _, node := range vertexList {
 		//v := cloutOutput.NewVertex(clout.NewKey())
@@ -480,7 +520,7 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 				//policies[templateMap["tosca:name"].(string)] = v
 				policies[templateMap["tosca:vertexId"].(string)] = v
 
-				setMetadata(v, "policy", VERSION)
+				setMetadata(v, "policy", TemplateVersion)
 				v.Properties["name"] = templateMap["tosca:name"]
 				v.Properties["description"] = templateMap["tosca:description"]
 				v.Properties["types"] = getPropMap(templateMap["tosca:types"])
@@ -494,7 +534,7 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 							//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
 							vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, "nodeTemplateTarget", VERSION)
+							setMetadata(edgeOut, "nodeTemplateTarget", TemplateVersion)
 							edgeOut.TargetID = vv.ID
 							edgeOuts = append(edgeOuts, edgeOut)
 							//edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
@@ -502,13 +542,25 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 							//vv := groups[edgeMap["tosca:name"].(string)]
 							vv := groups[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, "groupTarget", VERSION)
+							setMetadata(edgeOut, "groupTarget", TemplateVersion)
 							edgeOut.TargetID = vv.ID
 							edgeOuts = append(edgeOuts, edgeOut)
 						} else if edgeMap["tosca:entity"] == "operation" {
 							vv := operations[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), VERSION)
+							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
+							edgeOut.TargetID = vv.ID
+							edgeOuts = append(edgeOuts, edgeOut)
+						} else if edgeMap["tosca:entity"] == "condition" {
+							vv := conditions[edgeMap["tosca:vertexId"].(string)]
+							edgeOut := v.NewEdgeTo(vv)
+							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
+							edgeOut.TargetID = vv.ID
+							edgeOuts = append(edgeOuts, edgeOut)
+						} else if edgeMap["tosca:entity"] == "action" {
+							vv := actions[edgeMap["tosca:vertexId"].(string)]
+							edgeOut := v.NewEdgeTo(vv)
+							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
 							edgeOut.TargetID = vv.ID
 							edgeOuts = append(edgeOuts, edgeOut)
 						}
@@ -519,6 +571,55 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 		}
 	}
 	return policies
+}
+
+func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
+	subs := make(map[string]*clout.Vertex)
+	for _, node := range vertexList {
+		edgeOuts := make(clout.Edges, 0)
+		templateMap := node.(map[string]interface{})
+		if entity, ok := templateMap["tosca:entity"]; ok {
+			if entity == "substitution" {
+				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
+
+				subs[templateMap["tosca:vertexId"].(string)] = v
+
+				setMetadata(v, "substitution", TemplateVersion)
+				v.Properties["substitutionFilter"] = getPropList(templateMap["tosca:substitutionFilter"])
+				v.Properties["type"] = templateMap["tosca:type"]
+				v.Properties["typeMetadata"] = getPropMap(templateMap["tosca:typeMetadata"])
+				v.Properties["properties"] = getPropMap(templateMap["tosca:properties"])
+				cloutEdge := templateMap["clout:edge"]
+				if cloutEdge != nil {
+					edgeList := cloutEdge.([]interface{})
+					for _, edge := range edgeList {
+						edgeMap := edge.(map[string]interface{})
+						entity := edgeMap["clout:edge|tosca:entity"].(string)
+						if edgeMap["tosca:entity"] == "nodeTemplate" {
+							//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
+							vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
+							edgeOut := v.NewEdgeTo(vv)
+							setMetadata(edgeOut, entity, TemplateVersion)
+							edgeOut.TargetID = vv.ID
+							edgeOuts = append(edgeOuts, edgeOut)
+							if edgeMap["clout:edge|tosca:requirement"] != nil {
+								edgeOut.Properties["requirement"] = edgeMap["clout:edge|tosca:requirement"]
+							}
+							if edgeMap["clout:edge|tosca:requirementName"] != nil {
+								edgeOut.Properties["requirementName"] = edgeMap["clout:edge|tosca:requirementName"]
+							}
+							if edgeMap["clout:edge|tosca:capability"] != nil {
+								edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
+							}
+							//edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
+						}
+					}
+				}
+				v.EdgesOut = edgeOuts
+			}
+		}
+	}
+	return subs
 }
 
 func setMetadata(entity clout.Entity, kind string, version string) {
@@ -541,7 +642,7 @@ func getPropMap(prop interface{}) ard.Map {
 
 func getPropStringList(prop interface{}) []string {
 	props := make([]string, 0)
-	if prop != nil {
+	if prop != nil && prop != "" {
 		propString := prop.(string)
 		if err := json.Unmarshal([]byte(propString), &props); err != nil {
 			log.Fatal(err)
@@ -550,8 +651,8 @@ func getPropStringList(prop interface{}) []string {
 	return props
 }
 
-func getPropList(prop interface{}) []ard.Map {
-	props := make([]ard.Map, 0)
+func getPropList(prop interface{}) []interface{} {
+	props := make([]interface{}, 0)
 	if prop != nil {
 		propString := prop.(string)
 		if err := json.Unmarshal([]byte(propString), &props); err != nil {

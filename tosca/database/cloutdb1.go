@@ -110,8 +110,14 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 			fillWorkflowActivity(&vxItem, &vertex.Properties, "workflowActivity", "")
 		} else if isToscaVertex(vertex, "operation") {
 			fillPolicyOperation(&vxItem, &vertex.Properties, "operation", "")
+		} else if isToscaVertex(vertex, "action") {
+			fillPolicyAction(&vxItem, &vertex.Properties, "action", "")
+		} else if isToscaVertex(vertex, "condition") {
+			fillPolicyCondition(&vxItem, &vertex.Properties, "condition", "")
 		} else if isToscaVertex(vertex, "policy") {
 			fillTosca(&vxItem, &vertex.Properties, "policy", "")
+		} else if isToscaVertex(vertex, "substitution") {
+			fillSubstitution(&vxItem, &vertex.Properties, "substitution", "")
 		}
 
 		//		var vertexItem string = "{uid: '_:clout.vertex.'" + ind + ", 'clout:edge': []}";
@@ -286,6 +292,25 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 		}
 	}
 
+	if (*nodeTemplate)["directives"] != nil {
+		dir := (*nodeTemplate)["directives"]
+		var bytes []byte
+		var error error
+		if reflect.TypeOf(dir).String() == "[]interface{}" {
+			mapx := dir.([]interface{})
+			bytes, error = json.Marshal(mapx)
+		} else if reflect.TypeOf(dir).String() == "[]string" {
+			mapx := dir.([]string)
+			bytes, error = json.Marshal(mapx)
+		}
+		//mapx := (*nodeTemplate)["directives"].([]string)
+		//bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)["tosca:directives"] = string(bytes)
+		}
+	}
+
 	return nil
 }
 
@@ -310,6 +335,19 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 		fillTosca(&edgeItem, &edge.Properties, "groupTarget", prefix)
 	} else if isToscaEdge(edge, "policyTriggerOperation") {
 		fillTosca(&edgeItem, &edge.Properties, "policyTriggerOperation", prefix)
+	} else if isToscaEdge(edge, "policyTriggerCondition") {
+		fillTosca(&edgeItem, &edge.Properties, "policyTriggerCondition", prefix)
+	} else if isToscaEdge(edge, "policyTriggerAction") {
+		fillTosca(&edgeItem, &edge.Properties, "policyTriggerAction", prefix)
+	} else if isToscaEdge(edge, "capabilityMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "capabilityMapping", prefix)
+		edgeItem[prefix+"tosca:capability"] = edge.Properties["capability"]
+	} else if isToscaEdge(edge, "requirementMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "requirementMapping", prefix)
+		edgeItem[prefix+"tosca:requirement"] = edge.Properties["requirement"]
+		edgeItem[prefix+"tosca:requirementName"] = edge.Properties["requirementName"]
+	} else if isToscaEdge(edge, "interfaceMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "interfaceMapping", prefix)
 	}
 
 	var edgeItems []*ard.Map
@@ -386,6 +424,67 @@ func fillPolicyOperation(item *ard.Map, entity *ard.Map, ttype string, prefix st
 	}
 	(*item)[prefix+"tosca:implementation"] = (*entity)["implementation"]
 	(*item)[prefix+"tosca:dependencies"] = (*entity)["dependencies"]
+
+	return nil
+}
+
+func fillPolicyCondition(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "condition", "")
+
+	if (*entity)["conditionClauses"] != nil {
+		mapx := ((*entity)["conditionClauses"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:conditionClauses"] = string(bytes)
+		}
+	}
+	
+	return nil
+}
+
+func fillPolicyAction(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "action", "")
+
+	if (*entity)["update"] != nil {
+		mapx := ((*entity)["update"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:update"] = string(bytes)
+		}
+	}
+	
+	return nil
+}
+
+func fillSubstitution(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "substitution", "")
+
+	if (*entity)["inputs"] != nil {
+		mapx := ((*entity)["inputs"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:inputs"] = string(bytes)
+		}
+	}
+	(*item)[prefix+"tosca:type"] = (*entity)["type"]
+	(*item)[prefix+"tosca:dependencies"] = (*entity)["dependencies"]
+
+	if (*entity)["typeMetadata"] != nil {
+		mapx := ((*entity)["typeMetadata"]).(ard.Map)
+		bytes, error := json.Marshal(mapx)
+		if error == nil {
+			(*item)[prefix+"tosca:typeMetadata"] = string(bytes)
+		}
+	}
+
+	if (*entity)["substitutionFilter"] != nil {
+		mapx := (*entity)["substitutionFilter"].([]interface{})
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)[prefix+"tosca:substitutionFilter"] = string(bytes)
+		}
+	}
 
 	return nil
 }
