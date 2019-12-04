@@ -164,7 +164,7 @@ func createClout(result map[string]interface{}) (*clout.Clout, string) {
 
 	// Add Operations
 	operations := addOperations(vertexList, cloutOutput)
-	
+
 	// Add Conditions and Actions
 	conditions, actions := addConditionsAndActions(vertexList, cloutOutput)
 
@@ -191,7 +191,7 @@ func addNodeTemplates(vertexList []interface{}, cloutOutput *clout.Clout) map[st
 				v.Properties["name"] = templateMap["tosca:name"]
 				v.Properties["description"] = templateMap["tosca:description"]
 				v.Properties["types"] = getPropMap(templateMap["tosca:types"])
-				v.Properties["directives"] = getPropStringList(templateMap["tosca:directives"])
+				v.Properties["directives"] = getPropList(templateMap["tosca:directives"])
 				v.Properties["properties"] = getPropMap(templateMap["tosca:properties"])
 				v.Properties["attributes"] = getPropMap(templateMap["tosca:attributes"])
 				v.Properties["requirements"] = getPropList(templateMap["tosca:requirements"])
@@ -489,7 +489,7 @@ func addConditionsAndActions(vertexList []interface{}, cloutOutput *clout.Clout)
 
 				setMetadata(v, "condition", TemplateVersion)
 				v.Properties["conditionClauses"] = getPropMap(templateMap["tosca:conditionClauses"])
-				
+
 			} else if entity == "action" {
 				//actionNodes = append(actionNodes, node)
 				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
@@ -504,8 +504,8 @@ func addConditionsAndActions(vertexList []interface{}, cloutOutput *clout.Clout)
 	return conditions, actions
 }
 
-func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex, 
-				conditions map[string]*clout.Vertex, actions map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
+func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex,
+	conditions map[string]*clout.Vertex, actions map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
 	policies := make(map[string]*clout.Vertex)
 	for _, node := range vertexList {
 		//v := cloutOutput.NewVertex(clout.NewKey())
@@ -653,7 +653,7 @@ func getPropStringList(prop interface{}) []string {
 
 func getPropList(prop interface{}) []interface{} {
 	props := make([]interface{}, 0)
-	if prop != nil {
+	if prop != nil && prop != "" {
 		propString := prop.(string)
 		if err := json.Unmarshal([]byte(propString), &props); err != nil {
 			log.Fatal(err)
