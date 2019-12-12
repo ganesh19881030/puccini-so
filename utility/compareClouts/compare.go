@@ -29,8 +29,12 @@ func main() {
 	clout1 := getJSONObject(path1)
 	clout2 := getJSONObject(path2)
 
-	if clout1 == nil || clout2 == nil {
-		common.Failf("Invalid file path. path1 = %v, path2 = %v", path1, path2)
+	if clout1 == nil {
+		common.Failf("Invalid file format for path : %v", path1)
+	}
+
+	if clout2 == nil {
+		common.Failf("Invalid file format for path : %v", path2)
 	}
 
 	//get names of clout files from their path
@@ -127,11 +131,11 @@ func compareVertexes(clout1 map[string]interface{}, clout2 map[string]interface{
 	errs *[]string) {
 	vertexesOfClout1, _ := clout1["vertexes"].(map[string]interface{})
 	vertexesOfClout2, _ := clout2["vertexes"].(map[string]interface{})
-	arr := [5]string{"nodeTemplate", "workflowStep", "policy", "group", "workflow"}
+	arr := [...]string{"nodeTemplate", "workflowStep", "policy", "group", "workflow", "policyTrigger"}
 	var match bool
 	var matchedVertex interface{}
 
-	//compare vertexes of type nodeTemplate, workflowStep, policy, group and workflow
+	//compare vertexes of type nodeTemplate, workflowStep, policy, group, workflow and policyTrigger
 	for _, vertexType := range arr {
 		for _, vertex := range vertexesOfClout1 {
 			if !checkVertexType(vertexType, vertex) {
@@ -275,7 +279,8 @@ func compareEdgesOutOfVertexes(vertex1EdgeData interface{}, vertex2EdgeData inte
 
 		//based on 'targetID' from edge, get name of target vertex from clout1
 		mapOfEdgeFromVertex1, _ := edgeOfVertex1.(map[string]interface{})
-		targetVertexOfEdgeFromVertex1 := findVertexBasedOnID(mapOfEdgeFromVertex1["targetID"].(string), vertexesOfClout1).(map[string]interface{})
+		dataOfTargetVertexFromEdgeOfVertex1 := findVertexBasedOnID(mapOfEdgeFromVertex1["targetID"].(string), vertexesOfClout1)
+		targetVertexOfEdgeFromVertex1, _ := dataOfTargetVertexFromEdgeOfVertex1.(map[string]interface{})
 		propertiesOfTargetVertex, _ := targetVertexOfEdgeFromVertex1["properties"].(map[string]interface{})
 		nameOfTargetVertexFromClout1, _ := propertiesOfTargetVertex["name"]
 
@@ -289,7 +294,8 @@ func compareEdgesOutOfVertexes(vertex1EdgeData interface{}, vertex2EdgeData inte
 
 			//based on 'targetID' from edge get name of target vertex from clout2
 			mapOfEdgeFromVertex2, _ := edge2.(map[string]interface{})
-			targetVertexOfEdgeFromVertex2 := findVertexBasedOnID(mapOfEdgeFromVertex2["targetID"].(string), vertexesOfClout2).(map[string]interface{})
+			dataOfTargetVertexFromEdgeOfVertex2 := findVertexBasedOnID(mapOfEdgeFromVertex2["targetID"].(string), vertexesOfClout2)
+			targetVertexOfEdgeFromVertex2, _ := dataOfTargetVertexFromEdgeOfVertex2.(map[string]interface{})
 			propertiesOfTargetVertex, _ := targetVertexOfEdgeFromVertex2["properties"].(map[string]interface{})
 			nameOfTargetVertexFromClout2, _ := propertiesOfTargetVertex["name"]
 
@@ -300,11 +306,9 @@ func compareEdgesOutOfVertexes(vertex1EdgeData interface{}, vertex2EdgeData inte
 				break
 			}
 
-			//if target vertex is of type workflowActivity, operation, action or condition then compare that whole vertexes
+			//if target vertex is of type workflowActivity or operation then compare that whole vertexes
 			if (checkVertexType("workflowActivity", targetVertexOfEdgeFromVertex2) && checkVertexType("workflowActivity", targetVertexOfEdgeFromVertex1)) ||
-				(checkVertexType("operation", targetVertexOfEdgeFromVertex2) && checkVertexType("operation", targetVertexOfEdgeFromVertex1)) ||
-				(checkVertexType("action", targetVertexOfEdgeFromVertex2) && checkVertexType("action", targetVertexOfEdgeFromVertex1)) ||
-				(checkVertexType("condition", targetVertexOfEdgeFromVertex2) && checkVertexType("condition", targetVertexOfEdgeFromVertex1)) {
+				(checkVertexType("operation", targetVertexOfEdgeFromVertex2) && checkVertexType("operation", targetVertexOfEdgeFromVertex1)) {
 
 				if (equal(targetVertexOfEdgeFromVertex1, targetVertexOfEdgeFromVertex2, vertexesOfClout1, vertexesOfClout2)) &&
 					(compareVersionMetadataAndProperties(edgeOfVertex1.(map[string]interface{}), edge2.(map[string]interface{}), "", "", nil)) {

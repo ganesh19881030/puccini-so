@@ -39,17 +39,20 @@ type Policies map[string]*Policy
 //
 
 type PolicyTrigger struct {
-	Policy    *Policy           `json:"-" yaml:"-"`
-	EventType string            `json:"eventType" yaml:"eventType"`
-	Operation *Operation        `json:"operation" yaml:"operation"`
-	Workflow  *Workflow         `json:"workflow" yaml:"workflow"`
-	Condition *Condition        `json:"condition" yaml:"condition"`
-	Action    *WorkflowActivity `json:"action" yaml:"action"`
+	Policy      *Policy           `json:"-" yaml:"-"`
+	Name        string            `json:"-" yaml:"-"`
+	Description string            `json:"description" yaml:"description"`
+	EventType   string            `json:"eventType" yaml:"eventType"`
+	Operation   *Operation        `json:"operation" yaml:"operation"`
+	Workflow    *Workflow         `json:"workflow" yaml:"workflow"`
+	Condition   *Condition        `json:"condition" yaml:"condition"`
+	Action      *WorkflowActivity `json:"action" yaml:"action"`
 	// TODO: missing fields
 }
 
-func (self *Policy) NewTrigger() *PolicyTrigger {
+func (self *Policy) NewTrigger(name string) *PolicyTrigger {
 	trigger := &PolicyTrigger{
+		Name:   name,
 		Policy: self,
 	}
 	self.Triggers = append(self.Triggers, trigger)

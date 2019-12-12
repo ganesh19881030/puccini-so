@@ -197,47 +197,41 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 		}
 
 		for _, trigger := range policy.Triggers {
+			tr := clout_.NewVertex(clout.NewKey())
+			SetMetadata(tr, "policyTrigger")
+
 			if trigger.Operation != nil {
-				to := clout_.NewVertex(clout.NewKey())
-
-				SetMetadata(to, "operation")
-				to.Properties["description"] = trigger.Operation.Description
-				to.Properties["implementation"] = trigger.Operation.Implementation
-				to.Properties["dependencies"] = trigger.Operation.Dependencies
-				to.Properties["inputs"] = trigger.Operation.Inputs
-
-				e := v.NewEdgeTo(to)
-				SetMetadata(e, "policyTriggerOperation")
+				operation := make(map[string]interface{})
+				operation["description"] = trigger.Operation.Description
+				operation["implementation"] = trigger.Operation.Implementation
+				operation["dependencies"] = trigger.Operation.Dependencies
+				operation["inputs"] = trigger.Operation.Inputs
+				tr.Properties["operation"] = operation
 			} else if trigger.Workflow != nil {
 				wv := workflows[trigger.Workflow.Name]
 
-				e := v.NewEdgeTo(wv)
+				e := tr.NewEdgeTo(wv)
 				SetMetadata(e, "policyTriggerWorkflow")
 			}
+
+			tr.Properties["name"] = trigger.Name
+			tr.Properties["description"] = trigger.Description
+			tr.Properties["event_type"] = trigger.EventType
+
 			if trigger.Condition != nil {
 				conditionClauses := make(map[string]normal.FunctionCalls)
-				tc := clout_.NewVertex(clout.NewKey())
-				SetMetadata(tc, "condition")
-
 				for name, conditionClause := range trigger.Condition.ConditionClauseConstraints {
 					conditionClauses[name] = conditionClause
 				}
-				tc.Properties["conditionClauses"] = conditionClauses
-
-				e := v.NewEdgeTo(tc)
-				SetMetadata(e, "policyTriggerCondition")
+				tr.Properties["condition"] = conditionClauses
 			}
+
 			if trigger.Action != nil {
-				ta := clout_.NewVertex(clout.NewKey())
-				SetMetadata(ta, "action")
-
-				if trigger.Action.Update != nil {
-					ta.Properties["update"] = trigger.Action.Update
-				}
-
-				e := v.NewEdgeTo(ta)
-				SetMetadata(e, "policyTriggerAction")
+				tr.Properties["action"] = trigger.Action
 			}
+
+			e := v.NewEdgeTo(tr)
+			SetMetadata(e, "policyTrigger")
 		}
 	}
 
