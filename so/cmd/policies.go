@@ -99,8 +99,8 @@ func createPolicyStep(stepName string, vertex *clout.Vertex, Vertexes clout.Vert
 
 			triggerVertex := findVertexBasedOnID(edge.TargetID, Vertexes)
 			triggerName, _ := triggerVertex.Properties["name"].(string)
-			onSuccessStepName := policyName + "." + "trigger" + "." + triggerName
-			policyStep.OnSuccessSteps = append(policyStep.OnSuccessSteps, onSuccessStepName)
+			triggerStepName := policyName + "." + "trigger" + "." + triggerName
+			policyStep.Triggers = append(policyStep.Triggers, triggerStepName)
 		}
 	}
 
@@ -337,8 +337,8 @@ type PolicyStepDefinition struct {
 	Conditions                     []*map[string]map[string]interface{} `json:"condition" yaml:"condition"`
 	TargetNodeTemplateOrGroupNames []string                             `json:"target" yaml:"target"`
 	Actions                        PolicyActivityDefinitions            `json:"action" yaml:"action"`
-	OnSuccessSteps                 []string                             `json:"on_success" yaml:"on_success"`
-	OnFailureSteps                 []string                             `json:"on_failure" yaml:"on_failure"`
+	Triggers                       []string                             `json:"triggers" yaml:"triggers"`
+	OnFailureSteps                 []string                             `json:"failure" yaml:"failure"`
 }
 
 // NewPolicyStepDefinition ...
