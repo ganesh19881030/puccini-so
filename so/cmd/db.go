@@ -595,9 +595,10 @@ func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.
 					for _, edge := range edgeList {
 						edgeMap := edge.(map[string]interface{})
 						entity := edgeMap["clout:edge|tosca:entity"].(string)
-						if edgeMap["tosca:entity"] == "nodeTemplate" {
-							//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
-							vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
+						vv := nodeTemplates[edgeMap["clout:edge|tosca:vertexId"].(string)]
+						if vv != nil {
+						//if edgeMap["tosca:entity"] == "nodeTemplate" {
+							//vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
 							setMetadata(edgeOut, entity, TemplateVersion)
 							edgeOut.TargetID = vv.ID

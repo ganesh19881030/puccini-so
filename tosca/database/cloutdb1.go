@@ -40,7 +40,7 @@ func (db CloutDB1) IsCloutCapable() bool {
 // It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
 func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
-	var printout = false
+	var printout = true
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {
 	//		return  err
@@ -121,12 +121,15 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 		}
 
 		//		var vertexItem string = "{uid: '_:clout.vertex.'" + ind + ", 'clout:edge': []}";
-		//if !isToscaVertex(vertex, "workflowStep") {
-		for _, edge := range vertex.EdgesOut {
-			//			var edgeItem = "{uid: '_:clout.vertex.'" + edge.Target.ID + "}"
-			fillEdge(&vxItem, edge)
+		if isToscaVertex(vertex, "substitution") {
+			for _, edge := range vertex.EdgesOut {
+				fillSubstitutionEdge(&vxItem, edge)
+			}
+		} else {
+			for _, edge := range vertex.EdgesOut {
+				fillEdge(&vxItem, edge)
+			}
 		}
-		//}
 
 		vertexItems = append(vertexItems, vxItem)
 
@@ -346,6 +349,40 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 		fillTosca(&edgeItem, &edge.Properties, "requirementMapping", prefix)
 		edgeItem[prefix+"tosca:requirement"] = edge.Properties["requirement"]
 		edgeItem[prefix+"tosca:requirementName"] = edge.Properties["requirementName"]
+	} else if isToscaEdge(edge, "interfaceMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "interfaceMapping", prefix)
+	}
+
+	var edgeItems []*ard.Map
+	var edges = (*item)["clout:edge"]
+	if edges == nil {
+		edgeItems = make([]*ard.Map, 0)
+	} else {
+		edgeItems = (*item)["clout:edge"].([]*ard.Map)
+	}
+
+	(*item)["clout:edge"] = append(edgeItems, &edgeItem)
+
+	return nil
+}
+
+func fillSubstitutionEdge(item *ard.Map, edge *clout.Edge) error {
+
+	edgeItem := make(ard.Map)
+	//edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID
+	
+	prefix := "clout:edge|"
+	edgeItem[prefix+"tosca:vertexId"] = edge.Target.ID
+
+	if isToscaEdge(edge, "capabilityMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "capabilityMapping", prefix)
+		edgeItem[prefix+"tosca:capability"] = edge.Properties["capability"]
+		edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID + "." + edge.Properties["capability"].(string)
+	} else if isToscaEdge(edge, "requirementMapping") {
+		fillTosca(&edgeItem, &edge.Properties, "requirementMapping", prefix)
+		edgeItem[prefix+"tosca:requirement"] = edge.Properties["requirement"]
+		edgeItem[prefix+"tosca:requirementName"] = edge.Properties["requirementName"]
+		edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID + "." + edge.Properties["requirement"].(string)
 	} else if isToscaEdge(edge, "interfaceMapping") {
 		fillTosca(&edgeItem, &edge.Properties, "interfaceMapping", prefix)
 	}
