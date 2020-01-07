@@ -45,12 +45,12 @@ func HandleRequests() {
 	myRouter.HandleFunc("/bonap/templates", getAllTemplates).Methods("GET")
 	myRouter.HandleFunc("/bonap/templates/{name}", getTemplateByName).Methods("GET")
 	myRouter.HandleFunc("/bonap/templates/{name}/{function}", executeFunction).Methods("POST")
-	myRouter.HandleFunc("/bonap/templates/{name}/createInstance/{service}", createInstance).Methods("POST")
+	//myRouter.HandleFunc("/bonap/templates/{name}/createInstance/{service}", createInstance).Methods("POST")
 	myRouter.HandleFunc("/bonap/templates/{name}/workflows", getWorkflows).Methods("GET")
-	//myRouter.HandleFunc("/bonap/templates/{name}/workflows/{wfname}", executeWorkflow).Methods("POST")
-	myRouter.HandleFunc("/bonap/templates/{name}/services", getServices).Methods("GET")
-	myRouter.HandleFunc("/bonap/templates/{name}/services/{service}", getServiceByName).Methods("GET")
-	myRouter.HandleFunc("/bonap/templates/{name}/services/{service}/workflow/{wfname}", executeWorkflow).Methods("POST")
+	myRouter.HandleFunc("/bonap/templates/{name}/workflows/{wfname}", executeWorkflow).Methods("POST")
+	//myRouter.HandleFunc("/bonap/templates/{name}/services", getServices).Methods("GET")
+	//myRouter.HandleFunc("/bonap/templates/{name}/services/{service}", getServiceByName).Methods("GET")
+	//myRouter.HandleFunc("/bonap/templates/{name}/services/{service}/workflow/{wfname}", executeWorkflow).Methods("POST")
 	log.Info("Starting server at port 10000")
 	log.Fatal(http.ListenAndServe(":10000", myRouter))
 }
@@ -85,6 +85,7 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 			<clout:vertex> {
 				<tosca:name>
 				<tosca:entity>
+				<tosca:attributes>
 			}
 		}
 	}`
@@ -119,6 +120,7 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 				if vertex["tosca:entity"] != nil {
 					node["entity"] = vertex["tosca:entity"]
 				}
+				node["attributes"] = getPropMap(vertex["tosca:attributes"])
 				nodeList = append(nodeList, node)
 			}
 			tmpl := Template{cloutMap["uid"].(string), cloutMap["clout:name"].(string), cloutMap["clout:version"].(string),
@@ -157,6 +159,7 @@ func getTemplateByName(w http.ResponseWriter, r *http.Request) {
 			<clout:vertex>  {
 				<tosca:name>
 				<tosca:entity>
+				<tosca:attributes>
 			}
 	    }
 	}`
@@ -193,6 +196,7 @@ func getTemplateByName(w http.ResponseWriter, r *http.Request) {
 		if vertex["tosca:entity"] != nil {
 			node["entity"] = vertex["tosca:entity"]
 		}
+		node["attributes"] = getPropMap(vertex["tosca:attributes"])
 		/*if vertex["tosca:firstStep"] != nil {
 			node["firstStep"] = vertex["tosca:firstStep"]
 		}*/
@@ -301,7 +305,7 @@ func getWorkflows(w http.ResponseWriter, r *http.Request) {
 func executeWorkflow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
-	service := vars["service"]
+	//service := vars["service"]
 	wfName := vars["wfname"]
 
 	//Read Clout from Dgraph
@@ -327,7 +331,7 @@ func executeWorkflow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wferr := ExecuteWorkflow(workflow, name, service)
+	wferr := ExecuteWorkflow(workflow, name)
 	if wferr != nil {
 		//fmt.Println(err.Error{})
 		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
