@@ -87,7 +87,7 @@ type WorkflowActivity struct {
 	InlineWorkflow   *Workflow      `json:"-" yaml:"-"`
 	SetNodeState     string         `json:"setNodeState" yaml:"setNodeState"`
 	CallOperation    *Operation     `json:"callOperation" yaml:"callOperation"`
-	Update           Constrainables `json:"-" yaml:"-"`
+	Update           Constrainables `json:"update" yaml:"update"`
 }
 
 func (self *WorkflowStep) NewActivity() *WorkflowActivity {

@@ -108,12 +108,8 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 		} else if isToscaVertex(vertex, "workflowActivity") {
 			//fillTosca(&vxItem, &vertex.Properties, "workflowActivity", "")
 			fillWorkflowActivity(&vxItem, &vertex.Properties, "workflowActivity", "")
-		} else if isToscaVertex(vertex, "operation") {
-			fillPolicyOperation(&vxItem, &vertex.Properties, "operation", "")
-		} else if isToscaVertex(vertex, "action") {
-			fillPolicyAction(&vxItem, &vertex.Properties, "action", "")
-		} else if isToscaVertex(vertex, "condition") {
-			fillPolicyCondition(&vxItem, &vertex.Properties, "condition", "")
+		} else if isToscaVertex(vertex, "policyTrigger") {
+			fillPolicyTrigger(&vxItem, &vertex.Properties, "policyTrigger", "")
 		} else if isToscaVertex(vertex, "policy") {
 			fillTosca(&vxItem, &vertex.Properties, "policy", "")
 		} else if isToscaVertex(vertex, "substitution") {
@@ -336,12 +332,8 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 		edgeItem[prefix+"tosca:sequence"] = edge.Properties["sequence"]
 	} else if isToscaEdge(edge, "groupTarget") {
 		fillTosca(&edgeItem, &edge.Properties, "groupTarget", prefix)
-	} else if isToscaEdge(edge, "policyTriggerOperation") {
-		fillTosca(&edgeItem, &edge.Properties, "policyTriggerOperation", prefix)
-	} else if isToscaEdge(edge, "policyTriggerCondition") {
-		fillTosca(&edgeItem, &edge.Properties, "policyTriggerCondition", prefix)
-	} else if isToscaEdge(edge, "policyTriggerAction") {
-		fillTosca(&edgeItem, &edge.Properties, "policyTriggerAction", prefix)
+	} else if isToscaEdge(edge, "policyTrigger") {
+		fillTosca(&edgeItem, &edge.Properties, "policyTrigger", prefix)
 	} else if isToscaEdge(edge, "capabilityMapping") {
 		fillTosca(&edgeItem, &edge.Properties, "capabilityMapping", prefix)
 		edgeItem[prefix+"tosca:capability"] = edge.Properties["capability"]
@@ -449,47 +441,35 @@ func fillWorkflowActivity(item *ard.Map, entity *ard.Map, ttype string, prefix s
 	return nil
 }
 
-func fillPolicyOperation(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
-	fillTosca(item, entity, "operation", "")
+func fillPolicyTrigger(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
+	fillTosca(item, entity, "policyTrigger", "")
 
-	if (*entity)["inputs"] != nil {
-		mapx := ((*entity)["inputs"]).(ard.Map)
+	if (*entity)["operation"] != nil {
+		mapx := ((*entity)["operation"]).(ard.Map)
 		bytes, error := json.Marshal(mapx)
 		if error == nil {
-			(*item)[prefix+"tosca:inputs"] = string(bytes)
+			(*item)[prefix+"tosca:operation"] = string(bytes)
 		}
 	}
-	(*item)[prefix+"tosca:implementation"] = (*entity)["implementation"]
-	(*item)[prefix+"tosca:dependencies"] = (*entity)["dependencies"]
 
-	return nil
-}
+	(*item)[prefix+"tosca:event_type"] = (*entity)["event_type"]
 
-func fillPolicyCondition(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
-	fillTosca(item, entity, "condition", "")
-
-	if (*entity)["conditionClauses"] != nil {
-		mapx := ((*entity)["conditionClauses"]).(ard.Map)
+	if (*entity)["condition"] != nil {
+		mapx := ((*entity)["condition"]).(ard.Map)
 		bytes, error := json.Marshal(mapx)
 		if error == nil {
-			(*item)[prefix+"tosca:conditionClauses"] = string(bytes)
+			(*item)[prefix+"tosca:condition"] = string(bytes)
 		}
 	}
-	
-	return nil
-}
 
-func fillPolicyAction(item *ard.Map, entity *ard.Map, ttype string, prefix string) error {
-	fillTosca(item, entity, "action", "")
-
-	if (*entity)["update"] != nil {
-		mapx := ((*entity)["update"]).(ard.Map)
+	if (*entity)["action"] != nil {
+		mapx := ((*entity)["action"]).(ard.Map)
 		bytes, error := json.Marshal(mapx)
 		if error == nil {
-			(*item)[prefix+"tosca:update"] = string(bytes)
+			(*item)[prefix+"tosca:action"] = string(bytes)
 		}
 	}
-	
+
 	return nil
 }
 

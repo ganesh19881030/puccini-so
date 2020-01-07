@@ -64,7 +64,7 @@ func (self *TriggerDefinition) Render() {
 }
 
 func (self *TriggerDefinition) Normalize(p *normal.Policy, s *normal.ServiceTemplate) *normal.PolicyTrigger {
-	t := p.NewTrigger()
+	t := p.NewTrigger(self.Name)
 
 	if self.OperationAction != nil {
 		self.OperationAction.Normalize(t.NewOperation())
@@ -77,6 +77,14 @@ func (self *TriggerDefinition) Normalize(p *normal.Policy, s *normal.ServiceTemp
 	}
 	if self.Action != nil {
 		self.Action.Normalize(t.NewActivity())
+	}
+
+	if self.Description != nil {
+		t.Description = *self.Description
+	}
+
+	if self.EventType != nil {
+		t.EventType = *self.EventType
 	}
 
 	// TODO: missing fields

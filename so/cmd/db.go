@@ -165,10 +165,10 @@ func createClout(result map[string]interface{}) (*clout.Clout, string) {
 	// Add Operations
 	operations := addOperations(vertexList, cloutOutput)
 
-	// Add Conditions and Actions
-	conditions, actions := addConditionsAndActions(vertexList, cloutOutput)
+	// Add Policy Triggers
+	triggers := addPolicyTriggers(vertexList, cloutOutput)
 
-	addPolicies(vertexList, nodeTemplates, groups, operations, conditions, actions, cloutOutput)
+	addPolicies(vertexList, nodeTemplates, groups, triggers, cloutOutput)
 
 	addSubstitutions(vertexList, nodeTemplates, groups, operations, cloutOutput)
 
@@ -473,39 +473,37 @@ func addOperations(vertexList []interface{}, cloutOutput *clout.Clout) map[strin
 	return operations
 }
 
-func addConditionsAndActions(vertexList []interface{}, cloutOutput *clout.Clout) (map[string]*clout.Vertex, map[string]*clout.Vertex) {
-	conditions := make(map[string]*clout.Vertex)
-	//conditionNodes := make([]interface{}, 0)
-	actions := make(map[string]*clout.Vertex)
-	//actionNodes := make([]interface{}, 0)
+func addPolicyTriggers(vertexList []interface{}, cloutOutput *clout.Clout) map[string]*clout.Vertex {
+	policyTriggers := make(map[string]*clout.Vertex)
 	for _, node := range vertexList {
 		templateMap := node.(map[string]interface{})
 		if entity, ok := templateMap["tosca:entity"]; ok {
-			if entity == "condition" {
-				//conditionNodes = append(conditionNodes, node)
+			if entity == "policyTrigger" {
 				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
+				policyTriggers[templateMap["tosca:vertexId"].(string)] = v
 
-				conditions[templateMap["tosca:vertexId"].(string)] = v
+				setMetadata(v, "policyTrigger", TemplateVersion)
+				v.Properties["name"] = templateMap["tosca:name"]
+				v.Properties["description"] = templateMap["tosca:description"]
+				v.Properties["event_type"] = templateMap["tosca:event_type"]
 
-				setMetadata(v, "condition", TemplateVersion)
-				v.Properties["conditionClauses"] = getPropMap(templateMap["tosca:conditionClauses"])
-
-			} else if entity == "action" {
-				//actionNodes = append(actionNodes, node)
-				v := cloutOutput.NewVertex(templateMap["tosca:vertexId"].(string))
-
-				actions[templateMap["tosca:vertexId"].(string)] = v
-
-				setMetadata(v, "action", TemplateVersion)
-				v.Properties["update"] = getPropMap(templateMap["tosca:update"])
+				if templateMap["tosca:condition"] != nil {
+					v.Properties["condition"] = getPropMap(templateMap["tosca:condition"])
+				}
+				if templateMap["tosca:action"] != nil {
+					v.Properties["action"] = getPropMap(templateMap["tosca:action"])
+				}
+				if templateMap["tosca:operation"] != nil {
+					v.Properties["operation"] = getPropMap(templateMap["tosca:operation"])
+				}
 			}
 		}
 	}
-	return conditions, actions
+	return policyTriggers
 }
 
-func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex,
-	conditions map[string]*clout.Vertex, actions map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
+func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex,
+	policyTriggers map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
 	policies := make(map[string]*clout.Vertex)
 	for _, node := range vertexList {
 		//v := cloutOutput.NewVertex(clout.NewKey())
@@ -545,20 +543,8 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 							setMetadata(edgeOut, "groupTarget", TemplateVersion)
 							edgeOut.TargetID = vv.ID
 							edgeOuts = append(edgeOuts, edgeOut)
-						} else if edgeMap["tosca:entity"] == "operation" {
-							vv := operations[edgeMap["tosca:vertexId"].(string)]
-							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
-							edgeOut.TargetID = vv.ID
-							edgeOuts = append(edgeOuts, edgeOut)
-						} else if edgeMap["tosca:entity"] == "condition" {
-							vv := conditions[edgeMap["tosca:vertexId"].(string)]
-							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
-							edgeOut.TargetID = vv.ID
-							edgeOuts = append(edgeOuts, edgeOut)
-						} else if edgeMap["tosca:entity"] == "action" {
-							vv := actions[edgeMap["tosca:vertexId"].(string)]
+						} else if edgeMap["tosca:entity"] == "policyTrigger" {
+							vv := policyTriggers[edgeMap["tosca:vertexId"].(string)]
 							edgeOut := v.NewEdgeTo(vv)
 							setMetadata(edgeOut, edgeMap["clout:edge|tosca:entity"].(string), TemplateVersion)
 							edgeOut.TargetID = vv.ID

@@ -181,10 +181,10 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 				// if a node has no requirements, its a target node. otherwise, its a source node.
 				if requirementLength == 0 {
 					configureName := targetNodeOperations[operationName]
-					createTargetNodeWorkFlowSteps(vertexName, cloutVertexes, workFlowDef, operationName, configureName, abstractVertexName)
+					createTargetNodeWorkFlowSteps(vertexName, cloutVertexes, workFlowDef, operationName, configureName)
 				} else {
 					configureName := sourceNodeOperations[operationName]
-					createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowDef, "Standard", operationName, cloutVertexes, configureName, "", abstractVertexName)
+					createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowDef, "Standard", operationName, cloutVertexes, configureName, "")
 				}
 			}
 		}
@@ -243,8 +243,10 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 								}
 
 								substituteDirective := strings.Split(directive.(string), ":")
-								for index, vertexID := range substituteDirective {
-									if index == 1 {
+								for _, vertexID := range substituteDirective {
+
+									vertex := findVertexFromID(vertexID, cloutVertexesOfCSAR)
+									if vertex != nil && isVertexOfSpecificKind(vertex.Metadata, "substitution") {
 										substituteVertexID = vertexID
 									}
 								}
@@ -278,7 +280,7 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 									targetIDNameVertex := targetIDVertexProperties["name"].(string)
 
 									onSuccess := leafWorkStep.OnSuccessSteps
-									stepName := vertexName + separatorSymbol + targetIDNameVertex + separatorSymbol + "create"
+									stepName := targetIDNameVertex + separatorSymbol + "create"
 									onSuccess = append(onSuccess, stepName)
 									leafWorkStep.OnSuccessSteps = onSuccess
 								}
@@ -300,7 +302,7 @@ func createWorkFlowsSteps(cloutVertexes clout.Vertexes, workFlows *Workflows, wo
 
 // create workflow steps for a target node
 func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertexes,
-	workFlowsDef *WorkflowDefinition, standardOperationName string, configureName string, abstractVertexName string) error {
+	workFlowsDef *WorkflowDefinition, standardOperationName string, configureName string) error {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -309,8 +311,7 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 	workFlowActivityDef := NewWorkflowActivityDefinition()
 
 	// create workflow step name
-	stepName := vertexName + separatorSymbol + standardOperationName
-	workFlowStepName := createStepName(stepName, abstractVertexName)
+	workFlowStepName := vertexName + separatorSymbol + standardOperationName
 
 	// set 'target' property of work flow step
 	workFlowStepsDef.TargetNodeTemplateOrGroupName = vertexName
@@ -339,16 +340,14 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 						// if this vertex has a requirement for the target vertex, create its workflow steps
 						if vertexRequirementName == vertexName {
 
-							successName := sourceVertextName + separatorSymbol + vertexName + separatorSymbol + configureName
-							onSuccessName := createStepName(successName, abstractVertexName)
+							onSuccessName := sourceVertextName + separatorSymbol + vertexName + separatorSymbol + configureName
 
 							if standardOperationName == "start" {
 								// for start, don't need any more steps
-								successName := sourceVertextName + separatorSymbol + "create"
-								onSuccessName = createStepName(successName, abstractVertexName)
+								onSuccessName = sourceVertextName + separatorSymbol + "create"
 							} else {
 								// for create and configure, create steps
-								createOnSuccessStepsForTarget(sourceVertextName, vertexName, configureName, onSuccessName, workFlowsDef, abstractVertexName)
+								createOnSuccessStepsForTarget(sourceVertextName, vertexName, configureName, onSuccessName, workFlowsDef)
 							}
 							workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 						}
@@ -360,12 +359,10 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 
 	if len(workFlowStepsDef.OnSuccessSteps) == 0 {
 		if standardOperationName == "create" {
-			successName := vertexName + separatorSymbol + "configure"
-			onSuccessName := createStepName(successName, abstractVertexName)
+			onSuccessName := vertexName + separatorSymbol + "configure"
 			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 		} else if standardOperationName == "configure" {
-			successName := vertexName + separatorSymbol + "start"
-			onSuccessName := createStepName(successName, abstractVertexName)
+			onSuccessName := vertexName + separatorSymbol + "start"
 			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 		}
 	}
@@ -380,7 +377,7 @@ func createTargetNodeWorkFlowSteps(vertexName string, cloutVertexes clout.Vertex
 
 // create onSuccess steps for target node
 func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementName string,
-	activityName string, keyName string, workFlowsDef *WorkflowDefinition, abstractVertexName string) *WorkflowStepDefinition {
+	activityName string, keyName string, workFlowsDef *WorkflowDefinition) *WorkflowStepDefinition {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -396,11 +393,9 @@ func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementN
 
 	var onSuccessName string
 	if activityName == "pre_configure_target" {
-		successName := targetNodeRequirementName + separatorSymbol + "configure"
-		onSuccessName = createStepName(successName, abstractVertexName)
+		onSuccessName = targetNodeRequirementName + separatorSymbol + "configure"
 	} else if activityName == "post_configure_target" {
-		successName := targetNodeRequirementName + separatorSymbol + "start"
-		onSuccessName = createStepName(successName, abstractVertexName)
+		onSuccessName = targetNodeRequirementName + separatorSymbol + "start"
 	}
 
 	workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
@@ -413,7 +408,7 @@ func createOnSuccessStepsForTarget(targetNodeName string, targetNodeRequirementN
 
 // create workflow steps for a source node
 func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}, workFlowsDef *WorkflowDefinition,
-	operationType string, operationName string, cloutVertexes clout.Vertexes, configureName string, key string, abstractVertexName string) error {
+	operationType string, operationName string, cloutVertexes clout.Vertexes, configureName string, key string) error {
 
 	workFlowStepsDef := NewWorkflowStepDefinition()
 	workFlowActivityDef := NewWorkflowActivityDefinition()
@@ -422,14 +417,13 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 	if key != "" {
 		keyName = key
 	} else {
-		name := vertexName + separatorSymbol + operationName
-		keyName = createStepName(name, abstractVertexName)
+		keyName = vertexName + separatorSymbol + operationName
 	}
 
 	workFlowActivityDef.CallOperation = operationType + "." + operationName
 	workFlowStepsDef.Activities = append(workFlowStepsDef.Activities, workFlowActivityDef)
 
-	createOnSuccessStepsForSource(vertexName, cloutVertexes, workFlowsDef, workFlowStepsDef, operationName, targetNodeOperations[operationName], abstractVertexName)
+	createOnSuccessStepsForSource(vertexName, cloutVertexes, workFlowsDef, workFlowStepsDef, operationName, targetNodeOperations[operationName])
 
 	var vertexRequirementName interface{}
 	var endSuccessName string
@@ -442,8 +436,7 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 			vertexRequirementMap := requirement.(map[string]interface{})
 			vertexRequirementName = vertexRequirementMap["name"]
 
-			successName := vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
-			onSuccessName = createStepName(successName, abstractVertexName)
+			onSuccessName = vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
 			workFlowStepsDef.TargetNodeTemplateOrGroupName = vertexName
 			workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 			workFlowStepsDef.Name = keyName
@@ -458,13 +451,12 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 
 			if operationName == "start" {
 				// create add_source and add_target steps for start operation's onSucess
-				successName := vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + "add_target"
-				targetSuccessName := createStepName(successName, abstractVertexName)
+				targetSuccessName := vertexName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + "add_target"
 				workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, targetSuccessName)
 				workFlowsDef.Steps[keyName] = workFlowStepsDef
 
-				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_source", cloutVertexes, "add_source", onSuccessName, abstractVertexName)
-				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_target", cloutVertexes, "add_target", targetSuccessName, abstractVertexName)
+				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_source", cloutVertexes, "add_source", onSuccessName)
+				createSourceNodeWorkFlowSteps(vertexName, requirements, workFlowsDef, "Configure", "add_target", cloutVertexes, "add_target", targetSuccessName)
 				break
 			}
 
@@ -487,11 +479,9 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 	}
 
 	if operationName == "create" {
-		successName := vertexName + separatorSymbol + "configure"
-		endSuccessName = createStepName(successName, abstractVertexName)
+		endSuccessName = vertexName + separatorSymbol + "configure"
 	} else if operationName == "configure" {
-		successName := vertexName + separatorSymbol + "start"
-		endSuccessName = createStepName(successName, abstractVertexName)
+		endSuccessName = vertexName + separatorSymbol + "start"
 	}
 
 	if endSuccessName != "" {
@@ -507,7 +497,7 @@ func createSourceNodeWorkFlowSteps(vertexName string, requirements []interface{}
 
 // create onSuccess steps for source nodes
 func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.Vertexes, workFlowsDef *WorkflowDefinition,
-	workFlowStepsDefCalled *WorkflowStepDefinition, standardOperationName string, configureName string, abstractVertexName string) error {
+	workFlowStepsDefCalled *WorkflowStepDefinition, standardOperationName string, configureName string) error {
 
 	// create new workflow steps definition
 	workFlowStepsDef := NewWorkflowStepDefinition()
@@ -550,15 +540,12 @@ func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.V
 							var onSuccessName string
 
 							if standardOperationName == "create" {
-								successName := vertexName.(string) + separatorSymbol + "configure"
-								onSuccessName = createStepName(successName, abstractVertexName)
+								onSuccessName = vertexName.(string) + separatorSymbol + "configure"
 							} else if standardOperationName == "configure" {
-								successName := vertexName.(string) + separatorSymbol + "start"
-								onSuccessName = createStepName(successName, abstractVertexName)
+								onSuccessName = vertexName.(string) + separatorSymbol + "start"
 							} else {
 								if standardOperationName == "start" {
-									successName := sourceVertextName + separatorSymbol + "create"
-									onSuccessName = createStepName(successName, abstractVertexName)
+									onSuccessName = sourceVertextName + separatorSymbol + "create"
 									workFlowStepsDefCalled.OnSuccessSteps = append(workFlowStepsDefCalled.OnSuccessSteps, onSuccessName)
 								}
 								continue
@@ -572,8 +559,7 @@ func createOnSuccessStepsForSource(vertexName interface{}, cloutVertexes clout.V
 							workFlowStepsDef.Activities = append(workFlowStepsDef.Activities, workFlowActivityDef)
 							workFlowStepsDef.OnSuccessSteps = append(workFlowStepsDef.OnSuccessSteps, onSuccessName)
 
-							successName := sourceVertextName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
-							workFlowStepName := createStepName(successName, abstractVertexName)
+							workFlowStepName := sourceVertextName + separatorSymbol + vertexRequirementName.(string) + separatorSymbol + configureName
 							workFlowStepsDef.Name = workFlowStepName
 							workFlowsDef.Steps[workFlowStepName] = workFlowStepsDef
 
@@ -888,13 +874,6 @@ func createStepsForOrphanVertexes(cloutVertexes clout.Vertexes, workFlows *Workf
 	}
 
 	createWorkFlowsSteps(orphanVertexesList, workFlows, workFlowDef, nil, cloutVertexes, false)
-}
-
-func createStepName(stepName string, abstractNodeTemplateName string) string {
-	if abstractNodeTemplateName != "" {
-		stepName = abstractNodeTemplateName + separatorSymbol + stepName
-	}
-	return stepName
 }
 
 // Workflows ...

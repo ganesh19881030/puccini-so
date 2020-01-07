@@ -1,6 +1,8 @@
 package compiler
 
 import (
+	"strings"
+
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
@@ -197,47 +199,41 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 		}
 
 		for _, trigger := range policy.Triggers {
+			tr := clout_.NewVertex(clout.NewKey())
+			SetMetadata(tr, "policyTrigger")
+
 			if trigger.Operation != nil {
-				to := clout_.NewVertex(clout.NewKey())
-
-				SetMetadata(to, "operation")
-				to.Properties["description"] = trigger.Operation.Description
-				to.Properties["implementation"] = trigger.Operation.Implementation
-				to.Properties["dependencies"] = trigger.Operation.Dependencies
-				to.Properties["inputs"] = trigger.Operation.Inputs
-
-				e := v.NewEdgeTo(to)
-				SetMetadata(e, "policyTriggerOperation")
+				operation := make(map[string]interface{})
+				operation["description"] = trigger.Operation.Description
+				operation["implementation"] = trigger.Operation.Implementation
+				operation["dependencies"] = trigger.Operation.Dependencies
+				operation["inputs"] = trigger.Operation.Inputs
+				tr.Properties["operation"] = operation
 			} else if trigger.Workflow != nil {
 				wv := workflows[trigger.Workflow.Name]
 
-				e := v.NewEdgeTo(wv)
+				e := tr.NewEdgeTo(wv)
 				SetMetadata(e, "policyTriggerWorkflow")
 			}
+
+			tr.Properties["name"] = trigger.Name
+			tr.Properties["description"] = trigger.Description
+			tr.Properties["event_type"] = trigger.EventType
+
 			if trigger.Condition != nil {
 				conditionClauses := make(map[string]normal.FunctionCalls)
-				tc := clout_.NewVertex(clout.NewKey())
-				SetMetadata(tc, "condition")
-
 				for name, conditionClause := range trigger.Condition.ConditionClauseConstraints {
 					conditionClauses[name] = conditionClause
 				}
-				tc.Properties["conditionClauses"] = conditionClauses
-
-				e := v.NewEdgeTo(tc)
-				SetMetadata(e, "policyTriggerCondition")
+				tr.Properties["condition"] = conditionClauses
 			}
+
 			if trigger.Action != nil {
-				ta := clout_.NewVertex(clout.NewKey())
-				SetMetadata(ta, "action")
-
-				if trigger.Action.Update != nil {
-					ta.Properties["update"] = trigger.Action.Update
-				}
-
-				e := v.NewEdgeTo(ta)
-				SetMetadata(e, "policyTriggerAction")
+				tr.Properties["action"] = trigger.Action
 			}
+
+			e := v.NewEdgeTo(tr)
+			SetMetadata(e, "policyTrigger")
 		}
 	}
 
@@ -397,6 +393,12 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 
 	}
 
+	//store separate implementation vertexes for each abstarct vertex
+	storeSubstituteVertexesForEachAbstractVertex(clout_, s)
+
+	//attach properties of abstract vertexes to the substitute vertexes
+	addPropertiesOfAbstractVertexInSubstituteVertexes(clout_)
+
 	// TODO: call JavaScript plugins
 
 	return clout_, nil
@@ -518,4 +520,188 @@ func checkForSubstitutionFilter(abstractVertex *clout.Vertex, substituteVertex *
 		}
 	}
 	return false
+}
+
+//This method performs following operations for each abstract vertex:
+// . Find its substitute vertexes
+// . For each of these substitute vertexes, find its implementation nodeTemplates
+//   and create new vertexes for each of them and store in clout
+func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *normal.ServiceTemplate) {
+	cloutVertexes := cloutFile.Vertexes
+	vertexesToDeleteFromClout := make(clout.Vertexes)
+
+	for _, vertex := range cloutVertexes {
+		var directive interface{} = "substitute"
+		var directiveLists []string
+		var substituteVertexIDs string
+		var serviceTemp normal.ServiceTemplate
+		var substitution *normal.Substitution
+		nodeTemp := make(normal.NodeTemplates)
+
+		// ignore vertexes other than "node-template"
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := vertex.Properties
+		abstractVertexName, _ := vertexProperties["name"].(string)
+
+		// abstract node found, look for its substitute directive and find vertexes of
+		// implementation of abstract node template
+		substituteVertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, vertexProperties)
+
+		if len(substituteVertexes) == 0 {
+			continue
+		}
+
+		// find implementation nodeTemplates
+		serviceTemplate := s
+		for _, substituteVertex := range substituteVertexes {
+
+			properties := substituteVertex.Properties
+			substituteVertexName, _ := properties["name"]
+
+			if isVertexOfSpecificKind(substituteVertex, "nodeTemplate") {
+				for nodeTemplateName, nodeTemplate := range serviceTemplate.NodeTemplates {
+					if substituteVertexName == nodeTemplateName {
+						nodeTemplateName = abstractVertexName + "." + substituteVertexName.(string)
+						nodeTemplate.Name = nodeTemplateName
+						nodeTemp[nodeTemplateName] = nodeTemplate
+					}
+				}
+			} else if isVertexOfSpecificKind(substituteVertex, "substitution") {
+				for _, substitute := range serviceTemplate.Substitution {
+					if substitute.Type == properties["type"] {
+						substitution = substitute
+					}
+				}
+			}
+		}
+
+		// create new vertexes for substitute node templates and store in clout
+		serviceTemp.Substitution = append(serviceTemp.Substitution, substitution)
+		serviceTemp.NodeTemplates = nodeTemp
+		cl, _ := Compile(&serviceTemp)
+
+		//store newly created vertexes in old clout
+		for ID, vertex := range cl.Vertexes {
+			substituteVertexIDs = substituteVertexIDs + ":" + ID
+			cloutFile.Vertexes[ID] = vertex
+		}
+
+		//append vertex IDs of substitute vertexes in substitute directives of abstract vertex
+		directive = directive.(string) + substituteVertexIDs
+		directiveLists = append(directiveLists, directive.(string))
+		vertexProperties["directives"] = directiveLists
+
+		for ID, vertex := range substituteVertexes {
+			vertexesToDeleteFromClout[ID] = vertex
+		}
+	}
+
+	//delete old substitute vertexes from main clout as they are no longer relevant
+	for vertexID := range vertexesToDeleteFromClout {
+		if _, ok := cloutFile.Vertexes[vertexID]; ok {
+			delete(cloutFile.Vertexes, vertexID)
+		}
+	}
+}
+
+//This method copies property values from abstract node template to its implementation vertexes
+func addPropertiesOfAbstractVertexInSubstituteVertexes(cloutFile *clout.Clout) {
+	cloutVertexes := cloutFile.Vertexes
+
+	for _, vertex := range cloutVertexes {
+		// ignore vertexes other than "nodeTemplate"
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := vertex.Properties
+
+		substituteVertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, vertexProperties)
+
+		// if substitute vertexes are empty, its not an abstract node
+		if len(substituteVertexes) == 0 {
+			continue
+		}
+
+		//get properties of abstract node template
+		propertiesOfAbstractNodeTemplate := make(map[string]interface{})
+		properties, _ := vertexProperties["properties"].(map[string]interface{})
+
+		for propertyName, property := range properties {
+			propertyMap, _ := property.(map[string]interface{})
+			propertyValue, _ := propertyMap["value"]
+			if propertyValue != nil {
+				propertiesOfAbstractNodeTemplate[propertyName] = property
+			}
+		}
+
+		//if properties of abstract node template not available then continue
+		if propertiesOfAbstractNodeTemplate == nil {
+			continue
+		}
+
+		//copy properties of abstract node template to substitute vertexes
+		for _, vertex := range substituteVertexes {
+			vertexProperties := vertex.Properties
+			vertexProps, _ := vertexProperties["properties"].(map[string]interface{})
+
+			for _, property := range vertexProps {
+				var propertyValue interface{}
+				propertyMap, _ := property.(map[string]interface{})
+				value, _ := propertyMap["value"]
+
+				//in substitute vertex, if value is already given then continue
+				if value != nil {
+					continue
+				}
+
+				functionCall, _ := propertyMap["functionCall"].(map[string]interface{})
+				propertyConstraintName, _ := functionCall["name"]
+				arguments, _ := functionCall["arguments"].([]interface{})
+
+				for _, argument := range arguments {
+					argumentMap, _ := argument.(map[string]interface{})
+					propertyValue, _ = argumentMap["value"]
+				}
+
+				//match name of property in abstract and substitute vertexes and assign property value
+				propValue, _ := propertyValue.(string)
+				if val, ok := propertiesOfAbstractNodeTemplate[propValue]; ok && propertyConstraintName.(string) != "" {
+					delete(propertyMap, "functionCall")
+					valMap, _ := val.(map[string]interface{})
+					propertyValue, _ = valMap["value"]
+					propertyMap["value"] = propertyValue
+				}
+			}
+		}
+	}
+}
+
+//find substitute vertexes from abstract vertex
+func findSubstituteVertexesFromAbstractVertex(cloutVertexes clout.Vertexes, vertexProperties map[string]interface{}) clout.Vertexes {
+	directiveList, _ := vertexProperties["directives"].([]string)
+
+	if len(directiveList) == 0 {
+		return nil
+	}
+
+	substituteVertexes := make(clout.Vertexes)
+	for _, directive := range directiveList {
+
+		if directive == "substitute" {
+			continue
+		}
+
+		substituteDirective := strings.Split(directive, ":")
+		for _, vertexID := range substituteDirective {
+			vertexFromClout := findVertexBasedOnID(vertexID, cloutVertexes)
+			if vertexFromClout != nil {
+				substituteVertexes[vertexFromClout.ID] = vertexFromClout
+			}
+		}
+	}
+	return substituteVertexes
 }

@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/dgraph-io/dgo"
 	"github.com/dgraph-io/dgo/protos/api"
 	"github.com/gorilla/mux"
 	"github.com/tliron/puccini/clout"
+
 	//"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/js"
 	"github.com/tliron/puccini/url"
+
 	//"google.golang.org/grpc"
 	//"log"
 	"io/ioutil"
@@ -51,6 +54,9 @@ func HandleRequests() {
 	//myRouter.HandleFunc("/bonap/templates/{name}/services", getServices).Methods("GET")
 	//myRouter.HandleFunc("/bonap/templates/{name}/services/{service}", getServiceByName).Methods("GET")
 	//myRouter.HandleFunc("/bonap/templates/{name}/services/{service}/workflow/{wfname}", executeWorkflow).Methods("POST")
+	myRouter.HandleFunc("/bonap/templates/{name}/policies", getPolicies).Methods("GET")
+	myRouter.HandleFunc("/bonap/templates/{name}/services/{service}/policy/{pname}", executePolicy).Methods("POST")
+	myRouter.HandleFunc("/bonap/templates/{name}/services/{service}/policy/{pname}", stopPolicyExecution).Methods("DELETE")
 	log.Info("Starting server at port 10000")
 	log.Fatal(http.ListenAndServe(":10000", myRouter))
 }
@@ -340,6 +346,96 @@ func executeWorkflow(w http.ResponseWriter, r *http.Request) {
 	writeResponse(Response{"Success", "Workflow [" + wfName + "] executed successfully"}, w)
 	//}
 
+}
+
+// Handles request "/bonap/templates/{name}/policies"
+func getPolicies(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
+
+	//Read Clout from Dgraph
+	clout_, _, err := ReadCloutFromDgraph(name)
+	if clout_ == nil || err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	policies := createPolicies(clout_)
+
+	if policies == nil {
+		writeResponse(Response{"Failure", "No Policy found"}, w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	output, err := json.Marshal(policies)
+	if err != nil {
+		fmt.Println(err.Error())
+		writeResponse(Response{"Failure", "Error getting policies"}, w)
+		return
+	}
+	w.Write(output)
+
+}
+
+func executePolicy(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
+	//service := vars["service"]
+	pname := vars["pname"]
+
+	//Read Clout from Dgraph
+	clout_, _, err := ReadCloutFromDgraph(name)
+	if clout_ == nil || err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	policies := createPolicies(clout_)
+
+	policiesDef := policies.PolicyDefinitions
+	policy := policiesDef[pname]
+	if policy == nil {
+		writeResponse(Response{"Failure", "No Policy found"}, w)
+		return
+	}
+
+	wferr := ExecutePolicy(policy)
+	if wferr != nil {
+		writeResponse(Response{"Failure", "Error creating Policy [" + pname + "]"}, w)
+		return
+	}
+	writeResponse(Response{"Success", "Policy [" + pname + "] executed successfully"}, w)
+}
+
+func stopPolicyExecution(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
+	//service := vars["service"]
+	pname := vars["pname"]
+
+	//Read Clout from Dgraph
+	clout_, _, err := ReadCloutFromDgraph(name)
+	if clout_ == nil || err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	policies := createPolicies(clout_)
+
+	policiesDef := policies.PolicyDefinitions
+	policy := policiesDef[pname]
+	if policy == nil {
+		writeResponse(Response{"Failure", "No Policy found"}, w)
+		return
+	}
+
+	wferr := DeletePolicy(policy)
+	if wferr != nil {
+		writeResponse(Response{"Failure", "Error deleting Policy [" + pname + "]"}, w)
+		return
+	}
+	writeResponse(Response{"Success", "Policy [" + pname + "] deleted successfully"}, w)
 }
 
 /*func executeWorkflow(w http.ResponseWriter, r *http.Request) {
