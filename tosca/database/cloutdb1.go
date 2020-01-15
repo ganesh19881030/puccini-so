@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"encoding/json"
@@ -118,9 +119,10 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 
 		//		var vertexItem string = "{uid: '_:clout.vertex.'" + ind + ", 'clout:edge': []}";
 		//if !isToscaVertex(vertex, "workflowStep") {
+		var i int
 		for _, edge := range vertex.EdgesOut {
 			//			var edgeItem = "{uid: '_:clout.vertex.'" + edge.Target.ID + "}"
-			fillEdge(&vxItem, edge)
+			i, _ = fillEdge(&vxItem, edge, i)
 		}
 		//}
 
@@ -251,6 +253,15 @@ func fillToscaCapabilities(item *ard.Map, entity *ard.Map, type_ string, prefix 
 func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 	fillTosca(item, nodeTemplate, "nodeTemplate", "")
 
+	if (*nodeTemplate)["artifacts"] != nil {
+		mapx := (*nodeTemplate)["artifacts"].(ard.Map)
+		bytes, error := json.Marshal(mapx)
+
+		if error == nil {
+			(*item)["tosca:artifacts"] = string(bytes)
+		}
+	}
+
 	itemCapabilities := make([]ard.Map, 0)
 	var capabilities ard.Map = (*nodeTemplate)["capabilities"].(ard.Map)
 	var cap ard.Map
@@ -292,7 +303,7 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 		dir := (*nodeTemplate)["directives"]
 		var bytes []byte
 		var error error
-		if reflect.TypeOf(dir).String() == "[]interface{}" {
+		if reflect.TypeOf(dir).String() == "[]interface {}" {
 			mapx := dir.([]interface{})
 			bytes, error = json.Marshal(mapx)
 		} else if reflect.TypeOf(dir).String() == "[]string" {
@@ -310,11 +321,36 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 	return nil
 }
 
-func fillEdge(item *ard.Map, edge *clout.Edge) error {
+func fillEdge(item *ard.Map, edge *clout.Edge, i int) (int, error) {
 
 	edgeItem := make(ard.Map)
+	var prefix string
+	var edgeItems []*ard.Map
+
+	edges := (*item)["clout:edge"]
+
+	if edges == nil {
+		edgeItems = make([]*ard.Map, 0)
+	} else {
+		edgeItems = (*item)["clout:edge"].([]*ard.Map)
+	}
+
 	edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID
-	prefix := "clout:edge|"
+
+	if len(edgeItems) != 0 {
+		for _, prevEdge := range edgeItems {
+			edgeData := *prevEdge
+			if edgeData["uid"] == edgeItem["uid"] {
+				i++
+				prefix = "clout:edge" + strconv.Itoa(i) + "|"
+				break
+			}
+		}
+	}
+
+	if prefix == "" {
+		prefix = "clout:edge|"
+	}
 
 	if isToscaEdge(edge, "relationship") {
 		fillRelationship(&edgeItem, &edge.Properties)
@@ -342,17 +378,13 @@ func fillEdge(item *ard.Map, edge *clout.Edge) error {
 		fillTosca(&edgeItem, &edge.Properties, "interfaceMapping", prefix)
 	}
 
-	var edgeItems []*ard.Map
-	var edges = (*item)["clout:edge"]
-	if edges == nil {
-		edgeItems = make([]*ard.Map, 0)
+	if i == 0 {
+		(*item)["clout:edge"] = append(edgeItems, &edgeItem)
 	} else {
-		edgeItems = (*item)["clout:edge"].([]*ard.Map)
+		(*item)["clout:edge"+strconv.Itoa(i)] = &edgeItem
 	}
 
-	(*item)["clout:edge"] = append(edgeItems, &edgeItem)
-
-	return nil
+	return i, nil
 }
 
 func fillRelationship(item *ard.Map, relationship *ard.Map) error {

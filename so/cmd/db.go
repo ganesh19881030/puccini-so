@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	//"fmt"
 	"io/ioutil"
@@ -562,6 +563,7 @@ func addPolicies(vertexList []interface{}, nodeTemplates map[string]*clout.Verte
 func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.Vertex, groups map[string]*clout.Vertex, operations map[string]*clout.Vertex, cloutOutput *clout.Clout) map[string]*clout.Vertex {
 	subs := make(map[string]*clout.Vertex)
 	for _, node := range vertexList {
+		i := 0
 		edgeOuts := make(clout.Edges, 0)
 		templateMap := node.(map[string]interface{})
 		if entity, ok := templateMap["tosca:entity"]; ok {
@@ -576,31 +578,47 @@ func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.
 				v.Properties["typeMetadata"] = getPropMap(templateMap["tosca:typeMetadata"])
 				v.Properties["properties"] = getPropMap(templateMap["tosca:properties"])
 				cloutEdge := templateMap["clout:edge"]
-				if cloutEdge != nil {
-					edgeList := cloutEdge.([]interface{})
-					for _, edge := range edgeList {
-						edgeMap := edge.(map[string]interface{})
-						entity := edgeMap["clout:edge|tosca:entity"].(string)
-						if edgeMap["tosca:entity"] == "nodeTemplate" {
-							//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
-							vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
-							edgeOut := v.NewEdgeTo(vv)
-							setMetadata(edgeOut, entity, TemplateVersion)
-							edgeOut.TargetID = vv.ID
-							edgeOuts = append(edgeOuts, edgeOut)
-							if edgeMap["clout:edge|tosca:requirement"] != nil {
-								edgeOut.Properties["requirement"] = edgeMap["clout:edge|tosca:requirement"]
+
+				for ok := true; ok; ok = cloutEdge != nil {
+					var prefix string
+					if i != 0 {
+						prefix = "clout:edge" + strconv.Itoa(i)
+					} else {
+						prefix = "clout:edge"
+					}
+
+					if cloutEdge != nil {
+						edgeList := cloutEdge.([]interface{})
+						for _, edge := range edgeList {
+							edgeMap := edge.(map[string]interface{})
+							entity := edgeMap[prefix+"|tosca:entity"].(string)
+							if edgeMap["tosca:entity"] == "nodeTemplate" {
+								//vv := nodeTemplates[edgeMap["tosca:name"].(string)]
+								vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
+								edgeOut := v.NewEdgeTo(vv)
+								setMetadata(edgeOut, entity, TemplateVersion)
+								edgeOut.TargetID = vv.ID
+								edgeOuts = append(edgeOuts, edgeOut)
+								if edgeMap[prefix+"|tosca:requirement"] != nil {
+									edgeOut.Properties["requirement"] = edgeMap[prefix+"|tosca:requirement"]
+								}
+								if edgeMap[prefix+"|tosca:requirementName"] != nil {
+									edgeOut.Properties["requirementName"] = edgeMap[prefix+"|tosca:requirementName"]
+								}
+								if edgeMap[prefix+"|tosca:capability"] != nil {
+									edgeOut.Properties["capability"] = edgeMap[prefix+"|tosca:capability"]
+								}
+								if edgeMap[prefix+"|tosca:interface"] != nil {
+									edgeOut.Properties["interface"] = edgeMap[prefix+"|tosca:interface"]
+								}
+								//edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
 							}
-							if edgeMap["clout:edge|tosca:requirementName"] != nil {
-								edgeOut.Properties["requirementName"] = edgeMap["clout:edge|tosca:requirementName"]
-							}
-							if edgeMap["clout:edge|tosca:capability"] != nil {
-								edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
-							}
-							//edgeOut.Properties["capability"] = edgeMap["clout:edge|tosca:capability"]
 						}
 					}
+					i++
+					cloutEdge = templateMap["clout:edge"+strconv.Itoa(i)]
 				}
+
 				v.EdgesOut = edgeOuts
 			}
 		}
