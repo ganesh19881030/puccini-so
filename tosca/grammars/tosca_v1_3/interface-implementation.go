@@ -97,3 +97,21 @@ func (self *InterfaceImplementation) Normalize(o *normal.Operation) {
 		o.Host = *self.OperationHost
 	}
 }
+
+func (self *InterfaceImplementation) NormalizeNotificationImplementation(n *normal.Notification) {
+	if self.Primary != nil {
+		n.Implementation = *self.Primary
+	}
+
+	if self.Dependencies != nil {
+		self.Dependencies.NormalizeNotificationsArtifacts(n)
+	}
+
+	if self.Timeout != nil {
+		n.Timeout = *self.Timeout
+	}
+
+	if self.OperationHost != nil {
+		n.Host = *self.OperationHost
+	}
+}

@@ -43,6 +43,7 @@ func init() {
 	Grammar["NodeType"] = ReadNodeType
 	Grammar["NotificationAssignment"] = ReadNotificationAssignment // introduced in 1.3
 	Grammar["NotificationDefinition"] = ReadNotificationDefinition // introduced in 1.3
+	Grammar["NotificationOutput"] = ReadNotificationOutput
 	Grammar["OperationAssignment"] = ReadOperationAssignment
 	Grammar["OperationDefinition"] = ReadOperationDefinition
 	Grammar["InterfaceImplementation"] = ReadInterfaceImplementation
