@@ -49,6 +49,14 @@ func NewValidZipURL(path string, archiveURL *FileURL) (*ZipURL, error) {
 		path = path[1:]
 	}
 
+	if strings.Contains(path, "TOSCA-Metadata/TOSCA.meta") {
+		for _, file := range archiveReader.File {
+			if strings.Contains(file.Name, "TOSCA-Metadata/TOSCA.meta") {
+				path = file.Name
+			}
+		}
+	}
+
 	for _, file := range archiveReader.File {
 		if path == file.Name {
 			return NewZipURL(path, archiveURL), nil
