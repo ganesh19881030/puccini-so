@@ -383,7 +383,7 @@ func fillEdge(item *ard.Map, edge *clout.Edge, i int) (int, error) {
 		fillTosca(&edgeItem, &edge.Properties, "interfaceMapping", prefix)
 	}
 
-	if i == 0 {
+	if prefix == "clout:edge|" {
 		(*item)["clout:edge"] = append(edgeItems, &edgeItem)
 	} else {
 		(*item)["clout:edge"+strconv.Itoa(i)] = &edgeItem

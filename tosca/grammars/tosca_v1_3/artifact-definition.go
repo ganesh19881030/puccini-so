@@ -165,3 +165,27 @@ func (selfList ArtifactDefinitionList) Normalize(o *normal.Operation) {
 		}
 	}
 }
+
+func (selfList ArtifactDefinitionList) NormalizeNotificationsArtifacts(n *normal.Notification) {
+	for _, self := range selfList {
+		log.Debugf("{normalize} artifact: %s", self.Name)
+		a := n.NewNotificationArtifact(self.Name)
+
+		if self.Description != nil {
+			a.Description = *self.Description
+		}
+
+		if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
+			a.Types = types
+		}
+
+		self.Properties.Normalize(a.Properties)
+
+		if self.File != nil {
+			a.SourcePath = *self.File
+		}
+		if self.DeployPath != nil {
+			a.TargetPath = *self.DeployPath
+		}
+	}
+}

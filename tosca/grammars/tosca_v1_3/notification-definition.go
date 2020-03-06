@@ -17,14 +17,14 @@ type NotificationDefinition struct {
 
 	Description       *string                  `read:"description"`
 	Implementation    *InterfaceImplementation `read:"implementation,InterfaceImplementation"`
-	OutputDefinitions AttributeMappings        `read:"outputs,AttributeMapping"`
+	OutputDefinitions NotificationOutputs      `read:"outputs,NotificationOutput"`
 }
 
 func NewNotificationDefinition(context *tosca.Context) *NotificationDefinition {
 	return &NotificationDefinition{
 		Entity:            NewEntity(context),
 		Name:              context.Name,
-		OutputDefinitions: make(AttributeMappings),
+		OutputDefinitions: make(NotificationOutputs),
 	}
 }
 
@@ -54,8 +54,7 @@ func (self *NotificationDefinition) Inherit(parentDefinition *NotificationDefini
 			self.Description = parentDefinition.Description
 		}
 
-		// TODO
-		//self.OutputDefinitions.Inherit(parentDefinition.OutputDefinitions)
+		self.OutputDefinitions.Inherit(parentDefinition.OutputDefinitions)
 	} else {
 		//self.OutputDefinitions.Inherit(nil)
 	}
