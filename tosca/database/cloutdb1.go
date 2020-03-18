@@ -370,6 +370,7 @@ func fillEdge(item *ard.Map, edge *clout.Edge, i int) (int, error) {
 	} else if isToscaEdge(edge, "capabilityMapping") {
 		fillTosca(&edgeItem, &edge.Properties, "capabilityMapping", prefix)
 		edgeItem[prefix+"tosca:capability"] = edge.Properties["capability"]
+		edgeItem[prefix+"tosca:capabilityName"] = edge.Properties["capabilityName"]
 	} else if isToscaEdge(edge, "requirementMapping") {
 		fillTosca(&edgeItem, &edge.Properties, "requirementMapping", prefix)
 		edgeItem[prefix+"tosca:requirement"] = edge.Properties["requirement"]

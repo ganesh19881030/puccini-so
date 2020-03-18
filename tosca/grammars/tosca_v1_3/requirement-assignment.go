@@ -54,7 +54,6 @@ func NewDefaultRequirementAssignment(index int, definition *RequirementDefinitio
 	self := NewRequirementAssignment(context)
 	self.TargetNodeTemplateNameOrTypeName = definition.TargetNodeTypeName
 	self.TargetNodeType = definition.TargetNodeType
-	self.TargetCapabilityNameOrTypeName = definition.TargetCapabilityTypeName
 	self.TargetCapabilityType = definition.TargetCapabilityType
 	return self
 }
@@ -72,7 +71,9 @@ func (self *RequirementAssignment) Normalize(nodeTemplate *NodeTemplate, s *norm
 
 	if self.TargetCapabilityType != nil {
 		r.CapabilityTypeName = &self.TargetCapabilityType.Name
-	} else if self.TargetCapabilityNameOrTypeName != nil {
+	}
+
+	if self.TargetCapabilityNameOrTypeName != nil {
 		r.CapabilityName = self.TargetCapabilityNameOrTypeName
 	}
 
@@ -141,9 +142,6 @@ func (self *RequirementAssignments) Render(definitions RequirementDefinitions, c
 
 	for _, assignment := range *self {
 		if definition, ok := definitions[assignment.Name]; ok {
-			if assignment.TargetCapabilityNameOrTypeName == nil {
-				assignment.TargetCapabilityNameOrTypeName = definition.TargetCapabilityTypeName
-			}
 
 			if assignment.TargetCapabilityType == nil {
 				assignment.TargetCapabilityType = definition.TargetCapabilityType

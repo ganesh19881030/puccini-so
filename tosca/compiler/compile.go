@@ -248,12 +248,14 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 			v.Properties["properties"] = substitution.PropertyMappings
 			v.Properties["substitutionFilter"] = substitution.SubstitutionFilters
 
-			for nodeTemplate, capability := range substitution.CapabilityMappings {
+			for capabilityName, capability := range substitution.CapabilityMappings {
+				nodeTemplate := capability.NodeTemplate
 				vv := nodeTemplates[nodeTemplate.Name]
 				e := v.NewEdgeTo(vv)
 
 				SetMetadata(e, "capabilityMapping")
 				e.Properties["capability"] = capability.Name
+				e.Properties["capabilityName"] = capabilityName
 			}
 
 			for requirementName, requirement := range substitution.RequirementMappings {
@@ -398,6 +400,8 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 
 	//attach properties of abstract vertexes to the substitute vertexes
 	addPropertiesOfAbstractVertexInSubstituteVertexes(clout_)
+
+	addNodeTemplateNameForDanglingRequirements(clout_)
 
 	// TODO: call JavaScript plugins
 
@@ -704,4 +708,230 @@ func findSubstituteVertexesFromAbstractVertex(cloutVertexes clout.Vertexes, vert
 		}
 	}
 	return substituteVertexes
+}
+
+//this method stores the nodeTemplateName for dangling requirements
+func addNodeTemplateNameForDanglingRequirements(cloutFile *clout.Clout) {
+	cloutVertexes := cloutFile.Vertexes
+
+	//look for 'nodeTemplate' vertexes
+	for vertexID, vertex := range cloutVertexes {
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := vertex.Properties
+		directives, _ := vertexProperties["directives"].([]interface{})
+
+		//ignore abstract vertexes
+		if len(directives) != 0 {
+			continue
+		}
+
+		//find vertexes whose nodeTemplateName is empty in requirements section
+		requirements, _ := vertexProperties["requirements"].([]interface{})
+		for _, requirement := range requirements {
+			var requirementNames []string
+
+			requirementMap := requirement.(map[string]interface{})
+			nodeTemplateName := requirementMap["nodeTemplateName"]
+			nodeTypeName := requirementMap["nodeTypeName"]
+
+			//if nodeTemplateName for requirement is not empty then it is not a dangling requirement
+			if nodeTemplateName != "" {
+				continue
+			}
+
+			//find substitution mapping vertex from the current vertex
+			substitutionMappingVertex := findSubstitutionMappingVertexBasedOnVertexID(cloutVertexes, vertexID)
+			if substitutionMappingVertex == nil {
+				continue
+			}
+
+			//store requirementNames from substitution mapping vertex after matching with vertexID
+			for _, edge := range substitutionMappingVertex.EdgesOut {
+				metadata := edge.Metadata
+				kindData := metadata["puccini-tosca"].(map[string]interface{})
+				kind := kindData["kind"]
+				if edge.TargetID == vertexID && kind == "requirementMapping" {
+					edgeProps := edge.Properties
+					requirementNames = append(requirementNames, edgeProps["requirementName"].(string))
+				}
+			}
+
+			//find abstract vertex from substitute vertex
+			for _, requirementName := range requirementNames {
+				var capabilityName string
+				var capabilityTypeName string
+				var targetVertex *clout.Vertex
+
+				abstractVertex := findAbstractVertexFromSubstituteVertex(cloutVertexes, vertexID)
+				if abstractVertex == nil {
+					continue
+				}
+
+				abstractVertexProperties := abstractVertex.Properties
+				abstractVertexRequirements := abstractVertexProperties["requirements"].([]interface{})
+
+				// find target vertex, capabilityName and its capabilityTypeName after matching abstract vertex's
+				//    requirement name with requirements of substitutionMapping vertex
+				for _, requirement := range abstractVertexRequirements {
+					requirementData := requirement.(map[string]interface{})
+					abstractVertexRequirementName := requirementData["name"]
+
+					if abstractVertexRequirementName == requirementName {
+						targetVertex = findVertexBasedOnName(requirementData["nodeTemplateName"].(string), cloutVertexes)
+						capabilityName = requirementData["capabilityName"].(string)
+						capabilityTypeName = requirementData["capabilityTypeName"].(string)
+					}
+				}
+
+				if targetVertex == nil {
+					continue
+				}
+
+				targetSubstituteVertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, targetVertex.Properties)
+
+				//if capability name is empty then add nodeTemplateName based on CapabilityType or based on Requirements
+				if capabilityName == "" {
+
+					var isNodeTypeMatch bool = false
+					targetVertexProps := targetVertex.Properties
+					targetVertexTypes, _ := targetVertexProps["types"].(map[string]interface{})
+
+					//if nodeType in target vertex match with nodeType of requirement then add nodeTemplateName
+					// based on CapabilityType of requirement
+					for nodeType := range targetVertexTypes {
+						if nodeType == nodeTypeName {
+							isNodeTypeMatch = true
+							addNodeTemplateNameBasedOnCapabilityType(targetSubstituteVertexes, capabilityTypeName, requirementMap, targetVertex)
+						}
+					}
+					if !isNodeTypeMatch {
+						//if nodeType in target vertex did not match with nodeType of requirement then add nodeTemplateName
+						// based on requirement's nodeType
+						addNodeTemplateNameBasedOnNodeType(targetSubstituteVertexes, nodeTypeName, requirementMap)
+					}
+				} else {
+					//if capabilityName is given for requirement in abstract vertex then add nodeTemplateName based on capabilityName
+					addNodeTemplateNameBasedOnCapabilityName(targetSubstituteVertexes, capabilityName, requirementMap, requirementName)
+				}
+			}
+		}
+	}
+}
+
+//match nodeType of requirement and nodeType of vertex in target substitute vertexes then add nodeTemplate for requirement
+func addNodeTemplateNameBasedOnNodeType(targetSubstituteVertexes clout.Vertexes, nodeTypeName interface{},
+	requirementMap map[string]interface{}) {
+	for _, vertex := range targetSubstituteVertexes {
+
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProps := vertex.Properties
+		types, _ := vertexProps["types"].(map[string]interface{})
+		for nodeType := range types {
+			if nodeType == nodeTypeName {
+				requirementMap["nodeTemplateName"] = vertexProps["name"]
+			}
+		}
+	}
+}
+
+//match capabilityName in requirement of abstract vertex with capabilityName in substitution mapping vertex
+// of target vertex then add nodeTemplateName
+func addNodeTemplateNameBasedOnCapabilityName(targetSubstituteVertexes clout.Vertexes, capabilityName string,
+	requirementMap map[string]interface{}, requirementName string) {
+	for _, vertex := range targetSubstituteVertexes {
+		if !isVertexOfSpecificKind(vertex, "substitution") {
+			continue
+		}
+
+		for _, edge := range vertex.EdgesOut {
+			property := edge.Properties
+			metadata := edge.Metadata
+			kindData := metadata["puccini-tosca"].(map[string]interface{})
+			kind := kindData["kind"]
+
+			if kind == "capabilityMapping" && capabilityName == property["capabilityName"] {
+				for VertexID, targetVertex := range targetSubstituteVertexes {
+					if VertexID == edge.TargetID && ((requirementMap["name"] == requirementName) || requirementName == "") {
+						props := targetVertex.Properties
+						requirementMap["nodeTemplateName"] = props["name"]
+					}
+				}
+			}
+		}
+	}
+}
+
+//match capabilityType of requirement with capabilityType of target substitute vertex then add nodeTemplateName
+func addNodeTemplateNameBasedOnCapabilityType(targetSubstituteVertexes clout.Vertexes, capabilityTypeName string,
+	requirementMap map[string]interface{}, targetVertex *clout.Vertex) {
+	var targetCapabilityName string
+	targetVertexProps := targetVertex.Properties
+	targetVertexCapabilities, _ := targetVertexProps["capabilities"].(map[string]interface{})
+
+	for capabilityName, capability := range targetVertexCapabilities {
+		capabilityData := capability.(map[string]interface{})
+		types, _ := capabilityData["types"].(map[string]interface{})
+
+		for capabilityType := range types {
+			if capabilityType == capabilityTypeName {
+				targetCapabilityName = capabilityName
+			}
+		}
+	}
+
+	if targetCapabilityName != "" {
+		addNodeTemplateNameBasedOnCapabilityName(targetSubstituteVertexes, targetCapabilityName, requirementMap, "")
+	}
+}
+
+func findSubstitutionMappingVertexBasedOnVertexID(cloutVertexes clout.Vertexes, vertexID string) *clout.Vertex {
+	abstractVertex := findAbstractVertexFromSubstituteVertex(cloutVertexes, vertexID)
+	if abstractVertex == nil {
+		return nil
+	}
+
+	vertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, abstractVertex.Properties)
+
+	for _, substitutionMappingVertex := range vertexes {
+		if isVertexOfSpecificKind(substitutionMappingVertex, "substitution") {
+			return substitutionMappingVertex
+		}
+	}
+	return nil
+}
+
+func findAbstractVertexFromSubstituteVertex(cloutVertexes clout.Vertexes, substituteVertexID string) *clout.Vertex {
+	for _, abstractVertex := range cloutVertexes {
+		if !isVertexOfSpecificKind(abstractVertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := abstractVertex.Properties
+		substituteVertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, vertexProperties)
+
+		for VertexID := range substituteVertexes {
+			if VertexID == substituteVertexID {
+				return abstractVertex
+			}
+		}
+	}
+	return nil
+}
+
+//find vertex in clout from their Name
+func findVertexBasedOnName(vertexName string, vertexes clout.Vertexes) *clout.Vertex {
+	for _, vertex := range vertexes {
+		prop := vertex.Properties
+		nodeTemplateName, _ := prop["name"]
+		if nodeTemplateName == vertexName {
+			return vertex
+		}
+	}
+	return nil
 }
