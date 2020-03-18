@@ -609,6 +609,9 @@ func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.
 								if edgeMap[prefix+"|tosca:capability"] != nil {
 									edgeOut.Properties["capability"] = edgeMap[prefix+"|tosca:capability"]
 								}
+								if edgeMap[prefix+"|tosca:capabilityName"] != nil {
+									edgeOut.Properties["capabilityName"] = edgeMap[prefix+"|tosca:capabilityName"]
+								}
 								if edgeMap[prefix+"|tosca:interface"] != nil {
 									edgeOut.Properties["interface"] = edgeMap[prefix+"|tosca:interface"]
 								}

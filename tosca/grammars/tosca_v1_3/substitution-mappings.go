@@ -90,8 +90,10 @@ func (self *SubstitutionMappings) Normalize(s *normal.ServiceTemplate) *normal.S
 		}
 
 		if n, ok := s.NodeTemplates[mapping.NodeTemplate.Name]; ok {
-			if c, ok := n.Capabilities[*mapping.CapabilityName]; ok {
-				t.CapabilityMappings[n] = c
+			for _, capability := range n.Capabilities {
+				if capability.Name == *mapping.CapabilityName {
+					t.CapabilityMappings[mapping.Entity.Context.Name] = capability
+				}
 			}
 		}
 	}

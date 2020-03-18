@@ -61,11 +61,6 @@ function resolve(sourceVertex, sourceNodeTemplate, requirement) {
 	var path = requirement.path;
 	var name = requirement.name;
 
-	if (isSubstituted(sourceNodeTemplate.name, name)) {
-		puccini.log.infof('{resolve} %s: skipping because in substitution mappings', path)
-		return;
-	}
-
 	var candidates = gatherCandidateNodeTemplates(sourceVertex, requirement);
 	if (candidates.length === 0) {
 		puccini.log.warningf(path, name, 'there are no candidate node templates');
@@ -288,24 +283,6 @@ function arePropertiesValid(path, sourceVertex, kind, name, entity, constraintsM
 	}
 
 	return valid;
-}
-
-function isSubstituted(nodeTemplateName, requirementName) {
-	for (var vertexId in clout.vertexes) {
-		var vertex = clout.vertexes[vertexId];
-		if (tosca.isTosca(vertex, 'substitution')) {
-			for (var e = 0; e < vertex.edgesOut.length; e++) {
-				var edge = vertex.edgesOut[e];
-				if (!tosca.isTosca(edge, 'requirementMapping'))
-					continue;
-
-				if ((edge.target.properties.name === nodeTemplateName) && (edge.properties.requirement === requirementName))
-					return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 function isMaxCountGreater(a, b) {

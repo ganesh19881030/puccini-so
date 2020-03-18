@@ -12,7 +12,7 @@ type Substitution struct {
 	ServiceTemplate     *ServiceTemplate
 	Type                string
 	TypeMetadata        map[string]string
-	CapabilityMappings  map[*NodeTemplate]*Capability
+	CapabilityMappings  map[string]*Capability
 	RequirementMappings map[string]*Requirement
 	PropertyMappings    Constrainables
 	InterfaceMappings   map[*NodeTemplate]string
@@ -23,7 +23,7 @@ func (self *ServiceTemplate) NewSubstitution() *Substitution {
 	substitutionMappings := &Substitution{
 		ServiceTemplate:     self,
 		TypeMetadata:        make(map[string]string),
-		CapabilityMappings:  make(map[*NodeTemplate]*Capability),
+		CapabilityMappings:  make(map[string]*Capability),
 		RequirementMappings: make(map[string]*Requirement),
 		PropertyMappings:    make(Constrainables),
 		InterfaceMappings:   make(map[*NodeTemplate]string),
@@ -38,7 +38,7 @@ type Substitutions []*Substitution
 func (self *Substitution) Marshalable() interface{} {
 	capabilityMappings := make(map[string]string)
 	for n, c := range self.CapabilityMappings {
-		capabilityMappings[n.Name] = c.Name
+		capabilityMappings[n] = c.Name
 	}
 
 	requirementMappings := make(map[string]*Requirement)
