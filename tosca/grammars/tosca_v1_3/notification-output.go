@@ -62,10 +62,10 @@ func (self NotificationOutputs) Normalize(n *normal.NodeTemplate, m normal.Attri
 		nodeTemplateName := *notificationOutput.NodeTemplateName
 
 		if nodeTemplateName == "SELF" {
-			m[name] = n.NewAttributeMapping(*notificationOutput.AttributeName)
+			m[name] = n.NewAttributeMapping(*notificationOutput.AttributeName, "")
 		} else {
 			if nn, ok := n.ServiceTemplate.NodeTemplates[nodeTemplateName]; ok {
-				m[name] = nn.NewAttributeMapping(*notificationOutput.AttributeName)
+				m[name] = nn.NewAttributeMapping(*notificationOutput.AttributeName, "")
 			}
 		}
 	}

@@ -9,25 +9,29 @@ import (
 //
 
 type AttributeMapping struct {
-	NodeTemplate  *NodeTemplate
-	AttributeName string
+	NodeTemplate   *NodeTemplate
+	CapabilityName string
+	AttributeName  string
 }
 
-func (self *NodeTemplate) NewAttributeMapping(attributeName string) *AttributeMapping {
+func (self *NodeTemplate) NewAttributeMapping(attributeName string, CapabilityName string) *AttributeMapping {
 	return &AttributeMapping{
-		NodeTemplate:  self,
-		AttributeName: attributeName,
+		NodeTemplate:   self,
+		CapabilityName: CapabilityName,
+		AttributeName:  attributeName,
 	}
 }
 
 type MarshalableAttributeMapping struct {
 	NodeTemplateName string `json:"nodeTemplateName" yaml:"nodeTemplateName"`
+	CapabilityName   string `json:"capabilityName" yaml:"capabilityName"`
 	AttributeName    string `json:"attributeName" yaml:"attributeName"`
 }
 
 func (self *AttributeMapping) Marshalable() interface{} {
 	return &MarshalableAttributeMapping{
 		NodeTemplateName: self.NodeTemplate.Name,
+		CapabilityName:   self.CapabilityName,
 		AttributeName:    self.AttributeName,
 	}
 }
