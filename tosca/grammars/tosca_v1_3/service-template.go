@@ -84,6 +84,23 @@ func AppendTopologyTemplatesInServiceTemplate(currentEntityPtr interface{}, serv
 				}
 			}
 		}
+
+		for _, capability := range nodeTemplate.Capabilities {
+			for _, attribute := range capability.Attributes {
+				var modelableEntityName interface{}
+
+				if attribute.Name != "" {
+					data := attribute.Context.Data.(*tosca.FunctionCall)
+					functionName := data.Name
+					modelableEntityName = data.Arguments[0]
+
+					if modelableEntityName != "SELF" && functionName == "get_attribute" {
+						data.Arguments[0] = serviceTemplateURLName + "." + modelableEntityName.(string)
+					}
+				}
+			}
+		}
+
 		nodeTemplate.Name = serviceTemplateURLName + "." + nodeTemplate.Name
 		serviceTemplate.NodeTemplates = append(serviceTemplate.NodeTemplates, nodeTemplate)
 	}
@@ -112,6 +129,20 @@ func AppendTopologyTemplatesInServiceTemplate(currentEntityPtr interface{}, serv
 	}
 	// 6. OutputParameterDefinitions
 	for name, output := range topologyTemplate.OutputParameterDefinitions {
+
+		attribute := output.Value
+		var modelableEntityName interface{}
+
+		if attribute.Name != "" {
+			data := attribute.Context.Data.(*tosca.FunctionCall)
+			functionName := data.Name
+			modelableEntityName = data.Arguments[0]
+
+			if modelableEntityName != "SELF" && functionName == "get_attribute" {
+				data.Arguments[0] = serviceTemplateURLName + "." + modelableEntityName.(string)
+			}
+		}
+
 		serviceTemplate.OutputParameterDefinitions[name] = output
 	}
 

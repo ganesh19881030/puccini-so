@@ -558,6 +558,31 @@ func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *nor
 			continue
 		}
 
+		// concat abstract nodeTemplateName with nodeTemplateName for
+		// get_attribute function for outputs in topology_template
+		for _, substituteVertex := range substituteVertexes {
+			properties := substituteVertex.Properties
+			substituteVertexName, _ := properties["name"]
+
+			cloutProps, _ := cloutFile.Properties["tosca"].(map[string]interface{})
+			cloutOutputs, _ := cloutProps["outputs"].(map[string]interface{})
+			for _, output := range cloutOutputs {
+				outputData := output.(map[string]interface{})
+				functionCall := outputData["functionCall"].(map[string]interface{})
+				FunctionCallName, _ := functionCall["name"]
+
+				for _, argument := range functionCall["arguments"].([]interface{}) {
+					value := argument.(map[string]interface{})
+					nodeTemplateName := value["value"]
+
+					if substituteVertexName == nodeTemplateName && nodeTemplateName != "SELF" &&
+						FunctionCallName == "get_attribute" {
+						value["value"] = abstractVertexName + "." + nodeTemplateName.(string)
+					}
+				}
+			}
+		}
+
 		// find implementation nodeTemplates
 		serviceTemplate := s
 		for _, substituteVertex := range substituteVertexes {
@@ -568,6 +593,21 @@ func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *nor
 			if isVertexOfSpecificKind(substituteVertex, "nodeTemplate") {
 				for nodeTemplateName, nodeTemplate := range serviceTemplate.NodeTemplates {
 					if substituteVertexName == nodeTemplateName {
+
+						// concat abstract nodeTemplateName with nodeTemplateName for
+						// get_attribute function in attributes of capabilities in node_template
+						for _, capability := range nodeTemplate.Capabilities {
+							for _, attribute := range capability.Attributes {
+								var modelableEntityName interface{}
+								FunctionCall := attribute.(*normal.FunctionCall).FunctionCall
+								modelableEntityName = FunctionCall.Arguments[0].(*normal.Value).Value
+
+								if modelableEntityName != "SELF" && FunctionCall.Name == "get_attribute" {
+									FunctionCall.Arguments[0].(*normal.Value).Value = abstractVertexName + "." + modelableEntityName.(string)
+								}
+							}
+						}
+
 						nodeTemplateName = abstractVertexName + "." + substituteVertexName.(string)
 						nodeTemplate.Name = nodeTemplateName
 						nodeTemp[nodeTemplateName] = nodeTemplate
