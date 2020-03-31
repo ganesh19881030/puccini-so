@@ -403,6 +403,8 @@ func Compile(s *normal.ServiceTemplate) (*clout.Clout, error) {
 
 	addNodeTemplateNameForDanglingRequirements(clout_)
 
+	addNodeTemplateNameForFunctionCall(clout_)
+
 	// TODO: call JavaScript plugins
 
 	return clout_, nil
@@ -558,31 +560,6 @@ func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *nor
 			continue
 		}
 
-		// concat abstract nodeTemplateName with nodeTemplateName for
-		// get_attribute function for outputs in topology_template
-		for _, substituteVertex := range substituteVertexes {
-			properties := substituteVertex.Properties
-			substituteVertexName, _ := properties["name"]
-
-			cloutProps, _ := cloutFile.Properties["tosca"].(map[string]interface{})
-			cloutOutputs, _ := cloutProps["outputs"].(map[string]interface{})
-			for _, output := range cloutOutputs {
-				outputData := output.(map[string]interface{})
-				functionCall := outputData["functionCall"].(map[string]interface{})
-				FunctionCallName, _ := functionCall["name"]
-
-				for _, argument := range functionCall["arguments"].([]interface{}) {
-					value := argument.(map[string]interface{})
-					nodeTemplateName := value["value"]
-
-					if substituteVertexName == nodeTemplateName && nodeTemplateName != "SELF" &&
-						FunctionCallName == "get_attribute" {
-						value["value"] = abstractVertexName + "." + nodeTemplateName.(string)
-					}
-				}
-			}
-		}
-
 		// find implementation nodeTemplates
 		serviceTemplate := s
 		for _, substituteVertex := range substituteVertexes {
@@ -593,21 +570,6 @@ func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *nor
 			if isVertexOfSpecificKind(substituteVertex, "nodeTemplate") {
 				for nodeTemplateName, nodeTemplate := range serviceTemplate.NodeTemplates {
 					if substituteVertexName == nodeTemplateName {
-
-						// concat abstract nodeTemplateName with nodeTemplateName for
-						// get_attribute function in attributes of capabilities in node_template
-						for _, capability := range nodeTemplate.Capabilities {
-							for _, attribute := range capability.Attributes {
-								var modelableEntityName interface{}
-								FunctionCall := attribute.(*normal.FunctionCall).FunctionCall
-								modelableEntityName = FunctionCall.Arguments[0].(*normal.Value).Value
-
-								if modelableEntityName != "SELF" && FunctionCall.Name == "get_attribute" {
-									FunctionCall.Arguments[0].(*normal.Value).Value = abstractVertexName + "." + modelableEntityName.(string)
-								}
-							}
-						}
-
 						nodeTemplateName = abstractVertexName + "." + substituteVertexName.(string)
 						nodeTemplate.Name = nodeTemplateName
 						nodeTemp[nodeTemplateName] = nodeTemplate
@@ -974,4 +936,69 @@ func findVertexBasedOnName(vertexName string, vertexes clout.Vertexes) *clout.Ve
 		}
 	}
 	return nil
+}
+
+// Add nodeTemplateName for 'get_attribute' functionCall in clout
+func addNodeTemplateNameForFunctionCall(cloutFile *clout.Clout) {
+	cloutVertexes := cloutFile.Vertexes
+
+	for _, vertex := range cloutVertexes {
+		if !isVertexOfSpecificKind(vertex, "nodeTemplate") {
+			continue
+		}
+
+		vertexProperties := vertex.Properties
+		abstractVertexName, _ := vertexProperties["name"].(string)
+
+		// abstract node found, look for its substitute directive and find vertexes of
+		// implementation of abstract node template
+		substituteVertexes := findSubstituteVertexesFromAbstractVertex(cloutVertexes, vertexProperties)
+
+		for _, substituteVertex := range substituteVertexes {
+			substituteVertexProperties := substituteVertex.Properties
+			substituteVertexName, _ := substituteVertexProperties["name"].(string)
+
+			cloutProps, _ := cloutFile.Properties["tosca"].(map[string]interface{})
+			cloutOutputs, _ := cloutProps["outputs"].(map[string]interface{})
+
+			// add abstract nodeTemplateName with nodeTemplateName for get_attribute function
+			// for outputs in topology_template
+			for _, output := range cloutOutputs {
+				outputData, _ := output.(map[string]interface{})
+				functionCall, _ := outputData["functionCall"].(map[string]interface{})
+				FunctionCallName, _ := functionCall["name"]
+
+				arguments, _ := functionCall["arguments"].([]interface{})
+				argument, _ := arguments[0].(map[string]interface{})
+				nodeTemplateName, _ := argument["value"].(string)
+
+				if strings.Contains(substituteVertexName, nodeTemplateName) && nodeTemplateName != "SELF" &&
+					FunctionCallName == "get_attribute" {
+					argument["value"] = abstractVertexName + "." + nodeTemplateName
+				}
+			}
+
+			// add abstract nodeTemplateName for get_attribute function in attributes
+			// of capabilities in node_template
+			capabilities, _ := substituteVertexProperties["capabilities"].(map[string]interface{})
+			for _, capability := range capabilities {
+				capabilityData := capability.(map[string]interface{})
+				attributes := capabilityData["attributes"].(map[string]interface{})
+
+				for _, attribute := range attributes {
+					attributeData, _ := attribute.(map[string]interface{})
+					functionCall, _ := attributeData["functionCall"].(map[string]interface{})
+					FunctionCallName, _ := functionCall["name"]
+
+					arguments, _ := functionCall["arguments"].([]interface{})
+					argument, _ := arguments[0].(map[string]interface{})
+					nodeTemplateName, _ := argument["value"].(string)
+
+					if nodeTemplateName != "SELF" && FunctionCallName == "get_attribute" {
+						argument["value"] = abstractVertexName + "." + nodeTemplateName
+					}
+				}
+			}
+		}
+	}
 }
