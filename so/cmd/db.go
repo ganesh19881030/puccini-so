@@ -3,30 +3,24 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"strconv"
 
-	//"fmt"
-	"io/ioutil"
-	//"github.com/tliron/puccini/url"
-
-	//"log"
-
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/js"
-
-	//"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/database"
-	//"github.com/tliron/puccini/tosca/parser"
 	"google.golang.org/grpc"
 )
 
 var TemplateVersion string
 
-func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
+func findClout(dburl string, name string) (*ard.Map, bool, error) {
+
+	var result ard.Map
 
 	//conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
 	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
@@ -66,19 +60,33 @@ func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 		  }
 	  }`
 	//resp, err := txn.Query(context.Background(), q)
+	found := false
 	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
-	if err != nil {
-		//log.Fatal(err)
-		return nil, ""
+	if err == nil {
+		if err := json.Unmarshal(resp.GetJson(), &result); err == nil {
+			if aresp, ok := result["all"]; ok {
+				if arr, ok := aresp.([]interface{}); ok {
+					if len(arr) > 0 {
+						found = true
+					}
+				}
+			}
+		}
 	}
 
-	var result map[string]interface{}
+	return &result, found, err
+}
+func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 
-	if err := json.Unmarshal(resp.GetJson(), &result); err != nil {
+	result, fnd, err := findClout(dburl, name)
+
+	//var result map[string]interface{}
+
+	if !fnd || err != nil {
 		log.Fatal(err)
 	}
 
-	cloutOutput, uid := createClout(result)
+	cloutOutput, uid := createClout(*result)
 
 	// Write into a file
 	file, _ := json.MarshalIndent(cloutOutput, "", "  ")

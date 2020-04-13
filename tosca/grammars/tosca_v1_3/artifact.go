@@ -89,8 +89,12 @@ func (self *Artifact) Normalize(n *normal.NodeTemplate) *normal.Artifact {
 		a.Description = *self.Description
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
-		a.Types = types
+	if self.GetContext().ReadFromDb {
+		a.Types = determineArtifactHierarchyTypes(self)
+	} else {
+		if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
+			a.Types = types
+		}
 	}
 
 	self.Properties.Normalize(a.Properties)
@@ -134,4 +138,20 @@ func (self Artifacts) Normalize(n *normal.NodeTemplate) {
 	for key, artifact := range self {
 		n.Artifacts[key] = artifact.Normalize(n)
 	}
+}
+
+func determineArtifactHierarchyTypes(artifact *Artifact) normal.Types {
+
+	atypes := make(normal.Types)
+
+	currType := artifact.ArtifactType
+	for currType != nil {
+		atype := normal.NewType(currType.Name)
+		atype.Metadata = currType.Metadata
+		atypes[currType.Name] = atype
+		currType = currType.Parent
+	}
+
+	return atypes
+
 }

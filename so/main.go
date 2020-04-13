@@ -18,10 +18,14 @@ import (
 }*/
 
 func main() {
-	cmd.HandleRequests()
+	runasService := false
+	if runasService {
+		cmd.HandleRequests()
+	} else {
+		cmd.Execute()
+	}
 }
 
 /*func main() {
 	cmd.Execute()
 }*/
-

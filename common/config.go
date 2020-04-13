@@ -9,10 +9,11 @@ import (
 // SoConfiguration struct for configuration data
 type SoConfiguration struct {
 	Dgraph struct {
-		Host     string
-		Port     int
-		Ctype    string
-		CldbType CloutDbType
+		Host           string
+		Port           int
+		Ctype          string
+		CldbType       CloutDbType
+		SchemaFilePath string
 	}
 
 	Remote struct {
@@ -24,7 +25,7 @@ type SoConfiguration struct {
 }
 
 // ConfigFile configuration file
-const ConfigFile = "../config/application.cfg"
+const ConfigFile = "config/application.cfg"
 
 // CloutDbType to select how Clout is persisted in Dgraph
 type CloutDbType int
@@ -55,10 +56,22 @@ func init() {
 	// struct to hold SO configuration
 	SoConfig = SoConfiguration{}
 	// read configuration from a file
-	err := gcfg.ReadFileInto(&SoConfig, ConfigFile)
+	var err error
+	var count int
+	var cnf string
+	cnf = ConfigFile
+	for {
+		err = gcfg.ReadFileInto(&SoConfig, cnf)
+		if err == nil || count > 4 {
+			break
+		}
+		cnf = "../" + cnf
+		count++
+	}
 	if err != nil {
 		FailOnError(err)
 	}
+
 	SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
 	if SoConfig.Dgraph.CldbType < Translated ||
 		SoConfig.Dgraph.CldbType > Refined {

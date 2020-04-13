@@ -59,13 +59,15 @@ func (self NotificationOutputs) Inherit(parent NotificationOutputs) {
 
 func (self NotificationOutputs) Normalize(n *normal.NodeTemplate, m normal.AttributeMappings) {
 	for name, notificationOutput := range self {
-		nodeTemplateName := *notificationOutput.NodeTemplateName
+		if (*notificationOutput).NodeTemplateName != nil {
+			nodeTemplateName := *notificationOutput.NodeTemplateName
 
-		if nodeTemplateName == "SELF" {
-			m[name] = n.NewAttributeMapping(*notificationOutput.AttributeName, "")
-		} else {
-			if nn, ok := n.ServiceTemplate.NodeTemplates[nodeTemplateName]; ok {
-				m[name] = nn.NewAttributeMapping(*notificationOutput.AttributeName, "")
+			if nodeTemplateName == "SELF" {
+				m[name] = n.NewAttributeMapping(*notificationOutput.AttributeName, "")
+			} else {
+				if nn, ok := n.ServiceTemplate.NodeTemplates[nodeTemplateName]; ok {
+					m[name] = nn.NewAttributeMapping(*notificationOutput.AttributeName, "")
+				}
 			}
 		}
 	}

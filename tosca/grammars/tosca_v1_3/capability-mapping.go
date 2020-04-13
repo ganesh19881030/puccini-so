@@ -16,7 +16,7 @@ type CapabilityMapping struct {
 	NodeTemplateName *string `require:"0"`
 	CapabilityName   *string `require:"1"`
 
-	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName" json:"-" yaml:"-"`
+	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName,NodeTemplate,no" json:"-" yaml:"-"`
 }
 
 func NewCapabilityMapping(context *tosca.Context) *CapabilityMapping {

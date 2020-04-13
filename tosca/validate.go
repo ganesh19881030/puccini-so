@@ -8,7 +8,7 @@ import (
 )
 
 func (self *Context) ValidateUnsupportedFields(keys []string) {
-	if !self.Is("map") {
+	if !self.Is("map") || self.ReadFromDb {
 		return
 	}
 	for key := range self.Data.(ard.Map) {

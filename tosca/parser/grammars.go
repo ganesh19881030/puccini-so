@@ -59,6 +59,7 @@ func DetectGrammar(context *tosca.Context) bool {
 	if versionContext, version := GetVersion(context); version != nil {
 		GrammerVersions[*version] = true
 		if grammars, ok := Grammars[versionContext.Name]; ok {
+		    context.Version = *version
 			if context.Grammar, ok = grammars[*version]; ok {
 				return true
 			}

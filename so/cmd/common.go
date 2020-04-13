@@ -61,3 +61,14 @@ func ReadCloutFromDgraph(name string) (*clout.Clout, string, error) {
 	return output, uid, nil
 
 }
+
+// CloutInstanceExists checks if a clout instance exists in database
+func CloutInstanceExists(name string) bool {
+	// construct Dgraph url from configuration
+	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
+
+	_, found, _ := findClout(dburl, name)
+
+	return found
+
+}

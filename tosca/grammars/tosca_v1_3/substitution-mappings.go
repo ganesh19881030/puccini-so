@@ -25,7 +25,7 @@ type SubstitutionMappings struct {
 	InterfaceMappings   InterfaceMappings   `read:"interfaces,InterfaceMapping"`
 	SubstitutionFilter  *SubstitutionFilter `read:"substitution_filter,SubstitutionFilter"`
 
-	NodeType *NodeType `lookup:"node_type,NodeTypeName" json:"-" yaml:"-"`
+	NodeType *NodeType `lookup:"node_type,NodeTypeName,NodeType,no" json:"-" yaml:"-"`
 }
 
 func NewSubstitutionMappings(context *tosca.Context) *SubstitutionMappings {
@@ -46,10 +46,12 @@ func ReadSubstitutionMappings(context *tosca.Context) interface{} {
 
 	self := NewSubstitutionMappings(context)
 	if context.Is("map") {
-		oldMap := context.Data.(ard.Map)
-		newMap := make(ard.Map)
-		newMap[context.Name] = oldMap
-		context.Data = newMap
+		if !context.ReadFromDb {
+			oldMap := context.Data.(ard.Map)
+			newMap := make(ard.Map)
+			newMap[context.Name] = oldMap
+			context.Data = newMap
+		}
 		context.ValidateUnsupportedFields(context.ReadFields(self))
 	} else if context.ValidateType("map", "string") {
 		self.NodeTypeName = context.FieldChild("node_type", context.Data).ReadString()
@@ -85,6 +87,7 @@ func (self *SubstitutionMappings) Normalize(s *normal.ServiceTemplate) *normal.S
 	}
 
 	for _, mapping := range self.CapabilityMappings {
+
 		if (mapping.NodeTemplate == nil) || (mapping.CapabilityName == nil) {
 			continue
 		}

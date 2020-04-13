@@ -702,7 +702,10 @@ func findSubstituteVertexesFromAbstractVertex(cloutVertexes clout.Vertexes, vert
 		}
 
 		substituteDirective := strings.Split(directive, ":")
-		for _, vertexID := range substituteDirective {
+		for ind2, vertexID := range substituteDirective {
+			if ind2 == 0 {
+				continue
+			}
 			vertexFromClout := findVertexBasedOnID(vertexID, cloutVertexes)
 			if vertexFromClout != nil {
 				substituteVertexes[vertexFromClout.ID] = vertexFromClout
@@ -980,8 +983,11 @@ func addNodeTemplateNameForFunctionCall(cloutFile *clout.Clout) {
 
 			// add abstract nodeTemplateName for get_attribute function in attributes
 			// of capabilities in node_template
+			// Need to look at this logic again. It is highly dependent on the order in which
+			// attribute value function arguments are stored
 			capabilities, _ := substituteVertexProperties["capabilities"].(map[string]interface{})
-			for _, capability := range capabilities {
+			for ckey, capability := range capabilities {
+				_ = ckey
 				capabilityData := capability.(map[string]interface{})
 				attributes := capabilityData["attributes"].(map[string]interface{})
 
@@ -991,11 +997,28 @@ func addNodeTemplateNameForFunctionCall(cloutFile *clout.Clout) {
 					FunctionCallName, _ := functionCall["name"]
 
 					arguments, _ := functionCall["arguments"].([]interface{})
-					argument, _ := arguments[0].(map[string]interface{})
-					nodeTemplateName, _ := argument["value"].(string)
+					var nodeTemplateName string
+					var argument ard.Map
 
-					if nodeTemplateName != "SELF" && FunctionCallName == "get_attribute" {
-						argument["value"] = abstractVertexName + "." + nodeTemplateName
+					// look for SELF in the function arguments in any order
+					for _, arg := range arguments {
+						if name, ok := arg.(ard.Map)["value"]; ok {
+							argument = arg.(ard.Map)
+							nodeTemplateName, ok = name.(string)
+							if ok && nodeTemplateName == "SELF" {
+								break
+							}
+						}
+
+					}
+					if nodeTemplateName != "SELF" {
+						// look at the first argument
+						argument, _ = arguments[0].(map[string]interface{})
+						nodeTemplateName, _ = argument["value"].(string)
+
+						if FunctionCallName == "get_attribute" {
+							argument["value"] = abstractVertexName + "." + nodeTemplateName
+						}
 					}
 				}
 			}

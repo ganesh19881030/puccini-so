@@ -21,9 +21,9 @@ type RequirementAssignment struct {
 	TargetNodeFilter                 *NodeFilter             `read:"node_filter,NodeFilter"`
 	Relationship                     *RelationshipAssignment `read:"relationship,RelationshipAssignment"`
 
-	TargetCapabilityType *CapabilityType `lookup:"capability,?TargetCapabilityNameOrTypeName" json:"-" yaml:"-"`
-	TargetNodeTemplate   *NodeTemplate   `lookup:"node,TargetNodeTemplateNameOrTypeName" json:"-" yaml:"-"`
-	TargetNodeType       *NodeType       `lookup:"node,TargetNodeTemplateNameOrTypeName" json:"-" yaml:"-"`
+	TargetCapabilityType *CapabilityType `lookup:"capability,?TargetCapabilityNameOrTypeName,CapabilityType" json:"-" yaml:"-"`
+	TargetNodeTemplate   *NodeTemplate   `lookup:"node,TargetNodeTemplateNameOrTypeName,NodeTemplate,no" json:"-" yaml:"-"`
+	TargetNodeType       *NodeType       `lookup:"node,TargetNodeTemplateNameOrTypeName,NodeType" json:"-" yaml:"-"`
 }
 
 func NewRequirementAssignment(context *tosca.Context) *RequirementAssignment {

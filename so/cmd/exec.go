@@ -1,16 +1,28 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/js"
+	"github.com/tliron/puccini/so/db"
 	"github.com/tliron/puccini/url"
 )
 
+var resolve bool
+var coerce bool
+var inputs []string
+var inputsUrl string
+
 func init() {
 	rootCmd.AddCommand(execCmd)
+	execCmd.Flags().StringArrayVarP(&inputs, "input", "i", []string{}, "specify an input (name=YAML)")
+	execCmd.Flags().StringVarP(&inputsUrl, "inputs", "n", "", "load inputs from a PATH or URL to YAML content")
 	execCmd.Flags().StringVarP(&output, "output", "o", "", "output to file or directory (default is stdout)")
+	execCmd.Flags().BoolVarP(&resolve, "resolve", "r", true, "resolves the topology (attempts to satisfy all requirements with capabilities")
+	execCmd.Flags().BoolVarP(&coerce, "coerce", "c", false, "coerces all values (calls functions and applies constraints)")
 }
 
 var execCmd = &cobra.Command{
@@ -28,11 +40,25 @@ var execCmd = &cobra.Command{
 		//}
 
 		//clout_, err := ReadClout(path)
-		clout_, _, err := ReadCloutFromDgraph(name)
+		if CloutInstanceExists(name) {
+			emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
+			log.Errorf(emsg)
+			return
+		}
+		urlst, err := url.NewValidURL(name, nil)
 		common.FailOnError(err)
-
+		dbc := new(db.DgContext)
+		st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputs, inputsUrl)
+		var clout *clout.Clout
+		if !ok {
+			return
+		} else {
+			clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+			common.FailOnError(err)
+		}
+		//clout_, err := ReadCloutFromDgraph(name)
 		// Try loading JavaScript from Clout
-		sourceCode, err := js.GetScriptSourceCode(fn, clout_)
+		sourceCode, err := js.GetScriptSourceCode(fn, clout)
 
 		if err != nil {
 			// Try loading JavaScript from path or URL
@@ -42,11 +68,11 @@ var execCmd = &cobra.Command{
 			sourceCode, err = url.Read(url_)
 			common.FailOnError(err)
 
-			err = js.SetScriptSourceCode(fn, js.Cleanup(sourceCode), clout_)
+			err = js.SetScriptSourceCode(fn, js.Cleanup(sourceCode), clout)
 			common.FailOnError(err)
 		}
 
-		err = Exec(fn, sourceCode, clout_)
+		err = Exec(fn, sourceCode, clout)
 		common.FailOnError(err)
 	},
 }

@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,4 +73,12 @@ func (self EntitiesDone) IsDone(phase string, entityPtr interface{}) bool {
 	}
 	self[entityPtr] = true
 	return false
+}
+
+//GetEntityType - fetches the entity type string which should match its type in Dgraph
+func GetEntityType(entityPtr interface{}) string {
+	strType := reflect.ValueOf(entityPtr).Type().String()
+	parts := strings.Split(strType, ".")
+	strType = parts[1]
+	return strType
 }

@@ -20,8 +20,8 @@ type RelationshipAssignment struct {
 	Attributes                         Values               `read:"attributes,AttributeValue"` // missing in spec
 	Interfaces                         InterfaceAssignments `read:"interfaces,InterfaceAssignment"`
 
-	RelationshipTemplate *RelationshipTemplate `lookup:"type,RelationshipTemplateNameOrTypeName" json:"-" yaml:"-"`
-	RelationshipType     *RelationshipType     `lookup:"type,RelationshipTemplateNameOrTypeName" json:"-" yaml:"-"`
+	RelationshipTemplate *RelationshipTemplate `lookup:"type,RelationshipTemplateNameOrTypeName,RelationshipTemplate,no" json:"-" yaml:"-"`
+	RelationshipType     *RelationshipType     `lookup:"type,RelationshipTemplateNameOrTypeName,RelationshipType,no" json:"-" yaml:"-"`
 }
 
 func NewRelationshipAssignment(context *tosca.Context) *RelationshipAssignment {
@@ -68,7 +68,11 @@ func (self *RelationshipAssignment) Normalize(r *normal.Relationship) {
 		r.Description = *self.RelationshipType.Description
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, self.RelationshipType); ok {
+	if self.GetContext().ReadFromDb {
+		if types, ok := normal.GetTypes2(self.RelationshipType); ok {
+			r.Types = types
+		}
+	} else if types, ok := normal.GetTypes(self.Context.Hierarchy, self.RelationshipType); ok {
 		r.Types = types
 	}
 

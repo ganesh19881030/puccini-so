@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -21,7 +22,7 @@ type NodeType struct {
 	InterfaceDefinitions   InterfaceDefinitions   `read:"interfaces,InterfaceDefinition" inherit:"interfaces,Parent"`
 	ArtifactDefinitions    ArtifactDefinitions    `read:"artifacts,ArtifactDefinition" inherit:"artifacts,Parent"`
 
-	Parent *NodeType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
+	Parent *NodeType `lookup:"derived_from,ParentName,NodeType" json:"-" yaml:"-"`
 }
 
 func NewNodeType(context *tosca.Context) *NodeType {
@@ -40,6 +41,9 @@ func NewNodeType(context *tosca.Context) *NodeType {
 func ReadNodeType(context *tosca.Context) interface{} {
 	self := NewNodeType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
 	return self
 }
 

@@ -18,8 +18,8 @@ type EventFilter struct {
 	RequirementName            *string `read:"requirement"`
 	CapabilityName             *string `read:"capability"`
 
-	NodeTemplate *NodeTemplate `lookup:"node,NodeTemplateNameOrTypeName" json:"-" yaml:"-"`
-	NodeType     *NodeType     `lookup:"node,NodeTemplateNameOrTypeName" json:"-" yaml:"-"`
+	NodeTemplate *NodeTemplate `lookup:"node,NodeTemplateNameOrTypeName,NodeTemplate,no" json:"-" yaml:"-"`
+	NodeType     *NodeType     `lookup:"node,NodeTemplateNameOrTypeName,NodeType,no" json:"-" yaml:"-"`
 }
 
 func NewEventFilter(context *tosca.Context) *EventFilter {

@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -18,8 +19,8 @@ type CapabilityType struct {
 	AttributeDefinitions     AttributeDefinitions `read:"attributes,AttributeDefinition" inherit:"attributes,Parent"`
 	ValidSourceNodeTypeNames *[]string            `read:"valid_source_types" inherit:"valid_source_types,Parent"`
 
-	Parent               *CapabilityType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
-	ValidSourceNodeTypes NodeTypes       `lookup:"valid_source_types,ValidSourceNodeTypeNames" inherit:"valid_source_types,Parent" json:"-" yaml:"-"`
+	Parent               *CapabilityType `lookup:"derived_from,ParentName,CapabilityType" json:"-" yaml:"-"`
+	ValidSourceNodeTypes NodeTypes       `lookup:"valid_source_types,ValidSourceNodeTypeNames,NodeType,no" inherit:"valid_source_types,Parent" json:"-" yaml:"-"`
 }
 
 func NewCapabilityType(context *tosca.Context) *CapabilityType {
@@ -34,6 +35,10 @@ func NewCapabilityType(context *tosca.Context) *CapabilityType {
 func ReadCapabilityType(context *tosca.Context) interface{} {
 	self := NewCapabilityType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
+
 	return self
 }
 

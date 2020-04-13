@@ -16,7 +16,7 @@ type PropertyMapping struct {
 	NodeTemplateName *string `require:"0"`
 	PropertyName     *string `require:"1"`
 
-	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName" json:"-" yaml:"-"`
+	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName,NodeTemplate,no" json:"-" yaml:"-"`
 }
 
 func NewPropertyMapping(context *tosca.Context) *PropertyMapping {

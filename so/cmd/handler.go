@@ -4,20 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
-	"github.com/gorilla/mux"
-	"github.com/tliron/puccini/clout"
-
-	//"github.com/tliron/puccini/common"
-	"github.com/tliron/puccini/js"
-	"github.com/tliron/puccini/url"
-
-	//"google.golang.org/grpc"
-	//"log"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/gorilla/mux"
+	"github.com/tliron/puccini/clout"
+	"github.com/tliron/puccini/common"
+	"github.com/tliron/puccini/js"
+	"github.com/tliron/puccini/so/db"
+	"github.com/tliron/puccini/url"
 )
 
 type Template struct {
@@ -474,16 +471,39 @@ func createInstance(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 	service := vars["service"]
+	inputsUrl := vars["inputsurl"]
+	// TO DO: devise a format to specify and retrieve multiple input values
+	var inputs []string
 	//fn := vars["function"]
 
 	//Read Clout from Dgraph
-	clout_, uid, err := ReadCloutFromDgraph(name)
-	if clout_ == nil || err != nil {
+	urlst, err := url.NewValidURL(name, nil)
+	common.FailOnError(err)
+
+	if CloutInstanceExists(name) {
+		emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
+		log.Errorf(emsg)
+		writeResponse(Response{"Failure", emsg}, w)
+		return
+	}
+
+	dbc := new(db.DgContext)
+	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputs, inputsUrl)
+	var clout *clout.Clout
+	if !ok {
+		return
+	} else {
+		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+		common.FailOnError(err)
+	}
+
+	//clout_, uid, err := ReadCloutFromDgraph(name)
+	if clout == nil || err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	err = CreateInstance(clout_, name, service, uid)
+	err = CreateInstance(clout, name, service, uid)
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	} else {

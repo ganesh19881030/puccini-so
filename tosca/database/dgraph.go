@@ -3,15 +3,14 @@ package database
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/tliron/puccini/common"
 
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
 )
 
@@ -88,24 +87,27 @@ func SaveCloutGraph(dgraphSet *DgraphSet, dburl string) {
 	if err != nil {
 		common.FailOnError(err)
 	} else {
-		fmt.Println("Assigned UUIDs : ")
+		Log.Debugf("Assigned UUIDs : ")
 		for key, value := range assigned.Uids {
-			fmt.Println("name:", key, ",  value:", value)
+			Log.Debugf("name: %s,  value: %s", key, value)
 		}
 	}
 }
 
-func getDgraphClient(dburl string) (*dgo.Dgraph, error) {
+// GetDgraphClient1 fetches dev dgo dgraph client
+func GetDgraphClient1(dburl string) (*dgo.Dgraph, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
 	if err != nil {
 		common.FailOnError(err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
 	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
 
-	return dgraphClient, err
+	return dgraphClient, conn, err
 
 }
+
+// SaveSchema function saves schema
 func SaveSchema(dburl string) error {
 	ctx := context.Background()
 	op := &api.Operation{}
@@ -113,7 +115,8 @@ func SaveSchema(dburl string) error {
 		<tosca:name>: string @index(exact) .
 		<tosca:type>: string @index(exact) .
 	`
-	dg, err := getDgraphClient(dburl)
+	dg, conn, err := GetDgraphClient1(dburl)
+	defer conn.Close()
 	if err != nil {
 		common.FailOnError(err)
 	}

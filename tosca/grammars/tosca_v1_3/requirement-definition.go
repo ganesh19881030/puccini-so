@@ -21,8 +21,8 @@ type RequirementDefinition struct {
 	RelationshipDefinition   *RelationshipDefinition `read:"relationship,RelationshipDefinition"`
 	Occurrences              *RangeEntity            `read:"occurrences,RangeEntity"`
 
-	TargetCapabilityType *CapabilityType `lookup:"capability,TargetCapabilityTypeName" json:"-" yaml:"-"`
-	TargetNodeType       *NodeType       `lookup:"node,TargetNodeTypeName" json:"-" yaml:"-"`
+	TargetCapabilityType *CapabilityType `lookup:"capability,TargetCapabilityTypeName,CapabilityType,no" json:"-" yaml:"-"`
+	TargetNodeType       *NodeType       `lookup:"node,TargetNodeTypeName,NodeType" json:"-" yaml:"-"`
 
 	capabilityMissingProblemReported bool
 }

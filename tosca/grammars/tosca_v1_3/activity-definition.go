@@ -25,8 +25,8 @@ type ActivityDefinition struct {
 	CallOperationSpec              *string
 	Update                         ParameterDefinitions `read:"update,ParameterDefinition"`
 
-	DelegateWorkflowDefinition *WorkflowDefinition  `lookup:"delegate,DelegateWorkflowDefinitionName" json:"-" yaml:"-"`
-	InlineWorkflowDefinition   *WorkflowDefinition  `lookup:"inline,InlineWorkflowDefinitionName" json:"-" yaml:"-"`
+	DelegateWorkflowDefinition *WorkflowDefinition  `lookup:"delegate,DelegateWorkflowDefinitionName,WorkflowDefinition" json:"-" yaml:"-"`
+	InlineWorkflowDefinition   *WorkflowDefinition  `lookup:"inline,InlineWorkflowDefinitionName,WorkflowDefinition" json:"-" yaml:"-"`
 	CallInterface              *InterfaceAssignment `json:"-" yaml:"-"`
 	CallOperation              *OperationAssignment `json:"-" yaml:"-"`
 }
@@ -44,12 +44,15 @@ func ReadActivityDefinition(context *tosca.Context) interface{} {
 
 	if context.ValidateType("map") {
 		map_ := context.Data.(ard.Map)
-		if len(map_) != 1 {
+		if (!context.ReadFromDb && len(map_) != 1) || (context.ReadFromDb && len(map_) != 2) {
 			context.ReportValueMalformed("workflow activity definition", "map length not 1")
 			return self
 		}
 
 		for operator, value := range map_ {
+			if operator == "uid" {
+				continue
+			}
 			childContext := context.FieldChild(operator, value)
 
 			switch operator {

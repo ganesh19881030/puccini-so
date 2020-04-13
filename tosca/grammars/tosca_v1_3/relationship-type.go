@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -19,8 +20,8 @@ type RelationshipType struct {
 	InterfaceDefinitions           InterfaceDefinitions `read:"interfaces,InterfaceDefinition" inherit:"interfaces,Parent"`
 	ValidTargetCapabilityTypeNames *[]string            `read:"valid_target_types" inherit:"valid_target_types,Parent"`
 
-	Parent                     *RelationshipType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
-	ValidTargetCapabilityTypes CapabilityTypes   `lookup:"valid_target_types,ValidTargetCapabilityTypeNames" inherit:"valid_target_types,Parent" json:"-" yaml:"-"`
+	Parent                     *RelationshipType `lookup:"derived_from,ParentName,RelationshipType" json:"-" yaml:"-"`
+	ValidTargetCapabilityTypes CapabilityTypes   `lookup:"valid_target_types,ValidTargetCapabilityTypeNames,CapabilityType" inherit:"valid_target_types,Parent" json:"-" yaml:"-"`
 }
 
 func NewRelationshipType(context *tosca.Context) *RelationshipType {
@@ -36,6 +37,9 @@ func NewRelationshipType(context *tosca.Context) *RelationshipType {
 func ReadRelationshipType(context *tosca.Context) interface{} {
 	self := NewRelationshipType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
 	return self
 }
 
