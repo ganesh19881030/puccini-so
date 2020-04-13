@@ -19,5 +19,7 @@ You can specify the log level with -log n option as shown below:
   go run compare.go logging.go clout1.yaml clout2.yaml -log n
   
   where n 	= 0 for ERROR
+  
           	= 1 for INFO
+		
 		= 2 for DEBUG
