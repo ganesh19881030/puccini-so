@@ -11,13 +11,13 @@ or
 
     go run compare.go logging.go C:/firewall_service_1.json C:/firewall_service_2.json
 	
-It generates a log file called compare-clout.log which has logs the comparison based on
+It generates a log file called compare-clout.log which logs the comparison based on
 the log level configured. By default the log level is INFO (1)
 	
 You can specify the log level with -log n option as shown below:
 
   go run compare.go logging.go clout1.yaml clout2.yaml -log n
   
-  where n = 0 for ERROR
-          = 1 for INFO
-		  = 2 for DEBUG
+  where n 	= 0 for ERROR
+          	= 1 for INFO
+		= 2 for DEBUG
