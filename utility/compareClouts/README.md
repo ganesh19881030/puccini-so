@@ -1,11 +1,11 @@
 You can use the compare.go utility to compare clout.yaml or clout.json files
 In order to run the compare.go, use the commands:
 
-  go run compare.go logging.go clout1.yaml clout2.yaml
+	go run compare.go logging.go clout1.yaml clout2.yaml
 
 or
 
-  go run compare.go logging.go clout1.json clout2.json
+	go run compare.go logging.go clout1.json clout2.json
 
   e.g. 
 
@@ -16,7 +16,7 @@ the log level configured. By default the log level is INFO (1)
 	
 You can specify the log level with -log n option as shown below:
 
-  go run compare.go logging.go clout1.yaml clout2.yaml -log n
+	go run compare.go logging.go clout1.yaml clout2.yaml -log n
   
   where n is:
   	
