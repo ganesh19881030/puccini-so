@@ -10,7 +10,7 @@ import (
 	"github.com/tliron/puccini/url"
 )
 
-var log = logging.MustGetLogger("puccini-js")
+var log = logging.MustGetLogger("so")
 
 var output string
 

@@ -18,7 +18,7 @@ import (
 }*/
 
 func main() {
-	runasService := false
+	runasService := true
 	if runasService {
 		cmd.HandleRequests()
 	} else {
