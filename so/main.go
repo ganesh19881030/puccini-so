@@ -2,6 +2,7 @@ package main
 
 import (
 	//"fmt"
+	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/so/cmd"
 	//"os"
 )
@@ -19,6 +20,10 @@ import (
 
 func main() {
 	runasService := true
+
+	// read configuration from a file
+	common.ReadConfiguration()
+
 	if runasService {
 		cmd.HandleRequests()
 	} else {

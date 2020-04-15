@@ -18,9 +18,11 @@ func (ntemp *DbAttributeValue) ConvertMap(responseData *[]interface{}, key strin
 		data.(ard.Map)["readername"] = readername
 		mkey, ok := data.(ard.Map)["name"].(string)
 		if ok {
-			amap := make(ard.Map)
+			/*amap := make(ard.Map)
 			amap[data.(ard.Map)["functionname"].(string)] = data.(ard.Map)["fnarguments"]
-			mapData[mkey] = amap
+			mapData[mkey] = amap*/
+			mapData[mkey] = TransformValueData(data)
+
 		}
 	}
 

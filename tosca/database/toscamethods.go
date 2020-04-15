@@ -57,10 +57,16 @@ func (av QueryValue) Process(entityPtr *interface{}, nam string) string {
 		if ok {
 			nquad = nquad + fmt.Sprintf(`
 _:comp <functionname> "%s" .`, xfunc.Name)
-			for _, arg := range xfunc.Arguments {
-				nquad = nquad + fmt.Sprintf(`
-_:comp <fnarguments> "%s" .`, arg)
+			strargs := "["
+			for ind, arg := range xfunc.Arguments {
+				if ind > 0 {
+					strargs = strargs + " "
+				}
+				strargs = strargs + fmt.Sprintf("%s", arg)
 			}
+			strargs = strargs + "]"
+			nquad = nquad + fmt.Sprintf(`
+_:comp <fnarguments> "%s" .`, strargs)
 
 		}
 	}

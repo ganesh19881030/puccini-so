@@ -45,6 +45,10 @@ var compileCmd = &cobra.Command{
 }
 
 func Compile(urlString string) {
+
+	// read configuration from a file
+	common.ReadConfiguration()
+
 	// Parse
 	context, s := Parse(urlString)
 	internalImport := common.InternalImport

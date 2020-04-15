@@ -24,23 +24,12 @@ func (ntemp *DbValue) ConvertMap(responseData *[]interface{}, key string, reader
 		mkey, ok := data.(ard.Map)["name"].(string)
 		if ok {
 			if key == "inputs" {
-				amap := make(ard.Map)
+				/*amap := make(ard.Map)
 				amap[data.(ard.Map)["functionname"].(string)] = data.(ard.Map)["fnarguments"]
-				mapData[mkey] = amap
+				mapData[mkey] = amap*/
+				mapData[mkey] = TransformValueData(data)
 			} else if key == "properties" || key == "propertymappings" {
 				mapData[mkey] = TransformValueData(data)
-				/*
-					mapData[mkey], ok = data.(ard.Map)["myvalue"]
-					if !ok {
-						_, ok = data.(ard.Map)["functionname"]
-						if ok {
-							mapData[mkey] = TransformValueData(data)
-						}
-					} else {
-						val := data.(ard.Map)["myvalue"].(string)
-						vt := data.(ard.Map)["myvaluetype"].(string)
-						mapData[mkey] = ParseValue(val, vt)
-					}*/
 			}
 		}
 	}

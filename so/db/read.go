@@ -82,6 +82,9 @@ func (dbc *DgContext) ReadServiceTemplateFromDgraph(sturl url.URL, inps []string
 	stname := database.ExtractTopologyName(sturl.String())
 
 	serviceTemplate, ok := dbc.read(nil, toscaContext, "", "service_template", stname, dgt)
+	if serviceTemplate == nil {
+		common.FailOnError(errors.New("Service template [" + stname + "] not found!"))
+	}
 
 	dbc.Pcontext.ServiceTemplate = serviceTemplate
 	sort.Sort(dbc.Pcontext.Units)
@@ -195,7 +198,11 @@ func (dbc *DgContext) read(promise parser.Promise, toscaContext *tosca.Context, 
 	urlstring := strings.Replace(toscaContext.URL.String(), "\\", "/", -1)
 	if stObject, ok := dbObjectMap[readerName]; ok {
 		toscaContext.Data = stObject.DbRead(dgt, nil, name, urlstring)
-		grammarVersion = (toscaContext.Data).(ard.Map)["tosca_definitions_version"].(string)
+		if toscaContext.Data == nil {
+			return nil, false
+		} else {
+			grammarVersion = (toscaContext.Data).(ard.Map)["tosca_definitions_version"].(string)
+		}
 	} else {
 		common.FailOnError(errors.New("No object defined for " + readerName))
 	}

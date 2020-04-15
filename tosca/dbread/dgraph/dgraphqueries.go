@@ -665,12 +665,12 @@ func addOneField(dgtype string, nam string, nquad string, field reflect.Value, f
 func AddFields(entityPtr interface{}, nquad string, dgtype string) string {
 
 	entity := reflect.ValueOf(entityPtr).Elem()
-	tags := reflection.GetAllFieldTagsForValue(entity)
+	/*tags := reflection.GetAllFieldTagsForValue(entity)
 	var keys []string
 	for _, tag := range tags {
 		t := strings.Split(tag, ",")
 		keys = append(keys, t[0])
-	}
+	}*/
 
 	num := entity.NumField()
 	fmt.Printf("\nnum of fields: %d\n", num)

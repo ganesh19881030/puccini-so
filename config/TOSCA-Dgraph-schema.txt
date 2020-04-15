@@ -65,7 +65,7 @@
 		myvaluetype: string
 		constraintclauses: [ConstraintClause]
 		functionname: string
-		fnarguments: [string]
+		fnarguments: string
 	}
 	
 	type CapabilityAssignment {
@@ -705,5 +705,5 @@
 		capabilitytype: uid .
 		policytypename: string .
 		functionname: string .
-		fnarguments: [string] .
+		fnarguments: string .
 		role: string .

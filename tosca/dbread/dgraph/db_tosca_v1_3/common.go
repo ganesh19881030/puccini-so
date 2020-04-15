@@ -192,7 +192,12 @@ func TransformValueData(childData interface{}) interface{} {
 	fname, ok = childData.(ard.Map)["functionname"].(string)
 	if ok {
 		vdata = make(ard.Map)
-		vdata[fname] = childData.(ard.Map)["fnarguments"]
+		strargs := childData.(ard.Map)["fnarguments"].(string)
+		args, err := ParseArguments(strargs)
+		if err == nil {
+			vdata[fname] = args
+		}
+		//vdata[fname] = childData.(ard.Map)["fnarguments"]
 		return vdata
 	} else {
 		var val interface{}

@@ -684,7 +684,7 @@ func transformConditionData(childData interface{}) interface{} {
 
 }
 
-// transformValueData - transforms value data in dgraph to what is expected by Puccini
+/*// transformValueData - transforms value data in dgraph to what is expected by Puccini
 func transformValueData(childData interface{}) interface{} {
 	var ok bool
 	var fname string
@@ -697,7 +697,7 @@ func transformValueData(childData interface{}) interface{} {
 	}
 
 	return childData
-}
+}*/
 
 func readFromDb(readField *ReadField, uid string, key string, isMap bool) interface{} {
 

@@ -53,30 +53,36 @@ func init() {
 	CloutDbTypeMap["translated"] = Translated
 	CloutDbTypeMap["refined"] = Refined
 
-	// struct to hold SO configuration
-	SoConfig = SoConfiguration{}
-	// read configuration from a file
-	var err error
-	var count int
-	var cnf string
-	cnf = ConfigFile
-	for {
-		err = gcfg.ReadFileInto(&SoConfig, cnf)
-		if err == nil || count > 4 {
-			break
+}
+
+func ReadConfiguration() {
+
+	if SoConfig.Dgraph.Host == "" {
+		// struct to hold SO configuration
+		SoConfig = SoConfiguration{}
+		// read configuration from a file
+		var err error
+		var count int
+		var cnf string
+		cnf = ConfigFile
+		for {
+			err = gcfg.ReadFileInto(&SoConfig, cnf)
+			if err == nil || count > 4 {
+				break
+			}
+			cnf = "../" + cnf
+			count++
 		}
-		cnf = "../" + cnf
-		count++
-	}
-	if err != nil {
-		FailOnError(err)
-	}
+		if err != nil {
+			FailOnError(err)
+		}
 
-	SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
-	if SoConfig.Dgraph.CldbType < Translated ||
-		SoConfig.Dgraph.CldbType > Refined {
+		SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
+		if SoConfig.Dgraph.CldbType < Translated ||
+			SoConfig.Dgraph.CldbType > Refined {
 
-		err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
-		FailOnError(err)
+			err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
+			FailOnError(err)
+		}
 	}
 }
