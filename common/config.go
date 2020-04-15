@@ -2,6 +2,9 @@ package common
 
 import (
 	"errors"
+	"fmt"
+	"path/filepath"
+	"sync"
 
 	"gopkg.in/gcfg.v1"
 )
@@ -42,8 +45,10 @@ const (
 
 var CloutDbTypeMap map[string]CloutDbType
 
+var lock = &sync.Mutex{}
+
 // SoConfig global variable to store the configuration
-var SoConfig SoConfiguration
+var SoConfig *SoConfiguration
 
 // Initialize global variable for configuration
 func init() {
@@ -57,32 +62,43 @@ func init() {
 
 func ReadConfiguration() {
 
-	if SoConfig.Dgraph.Host == "" {
-		// struct to hold SO configuration
-		SoConfig = SoConfiguration{}
-		// read configuration from a file
-		var err error
-		var count int
-		var cnf string
-		cnf = ConfigFile
-		for {
-			err = gcfg.ReadFileInto(&SoConfig, cnf)
-			if err == nil || count > 4 {
-				break
+	if SoConfig == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if SoConfig == nil {
+
+			// struct to hold SO configuration
+			SoConfig = &SoConfiguration{}
+			// read configuration from a file
+			var err error
+			var count int
+			var cnf string
+			prefix := ""
+			cnf = filepath.Join(".", ConfigFile)
+			for {
+				err = gcfg.ReadFileInto(SoConfig, cnf)
+				if err == nil || count > 4 {
+					break
+				} else {
+					fmt.Println("Config file error: ", err)
+					abspath, _ := filepath.Abs(cnf)
+					fmt.Println("Failed to read config file at ", abspath)
+				}
+				prefix = filepath.Join("..", prefix)
+				cnf = filepath.Join(prefix, ConfigFile)
+				count++
 			}
-			cnf = "../" + cnf
-			count++
-		}
-		if err != nil {
-			FailOnError(err)
-		}
+			if err != nil {
+				FailOnError(err)
+			}
 
-		SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
-		if SoConfig.Dgraph.CldbType < Translated ||
-			SoConfig.Dgraph.CldbType > Refined {
+			SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
+			if SoConfig.Dgraph.CldbType < Translated ||
+				SoConfig.Dgraph.CldbType > Refined {
 
-			err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
-			FailOnError(err)
+				err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
+				FailOnError(err)
+			}
 		}
 	}
 }
