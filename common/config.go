@@ -78,11 +78,14 @@ func ReadConfiguration() {
 			for {
 				err = gcfg.ReadFileInto(SoConfig, cnf)
 				if err == nil || count > 4 {
+					if err == nil {
+						fmt.Println("Read configuration from config file at ", cnf, "\n")
+					}
 					break
 				} else {
 					fmt.Println("Config file error: ", err)
 					abspath, _ := filepath.Abs(cnf)
-					fmt.Println("Failed to read config file at ", abspath)
+					fmt.Println("Failed to read config file at ", abspath, "\n")
 				}
 				prefix = filepath.Join("..", prefix)
 				cnf = filepath.Join(prefix, ConfigFile)
