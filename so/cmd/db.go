@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strconv"
 
@@ -13,55 +14,31 @@ import (
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/js"
 	"github.com/tliron/puccini/tosca/database"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"google.golang.org/grpc"
 )
 
 var TemplateVersion string
 
-func findClout(dburl string, name string) (*ard.Map, bool, error) {
+func isCloutPresent(dgt *dgraph.DgraphTemplate, name string) (bool, error) {
 
 	var result ard.Map
 
-	//conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
-	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
-	txn := dgraphClient.NewTxn()
-	ctx := context.Background()
-	defer txn.Discard(ctx)
-
-	// Query the clout vertex
-	/*const q = `
-	{
-		all(func: has(<clout:vertex>)){
-			expand(_all_) {
-				expand(_all_) {
-					expand(_all_)
-				}
-			}
-
-		}
-	}*/
-
 	// Query the clout vertex by name
-	const q = `query all($name: string) {
-		all(func: eq(<clout:name>, $name)) {
-			uid
-			expand(_all_) {
-				expand(_all_) {
-				  expand(_all_)
-				}
-			  }
-				
-			   
-		  }
-	  }`
-	//resp, err := txn.Query(context.Background(), q)
+	// TODO: not adequate - need to have a better query with more criteria
+	const paramquery = `{all(func: has(<clout:grammarversion>)) @filter (eq (<clout:name>,"%s")){
+		uid
+		<clout:name>
+		<clout:version>
+		<clout:grammarversion>
+	  }
+	}`
+
+	query := fmt.Sprintf(paramquery, name)
+
+	resp, err := dgt.ExecQuery(query)
 	found := false
-	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+	//resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
 	if err == nil {
 		if err := json.Unmarshal(resp.GetJson(), &result); err == nil {
 			if aresp, ok := result["all"]; ok {
@@ -74,15 +51,51 @@ func findClout(dburl string, name string) (*ard.Map, bool, error) {
 		}
 	}
 
-	return &result, found, err
+	return found, err
+}
+
+func readClout(dburl string, name string) (*ard.Map, error) {
+
+	var result ard.Map
+
+	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+	txn := dgraphClient.NewTxn()
+	ctx := context.Background()
+	defer txn.Discard(ctx)
+
+	// Query the clout vertex by name
+	const q = `query all($name: string) {
+		all(func: eq(<clout:name>, $name)) {
+			uid
+			expand(_all_) {
+				expand(_all_) {
+				  expand(_all_)
+				}
+			  }
+		  }
+	  }`
+
+	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+
+	if err != nil {
+		//log.Fatal(err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(resp.GetJson(), &result)
+
+	return &result, err
 }
 func createCloutOutput(dburl string, name string) (*clout.Clout, string) {
 
-	result, fnd, err := findClout(dburl, name)
+	result, err := readClout(dburl, name)
 
-	//var result map[string]interface{}
-
-	if !fnd || err != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 

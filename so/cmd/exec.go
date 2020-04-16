@@ -42,6 +42,7 @@ var execCmd = &cobra.Command{
 		//clout_, err := ReadClout(path)
 		if CloutInstanceExists(name) {
 			emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
+			fmt.Println(emsg)
 			log.Errorf(emsg)
 			return
 		}

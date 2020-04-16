@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/op/go-logging"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
+	"github.com/tliron/puccini/tosca/database"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"github.com/tliron/puccini/url"
 )
 
@@ -66,8 +69,14 @@ func ReadCloutFromDgraph(name string) (*clout.Clout, string, error) {
 func CloutInstanceExists(name string) bool {
 	// construct Dgraph url from configuration
 	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
-
-	_, found, _ := findClout(dburl, name)
+	dgraphClient, conn, err := database.GetDgraphClient1(dburl)
+	common.FailOnError(err)
+	defer conn.Close()
+	dgt := new(dgraph.DgraphTemplate)
+	dgt.Ctxt = context.Background()
+	dgt.Client = dgraphClient
+	tpname := database.ExtractTopologyName(name)
+	found, _ := isCloutPresent(dgt, tpname)
 
 	return found
 

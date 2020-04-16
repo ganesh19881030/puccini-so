@@ -300,7 +300,7 @@ func (dbc *DgContext) Compile(st *normal.ServiceTemplate, sturl url.URL, resolve
 	}
 
 	// turned it off for now as the clout is not being saved properly
-	persist := false
+	persist := true
 	if persist {
 		internalImport := common.InternalImport
 		urlString := strings.Replace(sturl.String(), "\\", "/", -1)
