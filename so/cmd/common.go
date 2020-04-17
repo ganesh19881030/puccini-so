@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/tosca/database"
-	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"github.com/tliron/puccini/url"
 )
 
@@ -70,14 +68,10 @@ func ReadCloutFromDgraph(name string) (*clout.Clout, string, error) {
 
 // CloutInstanceExists checks if a clout instance exists in database
 func CloutInstanceExists(name string) bool {
-	// construct Dgraph url from configuration
-	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
-	dgraphClient, conn, err := database.GetDgraphClient1(dburl)
+	// construct Dgraph url from configuration]
+	dgt, err := fetchDbTemplate()
 	common.FailOnError(err)
-	defer conn.Close()
-	dgt := new(dgraph.DgraphTemplate)
-	dgt.Ctxt = context.Background()
-	dgt.Client = dgraphClient
+	defer dgt.Close()
 	tpname := database.ExtractTopologyName(name)
 	found, _ := isCloutPresent(dgt, tpname)
 

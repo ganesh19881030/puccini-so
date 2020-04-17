@@ -72,7 +72,8 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 
 	dgt, err := fetchDbTemplate()
 	if err != nil {
-		w.Write([]byte(err.Error()))
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
 		return
 	}
 	defer dgt.Close()
