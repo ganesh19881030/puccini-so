@@ -707,3 +707,5 @@
 		functionname: string .
 		fnarguments: string .
 		role: string .
+		<clout:name>: string @index(exact) .
+		<clout:grammarversion>: string @index(exact) .

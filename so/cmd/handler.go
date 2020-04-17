@@ -12,10 +12,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
-	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/js"
 	"github.com/tliron/puccini/so/db"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"github.com/tliron/puccini/url"
 )
 
@@ -70,10 +70,8 @@ func HandleRequests() {
 
 func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 
-	dgt, err := fetchDbTemplate()
+	dgt, err := connectToDgraph(w)
 	if err != nil {
-		log.Errorf(err.Error())
-		writeResponse(Response{"Failure", err.Error()}, w)
 		return
 	}
 	defer dgt.Close()
@@ -145,28 +143,51 @@ func getTemplateByName(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 
-	conn := createConnection()
+	dgt, err := connectToDgraph(w)
+	if err != nil {
+		return
+	}
+	defer dgt.Close()
+	/*
+		conn := createConnection()
 
-	defer conn.Close()
-	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
-	txn := dgraphClient.NewTxn()
-	ctx := context.Background()
-	defer txn.Discard(ctx)
-	// Query the clout vertex by name
-	const q = `query all($name: string) {
-		all(func: eq(<clout:name>, $name)) {
+		defer conn.Close()
+		dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+		txn := dgraphClient.NewTxn()
+		ctx := context.Background()
+		defer txn.Discard(ctx)
+		// Query the clout vertex by name
+		const q = `query all($name: string) {
+			all(func: eq(<clout:name>, $name)) {
+				uid
+				<clout:name>
+				<clout:version>
+				<clout:grammarversion>
+				<clout:properties>
+				<clout:vertex>  {
+					<tosca:name>
+					<tosca:entity>
+				}
+		    }
+		}`
+		resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+	*/
+	const paramq = `
+	{
+		all(func: has(<clout:grammarversion>)) @filter(eq(<clout:name>,"%s")){
 			uid
 			<clout:name>
 			<clout:version>
 			<clout:grammarversion>
-			<clout:properties>   
-			<clout:vertex>  {
+			<clout:properties>
+			<clout:vertex> {
 				<tosca:name>
 				<tosca:entity>
 			}
-	    }
+		}
 	}`
-	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+	query := fmt.Sprintf(paramq, name)
+	resp, err := dgt.ExecQuery(query)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
@@ -527,7 +548,11 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		inputValues = make(ard.Map)
 		for key, val := range inputs {
 			value, err := format.Decode(val.(string), "yaml")
-			common.FailOnError(err)
+			if err != nil {
+				log.Errorf(err.Error())
+				writeResponse(Response{"Failure", err.Error()}, w)
+				return
+			}
 			inputValues[key] = value
 		}
 	}
@@ -544,7 +569,11 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	}
 
 	urlst, err := url.NewValidURL(name, nil)
-	common.FailOnError(err)
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
+	}
 
 	dbc := new(db.DgContext)
 	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues)
@@ -553,7 +582,11 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		return
 	} else {
 		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
-		common.FailOnError(err)
+		if err != nil {
+			log.Errorf(err.Error())
+			writeResponse(Response{"Failure", err.Error()}, w)
+			return
+		}
 	}
 
 	//clout_, uid, err := ReadCloutFromDgraph(name)
@@ -769,4 +802,13 @@ func writeResponse(res Response, w http.ResponseWriter) {
 		fmt.Println(err)
 	}
 	w.Write(output)
+}
+
+func connectToDgraph(w http.ResponseWriter) (*dgraph.DgraphTemplate, error) {
+	dgt, err := fetchDbTemplate()
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+	}
+	return dgt, err
 }
