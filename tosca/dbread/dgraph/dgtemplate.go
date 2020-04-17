@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tliron/puccini/common"
+	"google.golang.org/grpc"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -17,6 +18,7 @@ type DbTemplate interface {
 type DgraphTemplate struct {
 	Ctxt   context.Context
 	Client *dgo.Dgraph
+	Conn   *grpc.ClientConn
 }
 
 func (dgt *DgraphTemplate) ExecQuery(query string) (*api.Response, error) {
@@ -63,4 +65,10 @@ func (dgt *DgraphTemplate) ExecMutation(nquad string) (*api.Response, error) {
 
 	return resp, err
 
+}
+
+func (dgt *DgraphTemplate) Close() {
+	if dgt.Conn != nil {
+		dgt.Conn.Close()
+	}
 }

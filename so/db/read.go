@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"sort"
@@ -43,7 +42,6 @@ var dumpPhases []uint
 var filter string
 var ardFormat string
 var pretty bool
-var inputValues = make(map[string]interface{})
 
 var grammarVersion string
 
@@ -54,12 +52,9 @@ func init() {
 }
 
 // ReadServiceTemplateFromDgraph reads servicetemplate from dgraph
-func (dbc *DgContext) ReadServiceTemplateFromDgraph(sturl url.URL, inps []string, inpsUrl string) (*normal.ServiceTemplate, bool) {
+func (dbc *DgContext) ReadServiceTemplateFromDgraph(sturl url.URL, inputValues ard.Map) (*normal.ServiceTemplate, bool) {
 
 	var err error
-	inputs = inps
-	inputsUrl = inpsUrl
-	ParseInputs()
 
 	//var dbc parser.Context
 	dbc.Pcontext = parser.NewContext(quirks)
@@ -313,35 +308,4 @@ func (dbc *DgContext) Compile(st *normal.ServiceTemplate, sturl url.URL, resolve
 	}
 
 	return clout, err
-}
-func ParseInputs() {
-	if inputsUrl != "" {
-		//log.Infof("load inputs from %s", inputsUrl)
-		url_, err := url.NewValidURL(inputsUrl, nil)
-		common.FailOnError(err)
-		reader, err := url_.Open()
-		common.FailOnError(err)
-		if readerCloser, ok := reader.(io.ReadCloser); ok {
-			defer readerCloser.Close()
-		}
-		data, err := format.Read(reader, "yaml")
-		common.FailOnError(err)
-		if map_, ok := data.(ard.Map); ok {
-			for key, value := range map_ {
-				inputValues[key] = value
-			}
-		} else {
-			common.Failf("malformed inputs in %s", inputsUrl)
-		}
-	}
-
-	for _, input := range inputs {
-		s := strings.SplitN(input, "=", 2)
-		if len(s) != 2 {
-			common.Failf("malformed input: %s", input)
-		}
-		value, err := format.Decode(s[1], "yaml")
-		common.FailOnError(err)
-		inputValues[s[0]] = value
-	}
 }

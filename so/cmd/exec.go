@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/js"
@@ -49,7 +50,14 @@ var execCmd = &cobra.Command{
 		urlst, err := url.NewValidURL(name, nil)
 		common.FailOnError(err)
 		dbc := new(db.DgContext)
-		st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputs, inputsUrl)
+		var inputValues ard.Map
+		if inputsUrl != "" {
+			inputValues = ParseInputsFromUrl(inputsUrl)
+		}
+		if len(inputs) > 0 {
+			inputValues = ParseInputsFromCommandLine(inputs)
+		}
+		st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues)
 		var clout *clout.Clout
 		if !ok {
 			return
