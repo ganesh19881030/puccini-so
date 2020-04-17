@@ -32,7 +32,8 @@ func fetchDbTemplate() (*dgraph.DgraphTemplate, error) {
 	return dgt, err
 }
 func createConnection() *grpc.ClientConn {
-	conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
+	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
+	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 	}
