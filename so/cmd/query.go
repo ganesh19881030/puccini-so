@@ -11,6 +11,7 @@ import (
 	//"github.com/tliron/puccini/common"
 	//"github.com/tliron/puccini/js"
 	//"github.com/tliron/puccini/url"
+	"github.com/tliron/puccini/ard"
 	"google.golang.org/grpc"
 	//"log"
 	//"net/http"
@@ -24,7 +25,8 @@ func createConnection() *grpc.ClientConn {
 	return conn
 }
 
-func getServiceUID(tname string, sname string) string {
+//func getServiceUID(tname string, sname string) string {
+func getServiceUID(tname string) string {
 	conn := createConnection()
 
 	defer conn.Close()
@@ -34,14 +36,22 @@ func getServiceUID(tname string, sname string) string {
 	defer txn.Discard(ctx)
 
 	// Query the clout vertex
-	const q = `query all($name: string, $sname: string, $stype: string) {
-		all(func: eq(<clout:templateName>, $name)) @filter (eq(<clout:name>, $sname) 
+	/*const q = `query all($name: string, $sname: string, $stype: string) {
+		all(func: eq(<clout:templateName>, $name)) @filter (eq(<clout:name>, $sname)
 			AND eq(<clout:type>, $stype)){
 			uid
 	    }
+	}`*/
+	const q = `query all($name: string, $sname: string, $stype: string) {
+		all(func: eq(<clout:name>, $name)) {
+			uid
+	    }
 	}`
+	//resp, err := txn.QueryWithVars(context.Background(), q,
+	//	map[string]string{"$name": tname, "$sname": sname, "$stype": "service"})
+
 	resp, err := txn.QueryWithVars(context.Background(), q,
-		map[string]string{"$name": tname, "$sname": sname, "$stype": "service"})
+		map[string]string{"$name": tname})
 
 	if err != nil {
 		return ""
@@ -65,6 +75,59 @@ func getServiceUID(tname string, sname string) string {
 
 }
 
+//func getServiceInputs(tname string, sname string) (string, ard.Map) {
+func getServiceInputs(tname string) (string, ard.Map) {
+	conn := createConnection()
+
+	defer conn.Close()
+	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+	txn := dgraphClient.NewTxn()
+	ctx := context.Background()
+	defer txn.Discard(ctx)
+
+	// Query the clout vertex
+	/*const q = `query all($name: string, $sname: string, $stype: string) {
+		all(func: eq(<clout:templateName>, $name)) @filter (eq(<clout:name>, $sname)
+			AND eq(<clout:type>, $stype)){
+			uid
+			<clout:properties>
+	    }
+	}`*/
+	const q = `query all($name: string) {
+		all(func: eq(<clout:name>, $name)) {
+			uid
+			<clout:properties>
+	    }
+	}`
+	/*resp, err := txn.QueryWithVars(context.Background(), q,
+	map[string]string{"$name": tname, "$sname": sname, "$stype": "service"})*/
+
+	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": tname})
+
+	if err != nil {
+		return "", nil
+	}
+
+	var result map[string]interface{}
+
+	if err := json.Unmarshal(resp.GetJson(), &result); err != nil {
+		log.Fatal(err)
+	}
+	uid := ""
+	var props ard.Map
+
+	queryData := result["all"].([]interface{})
+	if len(queryData) != 0 {
+		for _, t := range queryData {
+			cloutMap := t.(map[string]interface{})
+			uid = cloutMap["uid"].(string)
+			props = getPropMap(cloutMap["clout:properties"])
+		}
+	}
+	return uid, props["inputs"].(ard.Map)
+
+}
+
 func getServiceNode(id string, nodeName string) map[string]interface{} {
 	conn := createConnection()
 
@@ -73,6 +136,16 @@ func getServiceNode(id string, nodeName string) map[string]interface{} {
 	txn := dgraphClient.NewTxn()
 	ctx := context.Background()
 	defer txn.Discard(ctx)
+
+	// Query the clout vertex
+	/*const q = `query all($id: string, $nname: string, $ntype: string) {
+			all(func: uid($id)) {
+	    		<clout:vertex> @filter(eq(<tosca:entity>, "$ntype") AND eq(<tosca:name>, "$nname")){
+	      			uid
+	      			<tosca:attributes>
+	      		}
+		    }
+		}`*/
 
 	// Query the clout vertex
 	const q = `query all($id: string, $nname: string, $ntype: string) {
@@ -84,8 +157,45 @@ func getServiceNode(id string, nodeName string) map[string]interface{} {
 	    }
 	}`
 
+	//resp, err := txn.QueryWithVars(context.Background(), q,
+	//	map[string]string{"$id": id, "$nname": nodeName, "$ntype": "node"})
+
 	resp, err := txn.QueryWithVars(context.Background(), q,
-		map[string]string{"$id": id, "$nname": nodeName, "$ntype": "node"})
+		map[string]string{"$id": id, "$nname": nodeName, "$ntype": "nodeTemplate"})
+
+	if err != nil {
+		return nil
+	}
+
+	var result map[string]interface{}
+
+	if err := json.Unmarshal(resp.GetJson(), &result); err != nil {
+		log.Fatal(err)
+	}
+	return result
+
+}
+
+func getNodeAttributes(uid string, nodeName string) ard.Map {
+	conn := createConnection()
+
+	defer conn.Close()
+	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+	txn := dgraphClient.NewTxn()
+	ctx := context.Background()
+	defer txn.Discard(ctx)
+
+	// Query the clout vertex
+	const q = `query all($tname: string, $nname: string) {
+		all(func: uid("$uid")) {
+    		<clout:vertex> @filter(eq(<tosca:entity>, "nodeTemplate") AND eq(<tosca:name>, "$nname")){
+      			<tosca:attributes>
+      		}
+	    }
+	}`
+
+	resp, err := txn.QueryWithVars(context.Background(), q,
+		map[string]string{"$uid": uid, "$nname": nodeName})
 
 	if err != nil {
 		return nil
