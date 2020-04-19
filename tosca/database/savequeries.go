@@ -57,7 +57,7 @@ func PersistNamespace(urls string, version string, urlmap map[string]string, dgt
 	}
 }
 
-func PersistToscaComponent(entityPtr interface{}, name string, dgtype string, nurl string, urlmap map[string]string, bag *TravelBag) (string, error) {
+func PersistToscaComponent(entityPtr interface{}, name string, dgtype string, nurl string, urlmap map[string]string, bag *TravelBag) (string, string, error) {
 
 	var err error
 	var fnd bool
@@ -65,7 +65,7 @@ func PersistToscaComponent(entityPtr interface{}, name string, dgtype string, nu
 	var dbObject dgraph.Persistable
 	var ok bool
 	if !dbsave {
-		return uid, nil
+		return uid, name, nil
 	}
 
 	if dbObject, ok = dbObjectMap[dgtype]; !ok {
@@ -80,8 +80,10 @@ func PersistToscaComponent(entityPtr interface{}, name string, dgtype string, nu
 		ObjectNSuid:  nsuid,
 		SubjectUid:   bag.Uid,
 		Predicate:    bag.Predicate,
+		Mapkey:       bag.Mapkey,
+		EntityPtr:    entityPtr,
 	}
-	fnd, uid, err = dbObject.DbFind(bag.Dgt, so)
+	fnd, uid, name, err = dbObject.DbFind(bag.Dgt, so)
 	if err == nil {
 		if !fnd {
 			saveObj := dgraph.SaveFields{
@@ -100,7 +102,7 @@ func PersistToscaComponent(entityPtr interface{}, name string, dgtype string, nu
 			}
 		}
 	}
-	return uid, err
+	return uid, name, err
 }
 
 func linkExists(uidObject string, bag *TravelBag) (bool, error) {

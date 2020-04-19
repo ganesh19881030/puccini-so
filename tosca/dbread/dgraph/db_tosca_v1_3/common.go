@@ -2,6 +2,7 @@ package db_tosca_v1_3
 
 import (
 	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -305,4 +306,36 @@ func ParseValue(strval string, valtype string) interface{} {
 
 	return value
 
+}
+func GetFieldValue(entityPtr interface{}, name string) (reflect.Value, error) {
+
+	entity := reflect.ValueOf(entityPtr).Elem()
+
+	field := entity.FieldByName(name)
+
+	var value reflect.Value
+	if field.IsValid() {
+		if field.CanInterface() {
+			ifld := field.Interface()
+
+			value = reflect.ValueOf(ifld).Elem()
+		}
+	}
+
+	return value, nil
+}
+
+func GetFieldString(entityPtr interface{}, name string) (string, error) {
+	var valstr string
+	val, err1 := GetFieldValue(entityPtr, name)
+	if err1 == nil {
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		if val.IsValid() {
+			valstr = val.Interface().(string)
+		}
+	}
+
+	return valstr, err1
 }

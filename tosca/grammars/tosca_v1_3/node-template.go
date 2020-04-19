@@ -95,6 +95,11 @@ func (self *NodeTemplate) Render() {
 		return
 	}
 
+	if self.Name == "sdwan_hub_spoke" {
+		ind := 0
+		_ = ind
+	}
+
 	self.Properties.RenderProperties(self.NodeType.PropertyDefinitions, "property", self.Context.FieldChild("properties", nil))
 	self.Attributes.RenderAttributes(self.NodeType.AttributeDefinitions, self.Context.FieldChild("attributes", nil))
 	self.Capabilities.Render(self.NodeType.CapabilityDefinitions, self.Context.FieldChild("capabilities", nil))

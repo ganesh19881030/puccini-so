@@ -607,8 +607,8 @@
 		arguments: string .
 		targetnodetemplate: uid .
 		targetnodetypeorgrouptypenames: [string] .
-		targetcapabilitynameortypename: string .
-		targetnodetemplatenameortypename: string .
+		targetcapabilitynameortypename: string @index(exact) .
+		targetnodetemplatenameortypename: string @index(exact) .
 		targetnodefilter: uid .
 		targetgrouptypes: [uid] .
 		targetnodetypeorgrouptypenames: [string] .

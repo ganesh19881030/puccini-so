@@ -25,6 +25,18 @@ func (ntemp *DbSubstitutionMappings) DbRead(dgt *dgraph.DgraphTemplate, fieldDat
 	return compMap
 }
 
+func (ntemp *DbSubstitutionMappings) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
+	obj, ok := searchObject.(dgraph.SearchFields)
+	if ok {
+		name, _ := GetFieldString(obj.EntityPtr, "NodeTypeName")
+		fnd, uid, err := dgt.FindComp(name, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+		return fnd, uid, name, err
+	} else {
+		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
+	}
+	return false, "", obj.ObjectKey, nil
+}
+
 func (ntemp *DbSubstitutionMappings) DbBuildInsertQuery(dataObject interface{}) (string, error) {
 	if saveFields, ok := dataObject.(dgraph.SaveFields); ok {
 		nquad := dgraph.BuildInsertQuery(saveFields)
