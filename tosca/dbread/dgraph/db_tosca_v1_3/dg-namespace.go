@@ -12,14 +12,15 @@ type DbDGNamespace struct {
 	DbToscaObject // embedded structure that has the basic functionality
 }
 
-func (ntemp *DbDGNamespace) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, error) {
+func (ntemp *DbDGNamespace) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
 	srchFlds, ok := searchObject.(dgraph.SearchFields)
 	if ok {
-		return dgt.FindNamespace(srchFlds.ObjectKey)
+		fnd, uid, err := dgt.FindNamespace(srchFlds.ObjectKey)
+		return fnd, uid, srchFlds.ObjectKey, err
 	} else {
 		common.FailOnError(errors.New("Invalid searchObject passed to DGNamespace.DbFind function."))
 	}
-	return false, "", nil
+	return false, "", "", nil
 }
 func (ntemp *DbDGNamespace) DbInsert(dgt *dgraph.DgraphTemplate, mutateQuery string) (string, error) {
 

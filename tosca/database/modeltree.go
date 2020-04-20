@@ -111,25 +111,25 @@ func Traverse(pcontext *parser.Context) error {
 							return false
 						}
 						/*} else if dgraphType == "RelationshipDefinition" {
-							pathelem := ctxt.Path[len(ctxt.Path)-4]
-							name = pathelem.Value.(string)
-							name = bag.Mapkey
-							Log.Debugf("Changed name for relationshipdefinition to %s", name)
-						} else if dgraphType == "EntrySchema" {
-							pathelem := ctxt.Path[len(ctxt.Path)-2]
-							name = pathelem.Value.(string)
-							Log.Debugf("Changed name for entry_schema to %s, bag,Mapkey: %s", name, bag.Mapkey)
-						} else if dgraphType == "SubstitutionMappings" {
-							Log.Debugf("*** dgraphType is %s ***", dgraphType)
-							var val reflect.Value
-							val, err = GetFieldValue(entityPtr, "NodeTypeName")
-							if err == nil {
-								name = val.Interface().(string)
+								pathelem := ctxt.Path[len(ctxt.Path)-4]
+								name = pathelem.Value.(string)
+								name = bag.Mapkey
+								Log.Debugf("Changed name for relationshipdefinition to %s", name)
+							} else if dgraphType == "EntrySchema" {
+								pathelem := ctxt.Path[len(ctxt.Path)-2]
+								name = pathelem.Value.(string)
+								Log.Debugf("Changed name for entry_schema to %s, bag,Mapkey: %s", name, bag.Mapkey)
+							} else if dgraphType == "SubstitutionMappings" {
+								Log.Debugf("*** dgraphType is %s ***", dgraphType)
+								var val reflect.Value
+								val, err = GetFieldValue(entityPtr, "NodeTypeName")
+								if err == nil {
+									name = val.Interface().(string)
+								}
+						} else if dgraphType == "NodeTemplate" {
+							if name == "sdwan_hub_spoke" {
+								Log.Debugf("*** dgraphType is %s ***", dgraphType)
 							}*/
-					} else if dgraphType == "NodeTemplate" {
-						if name == "sdwan_hub_spoke" {
-							Log.Debugf("*** dgraphType is %s ***", dgraphType)
-						}
 					} else if dgraphType == "" {
 						Log.Errorf("*** dgraphType for predicate [%s] is undefined ***", bag.Predicate)
 					}

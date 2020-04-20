@@ -37,8 +37,7 @@ func PersistNamespace(urls string, version string, urlmap map[string]string, dgt
 		so := dgraph.SearchFields{
 			ObjectKey: urls,
 		}
-		//fnd, uid, err = findNamespace(urls, dgt)
-		fnd, uid, err = nsObject.DbFind(dgt, so)
+		fnd, uid, _, err = nsObject.DbFind(dgt, so)
 		common.FailOnError(err)
 		if !fnd {
 			//uid, err = insertNamespace(urls, version, dgt)

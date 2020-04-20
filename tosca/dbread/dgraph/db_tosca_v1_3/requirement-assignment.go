@@ -51,7 +51,7 @@ func (ntemp *DbRequirementAssignment) DbRead(dgt *dgraph.DgraphTemplate, fieldDa
 	return compMap
 }
 
-func (ntemp *DbRequirementAssignment) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, error) {
+func (ntemp *DbRequirementAssignment) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
 	obj, ok := searchObject.(dgraph.SearchFields)
 	if ok {
 		query2 := `
@@ -99,12 +99,12 @@ func (ntemp *DbRequirementAssignment) DbFind(dgt *dgraph.DgraphTemplate, searchO
 
 		}
 
-		return fnd, uid, err
+		return fnd, uid, obj.ObjectKey, err
 		//return dgt.FindComp(obj.ObjectKey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
 	} else {
 		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
 	}
-	return false, "", nil
+	return false, "", obj.ObjectKey, nil
 }
 
 func (ntemp *DbRequirementAssignment) DbBuildInsertQuery(dataObject interface{}) (string, error) {
