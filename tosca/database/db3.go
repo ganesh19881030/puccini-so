@@ -2,7 +2,6 @@ package database
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 
 	"github.com/tliron/puccini/ard"
@@ -52,7 +51,7 @@ func processConstrainables(io *normal.Constrainables, iotype string) ([]ard.Map,
 		v2 := v1.Elem()
 		knd := v2.Kind()
 		typ := v2.Type()
-		fmt.Println("kind = ", knd.String(), typ.String())
+		Log.Debugf("kind = %s %s", knd.String(), typ.String())
 		if typ.String() == "normal.Value" {
 			val := input.(*normal.Value)
 			if val != nil {
@@ -83,7 +82,7 @@ func processConstrainables(io *normal.Constrainables, iotype string) ([]ard.Map,
 			}
 
 		} else {
-			fmt.Printf("*** Unhandled constraint type = %s\n", typ.String())
+			Log.Debug("*** Unhandled constraint type = %s\n", typ.String())
 		}
 		toscaInputs = append(toscaInputs, toscaInput)
 	}

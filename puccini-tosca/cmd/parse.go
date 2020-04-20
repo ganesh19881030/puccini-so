@@ -12,8 +12,10 @@ import (
 	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/tosca"
+	"github.com/tliron/puccini/tosca/database"
 	"github.com/tliron/puccini/tosca/normal"
 	"github.com/tliron/puccini/tosca/parser"
+
 	"github.com/tliron/puccini/url"
 )
 
@@ -60,6 +62,9 @@ var parseCmd = &cobra.Command{
 
 func Parse(urlString string) (parser.Context, *normal.ServiceTemplate) {
 	ParseInputs()
+
+	//dumpPhases = append(dumpPhases, 3)
+	//stopAtPhase = 4
 
 	var url_ url.URL
 	var err error
@@ -111,7 +116,11 @@ func Parse(urlString string) (parser.Context, *normal.ServiceTemplate) {
 			context.PrintNamespaces(1)
 		}
 	}
+	if persist {
+		database.Traverse(&context)
+	}
 
+	//context.Inspect()
 	// Phase 3: Hieararchies
 	if stopAtPhase >= 3 {
 		context.AddHierarchies()

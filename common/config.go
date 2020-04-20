@@ -2,6 +2,9 @@ package common
 
 import (
 	"errors"
+	"fmt"
+	"path/filepath"
+	"sync"
 
 	"gopkg.in/gcfg.v1"
 )
@@ -9,10 +12,11 @@ import (
 // SoConfiguration struct for configuration data
 type SoConfiguration struct {
 	Dgraph struct {
-		Host     string
-		Port     int
-		Ctype    string
-		CldbType CloutDbType
+		Host           string
+		Port           int
+		Ctype          string
+		CldbType       CloutDbType
+		SchemaFilePath string
 	}
 
 	Remote struct {
@@ -24,7 +28,7 @@ type SoConfiguration struct {
 }
 
 // ConfigFile configuration file
-const ConfigFile = "../config/application.cfg"
+const ConfigFile = "config/application.cfg"
 
 // CloutDbType to select how Clout is persisted in Dgraph
 type CloutDbType int
@@ -41,8 +45,10 @@ const (
 
 var CloutDbTypeMap map[string]CloutDbType
 
+var lock = &sync.Mutex{}
+
 // SoConfig global variable to store the configuration
-var SoConfig SoConfiguration
+var SoConfig *SoConfiguration
 
 // Initialize global variable for configuration
 func init() {
@@ -52,18 +58,50 @@ func init() {
 	CloutDbTypeMap["translated"] = Translated
 	CloutDbTypeMap["refined"] = Refined
 
-	// struct to hold SO configuration
-	SoConfig = SoConfiguration{}
-	// read configuration from a file
-	err := gcfg.ReadFileInto(&SoConfig, ConfigFile)
-	if err != nil {
-		FailOnError(err)
-	}
-	SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
-	if SoConfig.Dgraph.CldbType < Translated ||
-		SoConfig.Dgraph.CldbType > Refined {
+}
 
-		err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
-		FailOnError(err)
+func ReadConfiguration() {
+
+	if SoConfig == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if SoConfig == nil {
+
+			// struct to hold SO configuration
+			SoConfig = &SoConfiguration{}
+			// read configuration from a file
+			var err error
+			var count int
+			var cnf string
+			prefix := ""
+			cnf = filepath.Join(".", ConfigFile)
+			for {
+				err = gcfg.ReadFileInto(SoConfig, cnf)
+				if err == nil || count > 4 {
+					if err == nil {
+						fmt.Println("Read configuration from config file at ", cnf, "\n")
+					}
+					break
+				} else {
+					fmt.Println("Config file error: ", err)
+					abspath, _ := filepath.Abs(cnf)
+					fmt.Println("Failed to read config file at ", abspath, "\n")
+				}
+				prefix = filepath.Join("..", prefix)
+				cnf = filepath.Join(prefix, ConfigFile)
+				count++
+			}
+			if err != nil {
+				FailOnError(err)
+			}
+
+			SoConfig.Dgraph.CldbType = CloutDbTypeMap[SoConfig.Dgraph.Ctype]
+			if SoConfig.Dgraph.CldbType < Translated ||
+				SoConfig.Dgraph.CldbType > Refined {
+
+				err = errors.New("Invalid configuration - ctype - defined in dgraph section of application.cfg")
+				FailOnError(err)
+			}
+		}
 	}
 }

@@ -22,8 +22,8 @@ type RelationshipTemplate struct {
 	Attributes                   Values               `read:"attributes,AttributeValue"`
 	Interfaces                   InterfaceAssignments `read:"interfaces,InterfaceAssignment"`
 
-	CopyRelationshipTemplate *RelationshipTemplate `lookup:"copy,CopyRelationshipTemplateName" json:"-" yaml:"-"`
-	RelationshipType         *RelationshipType     `lookup:"type,RelationshipTypeName" json:"-" yaml:"-"`
+	CopyRelationshipTemplate *RelationshipTemplate `lookup:"copy,CopyRelationshipTemplateName,RelationshipTemplate,no" json:"-" yaml:"-"`
+	RelationshipType         *RelationshipType     `lookup:"type,RelationshipTypeName,RelationshipType" json:"-" yaml:"-"`
 }
 
 func NewRelationshipTemplate(context *tosca.Context) *RelationshipTemplate {

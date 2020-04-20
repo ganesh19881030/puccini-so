@@ -4,20 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
-	"github.com/gorilla/mux"
-	"github.com/tliron/puccini/clout"
-
-	//"github.com/tliron/puccini/common"
-	"github.com/tliron/puccini/js"
-	"github.com/tliron/puccini/url"
-
-	//"google.golang.org/grpc"
-	//"log"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/gorilla/mux"
+	"github.com/tliron/puccini/ard"
+	"github.com/tliron/puccini/clout"
+	"github.com/tliron/puccini/format"
+	"github.com/tliron/puccini/js"
+	"github.com/tliron/puccini/so/db"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
+	"github.com/tliron/puccini/url"
 )
 
 type Template struct {
@@ -49,6 +48,7 @@ func HandleRequests() {
 	myRouter.HandleFunc("/bonap/templates/{name}", getTemplateByName).Methods("GET")
 	myRouter.HandleFunc("/bonap/templates/{name}/{function}", executeFunction).Methods("POST")
 	//myRouter.HandleFunc("/bonap/templates/{name}/createInstance/{service}", createInstance).Methods("POST")
+	myRouter.HandleFunc("/bonap/templates/createInstance", createInstance).Methods("POST")
 	myRouter.HandleFunc("/bonap/templates/{name}/workflows", getWorkflows).Methods("GET")
 	myRouter.HandleFunc("/bonap/templates/{name}/workflows/{wfname}", executeWorkflow).Methods("POST")
 	//myRouter.HandleFunc("/bonap/templates/{name}/services", getServices).Methods("GET")
@@ -71,13 +71,11 @@ func HandleRequests() {
 
 func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 
-	conn := createConnection()
-
-	defer conn.Close()
-	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
-	txn := dgraphClient.NewTxn()
-	ctx := context.Background()
-	defer txn.Discard(ctx)
+	dgt, err := connectToDgraph(w)
+	if err != nil {
+		return
+	}
+	defer dgt.Close()
 
 	// Query the clout vertex
 	const q = `
@@ -96,7 +94,8 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 		}
 	}`
 
-	resp, err := txn.Query(context.Background(), q)
+	//resp, err := txn.Query(context.Background(), q)
+	resp, err := dgt.ExecQuery(q)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -147,29 +146,52 @@ func getTemplateByName(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 
-	conn := createConnection()
+	dgt, err := connectToDgraph(w)
+	if err != nil {
+		return
+	}
+	defer dgt.Close()
+	/*
+		conn := createConnection()
 
-	defer conn.Close()
-	dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
-	txn := dgraphClient.NewTxn()
-	ctx := context.Background()
-	defer txn.Discard(ctx)
-	// Query the clout vertex by name
-	const q = `query all($name: string) {
-		all(func: eq(<clout:name>, $name)) {
+		defer conn.Close()
+		dgraphClient := dgo.NewDgraphClient(api.NewDgraphClient(conn))
+		txn := dgraphClient.NewTxn()
+		ctx := context.Background()
+		defer txn.Discard(ctx)
+		// Query the clout vertex by name
+		const q = `query all($name: string) {
+			all(func: eq(<clout:name>, $name)) {
+				uid
+				<clout:name>
+				<clout:version>
+				<clout:grammarversion>
+				<clout:properties>
+				<clout:vertex>  {
+					<tosca:name>
+					<tosca:entity>
+				}
+		    }
+		}`
+		resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+	*/
+	const paramq = `
+	{
+		all(func: has(<clout:grammarversion>)) @filter(eq(<clout:name>,"%s")){
 			uid
 			<clout:name>
 			<clout:version>
 			<clout:grammarversion>
-			<clout:properties>   
-			<clout:vertex>  {
+			<clout:properties>
+			<clout:vertex> {
 				<tosca:name>
 				<tosca:entity>
 				<tosca:attributes>
 			}
-	    }
+		}
 	}`
-	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": name})
+	query := fmt.Sprintf(paramq, name)
+	resp, err := dgt.ExecQuery(query)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
@@ -473,21 +495,112 @@ func stopPolicyExecution(w http.ResponseWriter, r *http.Request) {
 	//}
 
 }*/
+/*
+   createInstance handles POST request in the following form:
 
-func createInstance(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
-	service := vars["service"]
+   /bonap/templates/createInstance
+
+   It expects the POST request body to contain, for example, the following json body:
+
+{
+	"name" : "zip:/Users/rajee/git/workdir/firewall1.csar!/firewall/firewall_service.yaml",
+	"output": "./fw-dgraph-clout.yaml",
+	"inputs": {
+		"selected_flavour":"simple",
+		"region_name":"DFW",
+		"lower_threshold":"10",
+		"upper_threshold":"80",
+		"cidr":"192.168.1.0",
+		"network_name":"public",
+		"num_streams":"5",
+		"auth_url":"http://localhost/",
+		"password":"password",
+		"project_id":"id101",
+		"url":"http://localhost",
+		"username":"cci"
+	},
+	"inputsUrl":"",
+	"service":"firewall_service"
+}
+*/
+func createInstance(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		eMsg := "Empty request body is not allowed!"
+		log.Errorf(eMsg)
+		writeResponse(Response{"Failure", eMsg}, w)
+		return
+	}
+	var params ard.Map
+	//json.Unmarshal(r.Body, &m)
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		eMsg := err.Error()
+		log.Errorf(eMsg)
+		writeResponse(Response{"Failure", eMsg}, w)
+		return
+	}
+	name := params["name"].(string)
+	service := params["service"].(string)
+	output := params["output"].(string)
+	inputsUrl := params["inputsUrl"].(string)
+	var inputValues ard.Map
+	if inputsUrl != "" {
+		inputValues = ParseInputsFromUrl(inputsUrl)
+	}
+	inputs := params["inputs"].(ard.Map)
+	if len(inputs) > 0 {
+		inputValues = make(ard.Map)
+		for key, val := range inputs {
+			value, err := format.Decode(val.(string), "yaml")
+			if err != nil {
+				log.Errorf(err.Error())
+				writeResponse(Response{"Failure", err.Error()}, w)
+				return
+			}
+			inputValues[key] = value
+		}
+	}
+
 	//fn := vars["function"]
 
 	//Read Clout from Dgraph
-	clout_, uid, err := ReadCloutFromDgraph(name)
-	if clout_ == nil || err != nil {
+
+	if CloutInstanceExists(name) {
+		emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
+		log.Errorf(emsg)
+		writeResponse(Response{"Failure", emsg}, w)
+		return
+	}
+
+	urlst, err := url.NewValidURL(name, nil)
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
+	}
+
+	dbc := new(db.DgContext)
+	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues)
+	var clout *clout.Clout
+	if !ok {
+		return
+	} else {
+		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+		if err != nil {
+			log.Errorf(err.Error())
+			writeResponse(Response{"Failure", err.Error()}, w)
+			return
+		}
+	}
+
+	//clout_, uid, err := ReadCloutFromDgraph(name)
+	if clout == nil || err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	err = CreateInstance(clout_, name, service, uid)
+	err = CreateInstance(clout, name, service, uid)
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	} else {
@@ -694,4 +807,13 @@ func writeResponse(res Response, w http.ResponseWriter) {
 		fmt.Println(err)
 	}
 	w.Write(output)
+}
+
+func connectToDgraph(w http.ResponseWriter) (*dgraph.DgraphTemplate, error) {
+	dgt, err := fetchDbTemplate()
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+	}
+	return dgt, err
 }

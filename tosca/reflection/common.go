@@ -56,3 +56,46 @@ func IsZero(value reflect.Value) bool {
 		return value.Interface() == zero
 	}
 }
+
+func GetEntityName(entityPtr interface{}) string {
+	var name string
+	entity := reflect.ValueOf(entityPtr).Elem()
+
+	field := entity.FieldByName("Name")
+
+	if field.IsValid() {
+		if field.Kind() == reflect.Ptr {
+			field = field.Elem()
+		}
+		if field.CanInterface() {
+			ifld := field.Interface()
+
+			name = ifld.(string)
+		}
+	}
+
+	return name
+
+}
+func GetEntityParent(entityPtr interface{}) interface{} {
+	var parent interface{}
+	entity := reflect.ValueOf(entityPtr).Elem()
+
+	field := entity.FieldByName("Parent")
+
+	if field.IsNil() {
+		return nil
+	} else if field.IsValid() {
+		//if field.Kind() == reflect.Ptr {
+		//	field = field.Elem()
+		//}
+		if field.CanInterface() {
+			parent = field.Interface()
+		}
+	} else {
+		return nil
+	}
+
+	return parent
+
+}

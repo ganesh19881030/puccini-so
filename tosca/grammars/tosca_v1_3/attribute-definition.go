@@ -21,7 +21,7 @@ type AttributeDefinition struct {
 	Default      *Value       `read:"default,Value"`
 	Status       *string      `read:"status"`
 
-	DataType *DataType `lookup:"type,DataTypeName" json:"-" yaml:"-"`
+	DataType *DataType `lookup:"type,DataTypeName,DataType" json:"-" yaml:"-"`
 
 	typeMissingProblemReported bool
 }

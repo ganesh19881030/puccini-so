@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tliron/puccini/ard"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"github.com/tliron/puccini/tosca/problems"
 	"github.com/tliron/puccini/url"
 )
@@ -44,6 +45,10 @@ type Context struct {
 	Grammar         Grammar
 	CallFunction    CallFunction
 	ReadOverrides   map[string]string
+	ReadFromDb      bool
+	Dgt             *dgraph.DgraphTemplate
+	Version         string
+	Level           int
 }
 
 func NewContext(problems *problems.Problems, quirks []string) *Context {
@@ -53,6 +58,7 @@ func NewContext(problems *problems.Problems, quirks []string) *Context {
 		Hierarchy:       &Hierarchy{},
 		Problems:        problems,
 		Quirks:          quirks,
+		ReadFromDb:      false,
 	}
 }
 
@@ -119,6 +125,9 @@ func (self *Context) FieldChild(name string, data interface{}) *Context {
 		Problems:        self.Problems,
 		Quirks:          self.Quirks,
 		Grammar:         self.Grammar,
+		ReadFromDb:      self.ReadFromDb,
+		Dgt:             self.Dgt,
+		Level:           self.Level,
 	}
 }
 
@@ -165,6 +174,9 @@ func (self *Context) MapChild(name string, data interface{}) *Context {
 		Problems:        self.Problems,
 		Quirks:          self.Quirks,
 		Grammar:         self.Grammar,
+		ReadFromDb:      self.ReadFromDb,
+		Dgt:             self.Dgt,
+		Level:           self.Level,
 	}
 }
 
@@ -182,6 +194,9 @@ func (self *Context) ListChild(index int, data interface{}) *Context {
 		Problems:        self.Problems,
 		Quirks:          self.Quirks,
 		Grammar:         self.Grammar,
+		ReadFromDb:      self.ReadFromDb,
+		Dgt:             self.Dgt,
+		Level:           self.Level,
 	}
 }
 
@@ -199,6 +214,9 @@ func (self *Context) SequencedListChild(index int, name string, data interface{}
 		Problems:        self.Problems,
 		Quirks:          self.Quirks,
 		Grammar:         self.Grammar,
+		ReadFromDb:      self.ReadFromDb,
+		Dgt:             self.Dgt,
+		Level:           self.Level,
 	}
 }
 
@@ -231,5 +249,8 @@ func (self *Context) WithData(data interface{}) *Context {
 		Problems:        self.Problems,
 		Quirks:          self.Quirks,
 		Grammar:         self.Grammar,
+		ReadFromDb:      self.ReadFromDb,
+		Dgt:             self.Dgt,
+		Level:           self.Level,
 	}
 }

@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -20,8 +21,8 @@ type GroupType struct {
 	InterfaceDefinitions   InterfaceDefinitions   `read:"interfaces,InterfaceDefinition" inherit:"interfaces,Parent"`
 	MemberNodeTypeNames    *[]string              `read:"members" inherit:"members,Parent"`
 
-	Parent          *GroupType `lookup:"derived_from,ParentName" inherit:"members,Parent" json:"-" yaml:"-"`
-	MemberNodeTypes NodeTypes  `lookup:"members,MemberNodeTypeNames" inherit:"members,Parent" json:"-" yaml:"-"`
+	Parent          *GroupType `lookup:"derived_from,ParentName,GroupType" inherit:"members,Parent" json:"-" yaml:"-"`
+	MemberNodeTypes NodeTypes  `lookup:"members,MemberNodeTypeNames,NodeType,no" inherit:"members,Parent" json:"-" yaml:"-"`
 }
 
 func NewGroupType(context *tosca.Context) *GroupType {
@@ -38,6 +39,10 @@ func NewGroupType(context *tosca.Context) *GroupType {
 func ReadGroupType(context *tosca.Context) interface{} {
 	self := NewGroupType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
+
 	return self
 }
 

@@ -42,6 +42,8 @@ type Hierarchy struct {
 	Children  []*Hierarchy
 }
 
+type HEntityMap map[interface{}]bool
+
 // Keeps track of failed types
 type HierarchyContext map[interface{}]bool
 
@@ -49,12 +51,31 @@ type HierarchyDescendants []interface{}
 
 func NewHierarchy(entityPtr interface{}, hierarchyContext HierarchyContext) *Hierarchy {
 	hierarchy := &Hierarchy{}
-	reflection.Traverse(entityPtr, func(entityPtr interface{}) bool {
-		if parentPtr, ok := GetParent(entityPtr); ok {
-			hierarchy.Add(entityPtr, parentPtr, hierarchyContext, HierarchyDescendants{})
-		}
-		return true
-	})
+	ctxt := GetContext(entityPtr)
+	if ctxt.ReadFromDb {
+		hentityMap := make(HEntityMap)
+		reflection.DbTraverse(entityPtr, hentityMap, func(entityPtr interface{}) bool {
+			//ctxt1 := GetContext(entityPtr)
+			//fmt.Println("name: ", ctxt1.Name, " -> ", ctxt1.Path)
+			_, incycle := hentityMap[entityPtr]
+			if incycle {
+				return false
+			}
+			hentityMap[entityPtr] = true
+			if parentPtr, ok := GetParent(entityPtr); ok {
+				hierarchy.Add(entityPtr, parentPtr, hierarchyContext, HierarchyDescendants{})
+			}
+			return true
+		})
+
+	} else {
+		reflection.Traverse(entityPtr, func(entityPtr interface{}) bool {
+			if parentPtr, ok := GetParent(entityPtr); ok {
+				hierarchy.Add(entityPtr, parentPtr, hierarchyContext, HierarchyDescendants{})
+			}
+			return true
+		})
+	}
 	return hierarchy
 }
 

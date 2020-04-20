@@ -16,7 +16,7 @@ type InterfaceMapping struct {
 	NodeTemplateName *string `require:"0"`
 	InterfaceName    *string `require:"1"`
 
-	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName" json:"-" yaml:"-"`
+	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName,NodeTemplate,no" json:"-" yaml:"-"`
 }
 
 func NewInterfaceMapping(context *tosca.Context) *InterfaceMapping {
@@ -26,6 +26,7 @@ func NewInterfaceMapping(context *tosca.Context) *InterfaceMapping {
 // tosca.Reader signature
 func ReadInterfaceMapping(context *tosca.Context) interface{} {
 	self := NewInterfaceMapping(context)
+
 	if context.ValidateType("list") {
 		strings := context.ReadStringListFixed(2)
 		if strings != nil {
@@ -33,6 +34,7 @@ func ReadInterfaceMapping(context *tosca.Context) interface{} {
 			self.InterfaceName = &(*strings)[1]
 		}
 	}
+
 	return self
 }
 

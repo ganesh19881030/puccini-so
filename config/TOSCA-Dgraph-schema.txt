@@ -1,0 +1,711 @@
+	# Define Types
+
+	type Namespace {
+		url: string
+		version: string
+	}
+
+	type ServiceTemplate {
+		name: string
+		description: string
+		namespace: Namespace
+		topologytemplate: TopologyTemplate
+	}
+	
+	type TopologyTemplate {
+		name: string
+		description: string
+		namespace: Namespace
+		nodetemplates: [NodeTemplate]
+		relationshiptemplates: [RelationshipTemplate]
+		groups: [Group]
+		policies: [Policy]
+		inputparameterdefinitions: [ParameterDefinition]
+		outputparameterdefinitions: [ParameterDefinition]
+		workflowdefinitions: [WorkflowDefinition]
+		substitutionmappings: [SubstitutionMappings]
+	}
+
+	type NodeTemplate {
+		name: string
+		description: string
+		namespace: Namespace
+		properties: [Value]
+		nodetypename: string
+		nodetype: NodeType
+		directives: [string]
+		copynodetemplatename: string
+		copynodetemplate: NodeTemplate
+		attributes: [Value]
+		capabilities: [CapabilityAssignment]
+		requirements: [RequirementAssignment]
+		requirementtargetsnodefilter: NodeFilter
+		interfaces: [InterfaceAssignment]
+		artifacts: [Artifact]
+	}
+
+	type RelationshipTemplate {
+		name: string
+		namespace: Namespace
+		copyrelationshiptemplatename: string
+	    relationshiptypename: string
+	    description: string
+	    properties: [Value]
+	    attributes: [Value]
+	    interfaces: [InterfaceAssignment]
+     	copyrelationshiptemplate: RelationshipTemplate
+	    relationshiptype: RelationshipType
+	}
+	type Value {
+		name: string
+		namespace: Namespace
+		description: string
+		rendered: bool
+		myvalue: string
+		myvaluetype: string
+		constraintclauses: [ConstraintClause]
+		functionname: string
+		fnarguments: string
+	}
+	
+	type CapabilityAssignment {
+		name: string
+		namespace: Namespace
+		properties: [Value]
+		attributes: [Value]
+	}
+	type RequirementAssignment {
+		name: string
+		namespace: Namespace
+	    targetcapabilitynameortypename: string
+	    targetnodetemplatenameortypename: string
+		targetnodefilter: NodeFilter
+	    relationship: RelationshipAssignment
+		targetcapabilitytype: CapabilityType
+	    targetnodetype: NodeType
+		targetnodetemplate: NodeTemplate
+	}
+	type RelationshipAssignment {
+		name: string
+		namespace: Namespace
+		properties: [Value]
+		attributes: [Value] 
+	    interfaces: [InterfaceAssignment]
+     	relationshiptemplate: RelationshipTemplate
+	    relationshiptype: RelationshipType 
+	}
+	type InterfaceAssignment {
+		name: string
+		namespace: Namespace
+		inputs: [Value]
+		operations: [OperationAssignment]
+		notifications: [NotificationAssignment]
+	}
+	type OperationAssignment {
+		name: string
+		namespace: Namespace
+		description: string
+	    implementation: InterfaceImplementation
+	    inputs: [Value]
+	    outputs: [AttributeMapping]
+	}
+	type NotificationAssignment {
+		name: string
+		namespace: Namespace
+		description: string
+	    implementation: InterfaceImplementation
+	    outputs: [NotificationOutput]
+	}
+	type NotificationOutput {
+		name: string
+		namespace: Namespace
+	    nodetemplatename: string
+	    attributename: string
+	}
+	type NodeType {
+		name: string
+		namespace: Namespace
+		propertydefinitions: [PropertyDefinition]
+		capabilitydefinitions: [CapabilityDefinition]
+		attributedefinitions: [AttributeDefinition]
+		requirementdefinitions: [RequirementDefinition]
+		interfacedefinitions: [InterfaceDefinition]
+		artifactdefinitions: [ArtifactDefinition]
+		parent: NodeType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+
+	type PropertyDefinition {
+		name: string
+		namespace: Namespace
+		required: string
+		description: string
+		status: string
+		datatypename: string
+		datatype: DataType
+		entryschema: EntrySchema
+		default: string
+		constraintclauses: [ConstraintClause]
+	}
+	type ParameterDefinition {
+		name: string
+		namespace: string
+		required: string
+		description: string
+		status: string
+		datatypename: string
+		datatype: DataType
+		entryschema: EntrySchema
+		default: string
+		constraintclauses: [ConstraintClause]
+		value: Value
+	}
+
+	type AttributeDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+		status: string
+		datatypename: string
+		datatype: DataType
+		entryschema: EntrySchema
+		default: string
+	}
+	type AttributeMapping {
+		name: string
+		namespace: Namespace
+		nodetemplatename: string
+		capabilityname: string
+		attributename: string
+	}
+	type CapabilityDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+		capabilitytypename: string
+		capabilitytype: CapabilityType
+		propertydefinitions: [PropertyDefinition]
+		attributedefinitions: [AttributeDefinition]
+		validsourcenodetypenames: [string]
+		validsourcenodetypes: [NodeType]
+		occurrences: RangeEntity
+	}
+	type ArtifactDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+		properties: [Value]
+		repositoryname: string
+		deploypath: string
+		file: string
+		artifacttype: ArtifactType
+		repository: Repository
+	}
+	type Artifact {
+		name: string
+		namespace: Namespace
+		description: string
+		properties: [Value]
+		repositoryname: string
+		deploypath: string
+		file: string
+		artifacttype: ArtifactType
+		repository: Repository
+	}
+	type ArtifactType {
+		name: string
+		namespace: string
+		mimetype: string
+		fileext: [string]
+		propertydefinition: [PropertyDefinition]
+		parent: ArtifactType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+	type Repository {
+		name: string
+		namespace: string
+		description: string
+		url: string
+		credential: Value
+		urlproblemreported: bool
+	}
+	type OperationDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+		implementation: InterfaceImplementation
+		inputdefinitions: [ParameterDefinition]
+		outputdefinitions: [AttributeMapping]
+
+	}
+	type NotificationDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+		implementation: InterfaceImplementation
+		outputdefinitions: [NotificationOutput]
+	}
+    type InterfaceDefinition {
+		name: string
+		namespace: Namespace
+		interfacetypename: string
+		interfacetype: InterfaceType
+		inputdefinitions: [ParameterDefinition]
+		operationdefinitions: [OperationDefinition]
+		notificationdefinitions: [NotificationDefinition]
+	}
+
+	type RelationshipDefinition {
+		name: string
+		namespace: Namespace
+		relationshiptypename: string
+		relationshiptype: RelationshipType
+		interfacedefinitions: [InterfaceDefinition]
+	}
+	type RequirementDefinition {
+		name: string
+		namespace: Namespace
+		relationshipdefinition: RelationshipDefinition
+		targetnodetypename: string
+		targetnodetype: NodeType
+		targetcapabilitytype: CapabilityType
+		targetcapabilitytypename : string
+		occurrences: RangeEntity
+	}
+	type WorkflowDefinition {
+		name: string
+		namespace: string
+	}
+	type DirectAssertionDefinition {
+		name: string
+		namespace: Namespace
+		constraintclause: [ConstraintClause]
+	}
+	type ActivityDefinition {
+		name: string
+		namespace: Namespace
+		delegateworkflowdefinitionname: string
+	    inlineworkflowdefinitionname: string
+	    setnodestate: string
+	    calloperationspec: string
+	    update: [ParameterDefinition]
+	    delegateworkflowdefinition: WorkflowDefinition
+	    inlineworkflowdefinition: WorkflowDefinition
+     	callinterface: InterfaceAssignment
+	    calloperation: OperationAssignment
+	}
+	type SubstitutionMappings {
+		name: string
+		namespace: string
+		nodetypename: string
+	    capabilitymappings:  [CapabilityMapping]
+	    requirementmappings: [RequirementMapping]
+		propertymappings: [Value]
+	    interfacemappings:  [InterfaceMapping]
+	    substitutionfilter:  SubstitutionFilter
+    	nodetype: NodeType 
+	}
+	type CapabilityMapping {
+		name: string
+		namespace: string
+		nodetemplatename: string
+	    capabilityname: string
+	    nodetemplate: NodeTemplate
+	}
+	type RequirementMapping {
+		name: string
+		namespace: string
+		nodetemplatename: string
+	    requirementname: string
+	    nodetemplate: NodeTemplate
+	}
+	type InterfaceMapping {
+		name: string
+		namespace: string
+		nodetemplatename: string
+	    interfacename: string
+	    nodetemplate: NodeTemplate
+	}
+	type InterfaceImplementation {
+		name: string
+		namespace: Namespace
+		primary: string
+		timeout: string
+		operationhost: string
+		dependencies: [ArtifactDefinition]
+	}
+
+	type CapabilityType {
+		name: string
+		namespace: Namespace
+		attributedefinitions: [AttributeDefinition]
+		propertydefinitions: [PropertyDefinition]
+		validsourcenodetypenames: [string]
+		validsourcenodetypes: [NodeType]
+		parent: CapabilityType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+
+	type InterfaceType {
+		name: string
+		namespace: Namespace
+		inputdefinitions: [ParameterDefinition]
+		operationdefinitions: [OperationDefinition]
+		notificationdefinitions: [NotificationDefinition]
+		parent: InterfaceType
+	    parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+	type RangeEntity {
+		lower: string
+		upper: string
+	}
+	type DataType {
+		name: string
+		description: string
+		namespace: Namespace
+		propertydefinitions: [PropertyDefinition]
+		constraintclauses: [ConstraintClause]
+		parent: DataType
+		metadata: Metadata
+	    parentname: string
+	    version: string
+	}
+	type Metadata {
+		puccini-tosca.type: string
+		citation: string
+		citation_location: string
+		normative: bool
+		role: string
+	}
+	type EntrySchema {
+		name: string
+		namespace: Namespace
+		datatypename: string
+		description: string
+		datatype: DataType
+		constraintclauses: [ConstraintClause]
+	}
+
+	type Default {
+		name: string
+		namespace: Namespace
+		description: string
+		constraintclauses: [ConstraintClause]
+	}
+
+	type ConstraintClause {
+		name: string
+		namespace: Namespace
+		operator: string
+		arguments: string
+	}
+
+	type ConditionClause {
+		name: string
+		namespace: Namespace
+		directassertiondefinition: DirectAssertionDefinition
+	}
+
+
+	type RelationshipType {
+		name: source
+		namespace: Namespace
+		propertydefinitions: [PropertyDefinition]
+		attributedefinitions: [AttributeDefinition]
+		interfacedefinitions: [InterfaceDefinition]
+		validtargetcapabilitytypenames : [string]
+		validtargetcapabilitytypes: [CapabilityType]
+		parent: RelationshipType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+
+	type ScalarUnitTime {
+		name: string
+		namespace: Namespace
+		canonicalnumber: string
+	    canonicalstring: string
+		scalar: string
+	    unit: string
+	    originalstring: string
+	}
+
+	type TriggerDefinitionCondition {
+		name: string
+		namespace: Namespace
+		conditionclauses: [ConditionClause]
+	    period: ScalarUnitTime
+	    evaluations: string
+	    method: string
+	}
+	
+	type TriggerDefinition {
+		name: string
+		namespace: Namespace
+		description: string
+	    eventtype: string
+	    schedule: Value
+	    targetfilter: EventFilter
+	    condition: TriggerDefinitionCondition
+	    period: ScalarUnitTime
+	    evaluations: string
+	    method: string
+	    action: [ActivityDefinition]
+	    operationaction: OperationDefinition
+	    workflowaction: string
+     	workflowdefinition: WorkflowDefinition
+	}
+
+	type PropertyFilter {
+		name: string
+		namespace: Namespace
+		constraintclauses: [ConstraintClause]
+	}
+
+	type CapabilityFilter {
+		name: string
+		namespace: Namespace
+		propertyfilters: [PropertyFilter]
+	}
+
+	type NodeFilter {
+		name: string
+		namespace: Namespace
+		propertyfilters:   [PropertyFilter]
+		capabilityfilters: [CapabilityFilter]
+	}
+	type SubstitutionFilter {
+		name: string
+		namespace: Namespace
+	    propertyfilters: [PropertyFilter]
+     	substitutionfiltercapabilities: [SubstitutionFilterCapability]
+	}
+	type SubstitutionFilterCapability {
+		name: string
+		namespace: Namespace
+	    propertyfilters: [PropertyFilter]
+	}
+
+	type Policy {
+		name: string
+		namespace: Namespace
+	    policytypename: string
+	    description: string
+	    properties: [Value]
+	    targetnodetemplateorgroupnames: [string]
+	    triggerdefinitions: [TriggerDefinition]
+     	policytype: PolicyType
+	    targetnodetemplates: [NodeTemplate]
+		targetgroups:  [Group]
+	}
+
+	type PolicyType {
+		name: string
+		namespace: Namespace
+		propertydefinitions: [PropertyDefinition]
+		targetnodetypeorgrouptypenames : [string]
+		triggerdefinitions: [TriggerDefinition]
+		targetnodetypes: [NodeType]
+		targetgrouptypes: [GroupType]
+		parent: PolicyType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+	type GroupType {
+		name: string
+		namespace: Namespace
+		propertydefinitions: [PropertyDefinition]
+	    capabilitydefinitions: [CapabilityDefinition]
+	    requirementdefinitions: [RequirementDefinition]
+	    interfacedefinitions: [InterfaceDefinition]
+	    membernodetypenames: [string]
+	    membernodetypes: [NodeType] 
+     	parent: GroupType
+		parentname: string
+	    version: string
+		description: string
+		metadata: Metadata
+	}
+
+		# Define Directives and index
+
+		description: string .
+		name: string @index(term) @lang .
+		url: string @index(exact) .
+		version: string .
+		operator: string .
+	    capabilitytypename: string .
+		interfacetypename: string .
+		relationshiptypename: string .
+		namespace: uid .
+		topologytemplate: uid .
+		nodetemplates: [uid] .
+		properties: [uid] .
+		nodetype: uid .
+		capabilitydefinitions: [uid] . 
+		validsourcenodetypes: [uid] .
+		requirementdefinitions: [uid] .
+		interfacedefinitions: [uid] .
+		artifactdefinitions: [uid] .
+		parent: uid .
+		entryschema: uid .
+		default: string .
+		constraintclause: [uid] .
+		constraintclauses: [uid] .
+		relationshipdefinition: uid .
+		relationshiptype: uid .
+		inputdefinitions: [uid] .
+		operationdefinitions: [uid] .
+		notificationdefinitions: [uid] .
+		interfacetype: uid .
+		occurrences: uid .
+		validtargetcapabilitytypes: [uid] .
+		targetnodetype: uid .
+		targetnodetypes: [uid] .
+		targetnodetypename: string .
+		targetcapabilitytype: uid .
+		targetcapabilitytypename: string .
+		relationshiptemplate: uid .
+		relationshiptemplates: [uid] .
+		groups: [uid] .
+		propertydefinition: uid .
+		propertydefinitions: [uid] .
+		attributedefinition: uid .
+		attributedefinitions: [uid] .
+		datatype: uid .
+		policies: [uid] .
+		inputparameterdefinitions: [uid] .
+		outputparameterdefinitions: [uid] .
+		workflowdefinitions: [uid] .
+		substitutionmappings: [uid] .
+		directives: [string] .
+		copynodetemplate: uid .
+		attributes: [uid] .
+		capabilities: [uid] .
+		requirements: [uid] .
+		requirementtargetsnodefilter: uid .
+		interfaces: [uid] .
+		artifacts: [uid] .
+		validsourcenodetypenames: [string] .
+		validtargetcapabilitytypenames : [string] .
+		arguments: string .
+		targetnodetemplate: uid .
+		targetnodetypeorgrouptypenames: [string] .
+		targetcapabilitynameortypename: string .
+		targetnodetemplatenameortypename: string .
+		targetnodefilter: uid .
+		targetgrouptypes: [uid] .
+		targetnodetypeorgrouptypenames: [string] .
+		implementation: uid .
+		lower: string .
+		upper: string .
+		myvalue: string .
+		myvaluetype: string .
+		value: uid .
+		rendered: bool .
+		metadata: uid .
+		puccini-tosca.type: string .
+		citation: string .
+		citation_location: string .
+		normative: bool .
+		parentname: string .
+		propertyfilters: [uid] .
+		capabilityfilters: [uid] .
+		mimetype: string .
+		deploypath: string .
+		fileext: [string] .
+		file: string .
+		repositoryname: string .
+		repository: uid .
+		artifacttype: uid .
+		outputdefinitions: [uid] .
+		primary: string .
+		timeout: string .
+		operationhost: string .
+		dependencies: [uid] .
+		nodetemplatename: string .
+		attributename: string .
+		credential: uid .
+		urlproblemreported: bool .
+		copyrelationshiptemplatename: string .
+		copyrelationshiptemplate: uid .
+		relationship: uid .
+		inputs: [uid] .
+		outputs: [uid] .
+		operations: [uid] .
+		notifications: [uid] .
+		capabilitymappings:  [uid] .
+	    requirementmappings: [uid] .
+		propertymappings: [uid] .
+	    interfacemappings:  [uid] .
+	    substitutionfilter:  uid .
+	    capabilityname: string .
+	    requirementname: string .
+	    interfacename: string .
+	    nodetemplate: uid .
+		substitutionfiltercapabilities: [uid] .
+		membernodetypenames: [string] .
+	    membernodetypes: [uid] .
+		directassertiondefinition: uid .
+		delegateworkflowdefinitionname: string .
+	    inlineworkflowdefinitionname: string .
+	    setnodestate: string .
+	    calloperationspec: string .
+	    update: [uid] .
+		canonicalnumber: string .
+	    canonicalstring: string .
+		scalar: string .
+	    unit: string .
+	    originalstring: string .
+		conditionclauses: [uid] .
+	    period: uid .
+	    evaluations: string .
+	    method: string .
+		eventtype: string .
+	    schedule: uid .
+	    targetfilter: uid .
+	    condition: uid .
+	    period: uid .
+	    evaluations: string .
+	    method: string .
+	    action: [uid] .
+	    operationaction: uid .
+	    workflowaction: string .
+     	workflowdefinition: uid .
+	    targetnodetemplateorgroupnames: [string] .
+	    triggerdefinitions: [uid] .
+     	policytype: uid .
+	    targetnodetemplates: [uid] .
+		targetgroups:  [uid] .
+	    delegateworkflowdefinition: uid .
+	    inlineworkflowdefinition: uid .
+     	callinterface: uid .
+	    calloperation: uid .
+		nodetypename: string .
+		copynodetemplatename: string .
+		required: string .
+		status: string .
+		datatypename: string .
+		capabilitytype: uid .
+		policytypename: string .
+		functionname: string .
+		fnarguments: string .
+		role: string .
+		<clout:name>: string @index(exact) .
+		<clout:grammarversion>: string @index(exact) .

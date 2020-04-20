@@ -21,7 +21,7 @@ type InterfaceDefinition struct {
 	OperationDefinitions    OperationDefinitions    `read:"operations,OperationDefinition" inherit:"operations,InterfaceType"`
 	NotificationDefinitions NotificationDefinitions `read:"notifications,NotificationDefinition" inherit:"notifications,InterfaceType"`
 
-	InterfaceType *InterfaceType `lookup:"type,InterfaceTypeName" json:"-" yaml:"-"`
+	InterfaceType *InterfaceType `lookup:"type,InterfaceTypeName,InterfaceType" json:"-" yaml:"-"`
 
 	typeMissingProblemReported bool
 }

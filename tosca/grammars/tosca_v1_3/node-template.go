@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 	"github.com/tliron/puccini/tosca/normal"
 )
@@ -28,8 +29,8 @@ type NodeTemplate struct {
 	Interfaces                   InterfaceAssignments   `read:"interfaces,InterfaceAssignment"`
 	Artifacts                    Artifacts              `read:"artifacts,Artifact"`
 
-	CopyNodeTemplate *NodeTemplate `lookup:"copy,CopyNodeTemplateName" json:"-" yaml:"-"`
-	NodeType         *NodeType     `lookup:"type,NodeTypeName" json:"-" yaml:"-"`
+	CopyNodeTemplate *NodeTemplate `lookup:"copy,CopyNodeTemplateName,NodeTemplate,no" json:"-" yaml:"-"`
+	NodeType         *NodeType     `lookup:"type,NodeTypeName,NodeType" json:"-" yaml:"-"`
 }
 
 func NewNodeTemplate(context *tosca.Context) *NodeTemplate {
@@ -48,6 +49,9 @@ func NewNodeTemplate(context *tosca.Context) *NodeTemplate {
 func ReadNodeTemplate(context *tosca.Context) interface{} {
 	self := NewNodeTemplate(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
 	return self
 }
 
@@ -108,7 +112,11 @@ func (self *NodeTemplate) Normalize(s *normal.ServiceTemplate) *normal.NodeTempl
 		n.Description = *self.Description
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, self.NodeType); ok {
+	if self.GetContext().ReadFromDb {
+		if types, ok := normal.GetTypes2(self.NodeType); ok {
+			n.Types = types
+		}
+	} else if types, ok := normal.GetTypes(self.Context.Hierarchy, self.NodeType); ok {
 		n.Types = types
 	}
 

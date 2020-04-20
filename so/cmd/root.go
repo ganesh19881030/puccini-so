@@ -26,7 +26,7 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "puccini-js",
+	Use:   "service-orchestrator",
 	Short: "JavaScript processor for Clout",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if logTo == "" {

@@ -18,6 +18,12 @@ func LookupFields(entityPtr interface{}) bool {
 	lookupProblems := make(LookupProblems)
 
 	context := tosca.GetContext(entityPtr)
+	if context.ReadFromDb {
+		etype := GetEntityType(entityPtr)
+		if etype != "CapabilityMapping" && etype != "RequirementMapping" {
+			return true
+		}
+	}
 	entity := reflect.ValueOf(entityPtr).Elem()
 
 	for fieldName, tag := range reflection.GetFieldTagsForValue(entity, "lookup") {
@@ -97,8 +103,8 @@ func LookupFields(entityPtr interface{}) bool {
 func parseLookupTag(tag string) (string, string, bool) {
 	t := strings.Split(tag, ",")
 
-	if len(t) != 2 {
-		panic("must be 2")
+	if len(t) < 2 || len(t) > 4 {
+		panic("must be between 2 & 4")
 	}
 
 	lookupFieldKey := t[0]

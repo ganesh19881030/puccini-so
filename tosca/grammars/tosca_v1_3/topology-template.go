@@ -39,7 +39,9 @@ func NewTopologyTemplate(context *tosca.Context) *TopologyTemplate {
 func ReadTopologyTemplate(context *tosca.Context) interface{} {
 	self := NewTopologyTemplate(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
-	setSubstitutionMapping(self)
+	if !context.ReadFromDb {
+		setSubstitutionMapping(self)
+	}
 	return self
 }
 

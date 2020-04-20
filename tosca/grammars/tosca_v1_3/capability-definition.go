@@ -22,8 +22,8 @@ type CapabilityDefinition struct {
 	ValidSourceNodeTypeNames *[]string            `read:"valid_source_types" inherit:"valid_source_types,CapabilityType"`
 	Occurrences              *RangeEntity         `read:"occurrences,RangeEntity"`
 
-	CapabilityType       *CapabilityType `lookup:"type,CapabilityTypeName" json:"-" yaml:"-"`
-	ValidSourceNodeTypes NodeTypes       `lookup:"valid_source_types,ValidSourceNodeTypeNames" apply:"valid_source_types,CapabilityType" json:"-" yaml:"-"`
+	CapabilityType       *CapabilityType `lookup:"type,CapabilityTypeName,CapabilityType" json:"-" yaml:"-"`
+	ValidSourceNodeTypes NodeTypes       `lookup:"valid_source_types,ValidSourceNodeTypeNames,NodeType" apply:"valid_source_types,CapabilityType" json:"-" yaml:"-"`
 
 	typeMissingProblemReported bool
 }

@@ -46,6 +46,13 @@ func isShortNotation(context *tosca.Context) bool {
 		"constraints", "key_schema ", "entry_schema"}
 
 	contextDataMap, _ := context.Data.(ard.Map)
+
+	if context.ReadFromDb {
+		if _, ok := contextDataMap["constraintclauses"]; ok {
+			return false
+		}
+	}
+
 	for key := range contextDataMap {
 		for _, paramDefKey := range parameterDefinitionKeys {
 			if key == paramDefKey {

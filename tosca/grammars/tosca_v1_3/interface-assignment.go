@@ -80,8 +80,14 @@ func (self *InterfaceAssignment) Normalize(i *normal.Interface, definition *Inte
 		i.Description = *definition.InterfaceType.Description
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, definition.InterfaceType); ok {
-		i.Types = types
+	if self.GetContext().ReadFromDb {
+		if types, ok := normal.GetTypes2(definition.InterfaceType); ok {
+			i.Types = types
+		}
+	} else {
+		if types, ok := normal.GetTypes(self.Context.Hierarchy, definition.InterfaceType); ok {
+			i.Types = types
+		}
 	}
 
 	self.Inputs.Normalize(i.Inputs)

@@ -17,7 +17,7 @@ type RelationshipDefinition struct {
 	RelationshipTypeName *string              `read:"type"` // required only if cannot be inherited
 	InterfaceDefinitions InterfaceDefinitions `read:"interfaces,InterfaceDefinition" inherit:"interfaces,RelationshipType"`
 
-	RelationshipType *RelationshipType `lookup:"type,RelationshipTypeName" json:"-" yaml:"-"`
+	RelationshipType *RelationshipType `lookup:"type,RelationshipTypeName,RelationshipType" json:"-" yaml:"-"`
 
 	typeMissingProblemReported bool
 }

@@ -26,7 +26,7 @@ func init() {
 	compileCmd.Flags().StringVarP(&output, "output", "o", "", "output Clout to file (default is stdout)")
 	compileCmd.Flags().BoolVarP(&resolve, "resolve", "r", true, "resolves the topology (attempts to satisfy all requirements with capabilities")
 	compileCmd.Flags().BoolVarP(&coerce, "coerce", "c", false, "coerces all values (calls functions and applies constraints)")
-	compileCmd.Flags().BoolVarP(&persist, "persist", "d", false, "persists clout output into a dgraph database")
+	compileCmd.Flags().BoolVarP(&persist, "persist", "g", false, "persists clout output into a dgraph database")
 }
 
 var compileCmd = &cobra.Command{
@@ -45,6 +45,10 @@ var compileCmd = &cobra.Command{
 }
 
 func Compile(urlString string) {
+
+	// read configuration from a file
+	common.ReadConfiguration()
+
 	// Parse
 	context, s := Parse(urlString)
 	internalImport := common.InternalImport
@@ -76,6 +80,7 @@ func Compile(urlString string) {
 	}
 
 	// Persist
+	persist = false
 	if persist {
 		//grammarVersion := reflect.ValueOf(context.ServiceTemplate.EntityPtr).Type().String()
 

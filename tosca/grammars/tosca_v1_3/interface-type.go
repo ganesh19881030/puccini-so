@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -19,7 +20,7 @@ type InterfaceType struct {
 	OperationDefinitions    OperationDefinitions    `read:"operations,OperationDefinition" inherit:"operations,Parent"`
 	NotificationDefinitions NotificationDefinitions `read:"notifications,NotificationDefinition" inherit:"notifications,Parent"`
 
-	Parent *InterfaceType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
+	Parent *InterfaceType `lookup:"derived_from,ParentName,InterfaceType" json:"-" yaml:"-"`
 }
 
 func NewInterfaceType(context *tosca.Context) *InterfaceType {
@@ -35,6 +36,9 @@ func NewInterfaceType(context *tosca.Context) *InterfaceType {
 func ReadInterfaceType(context *tosca.Context) interface{} {
 	self := NewInterfaceType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
 	return self
 }
 

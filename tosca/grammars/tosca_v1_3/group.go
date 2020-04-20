@@ -22,8 +22,8 @@ type Group struct {
 	Interfaces              InterfaceAssignments `read:"interfaces,InterfaceAssignment"`
 	MemberNodeTemplateNames *[]string            `read:"members"`
 
-	GroupType           *GroupType      `lookup:"type,GroupTypeName" json:"-" yaml:"-"`
-	MemberNodeTemplates []*NodeTemplate `lookup:"members,MemberNodeTemplateNames" json:"-" yaml:"-"`
+	GroupType           *GroupType      `lookup:"type,GroupTypeName,GroupType" json:"-" yaml:"-"`
+	MemberNodeTemplates []*NodeTemplate `lookup:"members,MemberNodeTemplateNames,NodeTemplate,no" json:"-" yaml:"-"`
 }
 
 func NewGroup(context *tosca.Context) *Group {
@@ -78,8 +78,14 @@ func (self *Group) Normalize(s *normal.ServiceTemplate) *normal.Group {
 		g.Description = *self.Description
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, self.GroupType); ok {
-		g.Types = types
+	if self.GetContext().ReadFromDb {
+		if types, ok := normal.GetTypes2(self.GroupType); ok {
+			g.Types = types
+		}
+	} else {
+		if types, ok := normal.GetTypes(self.Context.Hierarchy, self.GroupType); ok {
+			g.Types = types
+		}
 	}
 
 	self.Properties.Normalize(g.Properties)

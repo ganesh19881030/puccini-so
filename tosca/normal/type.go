@@ -2,6 +2,7 @@ package normal
 
 import (
 	"github.com/tliron/puccini/tosca"
+	"github.com/tliron/puccini/tosca/reflection"
 )
 
 //
@@ -54,4 +55,28 @@ func GetTypes(hierarchy *tosca.Hierarchy, entityPtr interface{}) (Types, bool) {
 		return GetHierarchyTypes(childHierarchy), true
 	}
 	return nil, false
+}
+
+func GetTypes2(entityPtr interface{}) (Types, bool) {
+
+	if entityPtr == nil {
+		return nil, false
+	}
+
+	xtypes := make(Types)
+
+	currType := entityPtr
+	for currType != nil {
+		name := reflection.GetEntityName(currType)
+		xtype := NewType(name)
+		if metadata, ok := GetMetadata(currType); ok {
+			xtype.Metadata = metadata
+		}
+		//ratype.Metadata = currType.Metadata
+		xtypes[name] = xtype
+		currType = reflection.GetEntityParent(currType)
+	}
+
+	return xtypes, true
+
 }

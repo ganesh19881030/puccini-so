@@ -16,7 +16,7 @@ type RequirementMapping struct {
 	NodeTemplateName *string `require:"0"`
 	RequirementName  *string `require:"1"`
 
-	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName" json:"-" yaml:"-"`
+	NodeTemplate *NodeTemplate `lookup:"0,NodeTemplateName,NodeTemplate,no" json:"-" yaml:"-"`
 }
 
 func NewRequirementMapping(context *tosca.Context) *RequirementMapping {

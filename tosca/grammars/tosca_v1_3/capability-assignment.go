@@ -34,6 +34,9 @@ func NewCapabilityAssignment(context *tosca.Context) *CapabilityAssignment {
 // tosca.Reader signature
 func ReadCapabilityAssignment(context *tosca.Context) interface{} {
 	self := NewCapabilityAssignment(context)
+	if self.Name == "endpoint" {
+		_ = self.Name
+	}
 	context.ValidateUnsupportedFields(context.ReadFields(self))
 	return self
 }
@@ -69,7 +72,11 @@ func (self *CapabilityAssignment) Normalize(n *normal.NodeTemplate, definition *
 		c.MaxRelationshipCount = math.MaxUint64
 	}
 
-	if types, ok := normal.GetTypes(self.Context.Hierarchy, definition.CapabilityType); ok {
+	if self.GetContext().ReadFromDb {
+		if types, ok := normal.GetTypes2(definition.CapabilityType); ok {
+			c.Types = types
+		}
+	} else if types, ok := normal.GetTypes(self.Context.Hierarchy, definition.CapabilityType); ok {
 		c.Types = types
 	}
 

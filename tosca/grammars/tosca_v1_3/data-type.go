@@ -18,7 +18,7 @@ type DataType struct {
 	PropertyDefinitions PropertyDefinitions `read:"properties,PropertyDefinition" inherit:"properties,Parent"`
 	ConstraintClauses   ConstraintClauses   `read:"constraints,[]ConstraintClause" inherit:"constraints,Parent"`
 
-	Parent *DataType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
+	Parent *DataType `lookup:"derived_from,ParentName,DataType" json:"-" yaml:"-"`
 
 	typeProblemReported bool
 }
@@ -34,6 +34,10 @@ func NewDataType(context *tosca.Context) *DataType {
 func ReadDataType(context *tosca.Context) interface{} {
 	self := NewDataType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
+
 	return self
 }
 

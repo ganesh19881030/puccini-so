@@ -15,7 +15,7 @@ type EntrySchema struct {
 	Description       *string           `read:"description" inherit:"description,DataType"`
 	ConstraintClauses ConstraintClauses `read:"constraints,[]ConstraintClause"`
 
-	DataType *DataType `lookup:"type,DataTypeName" json:"-" yaml:"-"`
+	DataType *DataType `lookup:"type,DataTypeName,DataType" json:"-" yaml:"-"`
 }
 
 func NewEntrySchema(context *tosca.Context) *EntrySchema {

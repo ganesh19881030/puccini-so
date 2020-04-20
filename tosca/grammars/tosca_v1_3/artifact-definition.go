@@ -29,8 +29,8 @@ type ArtifactDefinition struct {
 	File             *string `read:"file"` // required only if cannot be inherited
 	DeployPath       *string `read:"deploy_path"`
 
-	ArtifactType *ArtifactType `lookup:"type,ArtifactTypeName" json:"-" yaml:"-"`
-	Repository   *Repository   `lookup:"repository,RepositoryName" json:"-" yaml:"-"`
+	ArtifactType *ArtifactType `lookup:"type,ArtifactTypeName,ArtifactType" json:"-" yaml:"-"`
+	Repository   *Repository   `lookup:"repository,RepositoryName,Repository" json:"-" yaml:"-"`
 
 	fileMissingProblemReported bool
 }
@@ -151,8 +151,14 @@ func (selfList ArtifactDefinitionList) Normalize(o *normal.Operation) {
 			a.Description = *self.Description
 		}
 
-		if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
-			a.Types = types
+		if self.GetContext().ReadFromDb {
+			if types, ok := normal.GetTypes2(self.ArtifactType); ok {
+				a.Types = types
+			}
+		} else {
+			if types, ok := normal.GetTypes(self.Context.Hierarchy, self.ArtifactType); ok {
+				a.Types = types
+			}
 		}
 
 		self.Properties.Normalize(a.Properties)

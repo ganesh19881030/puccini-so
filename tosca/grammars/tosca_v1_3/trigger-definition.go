@@ -30,7 +30,7 @@ type TriggerDefinition struct {
 	OperationAction *OperationDefinition
 	WorkflowAction  *string
 
-	WorkflowDefinition *WorkflowDefinition `lookup:"action,WorkflowAction"`
+	WorkflowDefinition *WorkflowDefinition `lookup:"action,WorkflowAction,WorkflowDefinition"`
 }
 
 func NewTriggerDefinition(context *tosca.Context) *TriggerDefinition {

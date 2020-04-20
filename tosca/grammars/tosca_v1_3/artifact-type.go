@@ -1,6 +1,7 @@
 package tosca_v1_3
 
 import (
+	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/tosca"
 )
 
@@ -18,7 +19,7 @@ type ArtifactType struct {
 	MimeType            *string             `read:"mime_type" inherit:"mime_type,Parent"`
 	FileExt             *[]string           `read:"file_ext" inherit:"file_ext,Parent"`
 
-	Parent *ArtifactType `lookup:"derived_from,ParentName" json:"-" yaml:"-"`
+	Parent *ArtifactType `lookup:"derived_from,ParentName,ArtifactType" json:"-" yaml:"-"`
 }
 
 func NewArtifactType(context *tosca.Context) *ArtifactType {
@@ -32,6 +33,9 @@ func NewArtifactType(context *tosca.Context) *ArtifactType {
 func ReadArtifactType(context *tosca.Context) interface{} {
 	self := NewArtifactType(context)
 	context.ValidateUnsupportedFields(context.ReadFields(self))
+	if context.ReadFromDb {
+		self.Name = context.Data.(ard.Map)["name"].(string)
+	}
 	return self
 }
 

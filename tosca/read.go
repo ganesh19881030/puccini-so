@@ -73,6 +73,10 @@ func (self *Context) ReadFields(entityPtr interface{}) []string {
 		return nil
 	}
 
+	if self.ReadFromDb {
+		return self.DbReadFields(entityPtr)
+	}
+
 	var keys []string
 
 	entity := reflect.ValueOf(entityPtr).Elem()
@@ -153,14 +157,15 @@ func (self *Context) setMapItem(field reflect.Value, item interface{}) {
 //
 
 type ReadField struct {
-	FieldName string
-	Key       string
-	Context   *Context
-	Entity    reflect.Value
-	Reader    Reader
-	Mode      int
-	Important bool
-	Wildcard  bool
+	FieldName  string
+	Key        string
+	Context    *Context
+	Entity     reflect.Value
+	Reader     Reader
+	Mode       int
+	Important  bool
+	Wildcard   bool
+	ReaderName string
 }
 
 func NewReadField(fieldName string, tag string, context *Context, entity reflect.Value) *ReadField {
@@ -219,6 +224,12 @@ func (self *ReadField) Read() {
 	}
 
 	field := self.Entity.FieldByName(self.FieldName)
+
+	if self.FieldName == "OutputDefinitions" {
+		_ = self.Key
+	} else if self.FieldName == "Update" {
+		_ = self.Key
+	}
 
 	if self.Reader != nil {
 		fieldType := field.Type()

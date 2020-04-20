@@ -27,3 +27,24 @@ func GetFieldTagsForType(type_ reflect.Type, name string) map[string]string {
 	}
 	return tags
 }
+
+func GetAllFieldTagsForValue(value reflect.Value) map[string]string {
+	return GetAllFieldTagsForType(value.Type())
+}
+
+func GetAllFieldTagsForType(type_ reflect.Type) map[string]string {
+	tags := make(map[string]string)
+	for _, structField := range GetStructFields(type_) {
+		value, ok := structField.Tag.Lookup("read")
+		if !ok {
+			value, ok = structField.Tag.Lookup("lookup")
+		}
+		//if !ok {
+		//	value, ok = structField.Tag.Lookup("namespace")
+		//}
+		if ok {
+			tags[structField.Name] = value
+		}
+	}
+	return tags
+}

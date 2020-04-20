@@ -3,9 +3,15 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+
 	//"fmt"
-	"github.com/dgraph-io/dgo"
-	"github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/tliron/puccini/common"
+	"github.com/tliron/puccini/tosca/database"
+	"github.com/tliron/puccini/tosca/dbread/dgraph"
+
 	//"github.com/gorilla/mux"
 	//"github.com/tliron/puccini/clout"
 	//"github.com/tliron/puccini/common"
@@ -17,8 +23,18 @@ import (
 	//"net/http"
 )
 
+func fetchDbTemplate() (*dgraph.DgraphTemplate, error) {
+	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
+	dgraphClient, conn, err := database.GetDgraphClient1(dburl)
+	dgt := new(dgraph.DgraphTemplate)
+	dgt.Ctxt = context.Background()
+	dgt.Client = dgraphClient
+	dgt.Conn = conn
+	return dgt, err
+}
 func createConnection() *grpc.ClientConn {
-	conn, err := grpc.Dial("localhost:9082", grpc.WithInsecure())
+	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
+	conn, err := grpc.Dial(dburl, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 	}
