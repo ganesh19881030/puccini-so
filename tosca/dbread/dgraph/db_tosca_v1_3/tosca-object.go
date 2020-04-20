@@ -33,14 +33,15 @@ func (ntemp DbToscaObject) ByPassDbRead(contextData *interface{}, name string, k
 	return false
 }
 
-func (ntemp *DbToscaObject) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, error) {
+func (ntemp *DbToscaObject) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
 	obj, ok := searchObject.(dgraph.SearchFields)
 	if ok {
-		return dgt.FindComp(obj.ObjectKey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+		fnd, uid, err := dgt.FindComp(obj.ObjectKey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+		return fnd, uid, obj.ObjectKey, err
 	} else {
 		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
 	}
-	return false, "", nil
+	return false, "", obj.ObjectKey, nil
 }
 
 func (ntemp *DbToscaObject) DbInsert(dgt *dgraph.DgraphTemplate, mutateQuery string) (string, error) {

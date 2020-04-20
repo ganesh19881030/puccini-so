@@ -15,6 +15,8 @@ type SearchFields struct {
 	ObjectNSuid  string // namespace uid
 	SubjectUid   string
 	Predicate    string
+	Mapkey       string
+	EntityPtr    interface{}
 }
 
 type SaveFields struct {
@@ -35,7 +37,7 @@ type Persistable interface {
 	DbRead(dgt *DgraphTemplate, fieldData *interface{}, uid string, key string) ard.Map
 	ByPassDbRead(contextData *interface{}, name string, key string) bool
 	//RequiresConversion(key string)bool
-	DbFind(dgt *DgraphTemplate, searchObject interface{}) (bool, string, error)
+	DbFind(dgt *DgraphTemplate, searchObject interface{}) (bool, string, string, error)
 	DbBuildInsertQuery(dataObject interface{}) (string, error)
 	DbInsert(dgt *DgraphTemplate, mutateQuery string) (string, error)
 }

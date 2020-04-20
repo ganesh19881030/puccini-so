@@ -35,6 +35,17 @@ func (ntemp *DbRelationshipDefinition) DbRead(dgt *dgraph.DgraphTemplate, fieldD
 	return compMap
 }
 
+func (ntemp *DbRelationshipDefinition) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
+	obj, ok := searchObject.(dgraph.SearchFields)
+	if ok {
+		fnd, uid, err := dgt.FindComp(obj.Mapkey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+		return fnd, uid, obj.Mapkey, err
+	} else {
+		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
+	}
+	return false, "", obj.Mapkey, nil
+}
+
 func (ntemp *DbRelationshipDefinition) DbBuildInsertQuery(dataObject interface{}) (string, error) {
 	if saveFields, ok := dataObject.(dgraph.SaveFields); ok {
 		nquad := dgraph.BuildInsertQuery(saveFields)

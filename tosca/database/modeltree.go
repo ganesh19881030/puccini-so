@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/tliron/puccini/common"
@@ -71,7 +70,7 @@ func Traverse(pcontext *parser.Context) error {
 				return false
 			} else {
 				epcount++
-				strType := getEntityType(entityPtr)
+				strType := GetEntityType(entityPtr)
 				Log.Infof("processing [%s] entity...", strType)
 				_, ok := entityPtr.(tosca.Contextual)
 				if ok {
@@ -99,7 +98,7 @@ func Traverse(pcontext *parser.Context) error {
 				PersistNamespace(nurl, version, urlmap, &dgt)
 				if bag.Level == 0 {
 					bag.StNamespaceUid = urlmap[nurl]
-					bag.Uid, err = PersistToscaComponent(entityPtr, stname, "ServiceTemplate", nurl, urlmap, bag)
+					bag.Uid, name, err = PersistToscaComponent(entityPtr, stname, "ServiceTemplate", nurl, urlmap, bag)
 					bag.ChildName = "servicetemplate"
 					bag.ChildNspace = nurl
 				} else {
@@ -111,26 +110,30 @@ func Traverse(pcontext *parser.Context) error {
 							AddFieldToComponent(entityPtr, bag)
 							return false
 						}
-					} else if dgraphType == "RelationshipDefinition" {
-						pathelem := ctxt.Path[len(ctxt.Path)-4]
-						name = pathelem.Value.(string)
-						name = bag.Mapkey
-						Log.Debugf("Changed name for relationshipdefinition to %s", name)
-					} else if dgraphType == "EntrySchema" {
-						pathelem := ctxt.Path[len(ctxt.Path)-2]
-						name = pathelem.Value.(string)
-						Log.Debugf("Changed name for entry_schema to %s", name)
-					} else if dgraphType == "SubstitutionMappings" {
-						Log.Debugf("*** dgraphType is %s ***", dgraphType)
-						var val reflect.Value
-						val, err = getFieldValue(entityPtr, "NodeTypeName")
-						if err == nil {
-							name = val.Interface().(string)
-						}
+						/*} else if dgraphType == "RelationshipDefinition" {
+								pathelem := ctxt.Path[len(ctxt.Path)-4]
+								name = pathelem.Value.(string)
+								name = bag.Mapkey
+								Log.Debugf("Changed name for relationshipdefinition to %s", name)
+							} else if dgraphType == "EntrySchema" {
+								pathelem := ctxt.Path[len(ctxt.Path)-2]
+								name = pathelem.Value.(string)
+								Log.Debugf("Changed name for entry_schema to %s, bag,Mapkey: %s", name, bag.Mapkey)
+							} else if dgraphType == "SubstitutionMappings" {
+								Log.Debugf("*** dgraphType is %s ***", dgraphType)
+								var val reflect.Value
+								val, err = GetFieldValue(entityPtr, "NodeTypeName")
+								if err == nil {
+									name = val.Interface().(string)
+								}
+						} else if dgraphType == "NodeTemplate" {
+							if name == "sdwan_hub_spoke" {
+								Log.Debugf("*** dgraphType is %s ***", dgraphType)
+							}*/
 					} else if dgraphType == "" {
 						Log.Errorf("*** dgraphType for predicate [%s] is undefined ***", bag.Predicate)
 					}
-					uid, err = PersistToscaComponent(entityPtr, name, dgraphType, nurl, urlmap, bag)
+					uid, name, err = PersistToscaComponent(entityPtr, name, dgraphType, nurl, urlmap, bag)
 					common.FailOnError(err)
 					bag.ChildName = name
 					bag.ChildDgraphType = dgraphType
@@ -169,31 +172,4 @@ func traverseContext(phase string, pcontext *parser.Context, traverse DbTraverse
 	}
 
 	Traverse2(pcontext.ServiceTemplate.EntityPtr, t, bag, pcontext.ServiceTemplate)
-}
-
-func getFieldValue(entityPtr interface{}, name string) (reflect.Value, error) {
-
-	entity := reflect.ValueOf(entityPtr).Elem()
-
-	field := entity.FieldByName(name)
-
-	var value reflect.Value
-	if field.IsValid() {
-		if field.CanInterface() {
-			ifld := field.Interface()
-
-			value = reflect.ValueOf(ifld).Elem()
-		}
-	}
-
-	return value, nil
-
-}
-
-//getEntityType - fetches the entity type string which should match its type in Dgraph
-func getEntityType(entityPtr interface{}) string {
-	strType := reflect.ValueOf(entityPtr).Type().String()
-	parts := strings.Split(strType, ".")
-	strType = parts[1]
-	return strType
 }

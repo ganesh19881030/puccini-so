@@ -1,7 +1,9 @@
 package db_tosca_v1_3
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/common"
@@ -47,6 +49,62 @@ func (ntemp *DbRequirementAssignment) DbRead(dgt *dgraph.DgraphTemplate, fieldDa
 	common.FailOnError(err)
 
 	return compMap
+}
+
+func (ntemp *DbRequirementAssignment) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
+	obj, ok := searchObject.(dgraph.SearchFields)
+	if ok {
+		query2 := `
+	query {
+	    comp(func: uid(<%s>))@cascade  {
+		%s @filter(eq(name,"%s") and (eq(targetnodetemplatenameortypename,"%s") or eq(targetcapabilitynameortypename,"%s"))){
+		  	uid
+		  	name
+			}
+		}
+	}`
+		var ntnamestr, capnamestr string
+		ntnamestr, _ = GetFieldString(obj.EntityPtr, "TargetNodeTemplateNameOrTypeName")
+		capnamestr, _ = GetFieldString(obj.EntityPtr, "TargetCapabilityNameOrTypeName")
+		nquad := fmt.Sprintf(query2, obj.SubjectUid, obj.Predicate, obj.ObjectKey, ntnamestr, capnamestr)
+		log.Debugf("nquad: %s", nquad)
+
+		resp, err := dgt.ExecQuery(nquad)
+
+		var uid string
+		var fnd bool
+		if err == nil {
+			var a interface{}
+			err = json.Unmarshal(resp.Json, &a)
+			if err == nil {
+				b := a.(map[string]interface{})
+				uidlist := b["comp"].([]interface{})
+				if len(uidlist) > 0 {
+					c := uidlist[0].(map[string]interface{})
+					d := c[obj.Predicate].(interface{})
+					var e map[string]interface{}
+					_, ok := d.([]interface{})
+					if ok {
+						d1 := d.([]interface{})
+						e = d1[0].(map[string]interface{})
+					} else {
+						e, ok = d.(map[string]interface{})
+					}
+					if ok {
+						uid = e["uid"].(string)
+						fnd = len(uid) > 0
+					}
+				}
+			}
+
+		}
+
+		return fnd, uid, obj.ObjectKey, err
+		//return dgt.FindComp(obj.ObjectKey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+	} else {
+		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
+	}
+	return false, "", obj.ObjectKey, nil
 }
 
 func (ntemp *DbRequirementAssignment) DbBuildInsertQuery(dataObject interface{}) (string, error) {
