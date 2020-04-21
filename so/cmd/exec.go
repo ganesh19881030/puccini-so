@@ -35,6 +35,7 @@ var execCmd = &cobra.Command{
 		name := args[0]
 		fn := args[1]
 
+		var quirks []string
 		//var path string
 		//if len(args) == 2 {
 		//	path = args[1]
@@ -57,7 +58,7 @@ var execCmd = &cobra.Command{
 		if len(inputs) > 0 {
 			inputValues = ParseInputsFromCommandLine(inputs)
 		}
-		st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues)
+		st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues, quirks)
 		var clout *clout.Clout
 		if !ok {
 			return

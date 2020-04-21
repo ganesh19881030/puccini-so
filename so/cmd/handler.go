@@ -498,22 +498,24 @@ func stopPolicyExecution(w http.ResponseWriter, r *http.Request) {
    It expects the POST request body to contain, for example, the following json body:
 
 {
-	"name" : "zip:/Users/rajee/git/workdir/firewall1.csar!/firewall/firewall_service.yaml",
-	"output": "./fw-dgraph-clout.yaml",
+	"name" : "zip:/Users/rajee/git/workdir/firewall.csar!/firewall/firewall_service.yaml",
+	"output": "../../workdir/fw-dgraph-clout.yaml",
 	"inputs": {
 		"selected_flavour":"simple",
 		"region_name":"DFW",
 		"lower_threshold":"10",
 		"upper_threshold":"80",
+		"packet_rate":"20",
 		"cidr":"192.168.1.0",
 		"network_name":"public",
 		"num_streams":"5",
 		"auth_url":"http://localhost/",
 		"password":"password",
-		"project_id":"id101",
+		"project_id":"101012",
 		"url":"http://localhost",
 		"username":"cci"
 	},
+	"quirks": ["data_types.string.permissive"],
 	"inputsUrl":"",
 	"service":"firewall_service"
 }
@@ -556,6 +558,14 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 			inputValues[key] = value
 		}
 	}
+	var quirks []string
+	if quirkparams, ok := params["quirks"].([]interface{}); ok {
+		for _, quirkparam := range quirkparams {
+			if quirkstr, ok := quirkparam.(string); ok {
+				quirks = append(quirks, quirkstr)
+			}
+		}
+	}
 
 	//fn := vars["function"]
 
@@ -576,7 +586,7 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dbc := new(db.DgContext)
-	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues)
+	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues, quirks)
 	var clout *clout.Clout
 	if !ok {
 		return
