@@ -26,7 +26,7 @@ import (
 	"github.com/tliron/puccini/url"
 )
 
-var quirks []string
+//var quirks []string
 var cache sync.Map // entityPtr or Promise
 
 // DgContext structure to hold the parser context
@@ -52,7 +52,7 @@ func init() {
 }
 
 // ReadServiceTemplateFromDgraph reads servicetemplate from dgraph
-func (dbc *DgContext) ReadServiceTemplateFromDgraph(sturl url.URL, inputValues ard.Map) (*normal.ServiceTemplate, bool) {
+func (dbc *DgContext) ReadServiceTemplateFromDgraph(sturl url.URL, inputValues ard.Map, quirks []string) (*normal.ServiceTemplate, bool) {
 
 	var err error
 

@@ -70,8 +70,8 @@ func Traverse(pcontext *parser.Context) error {
 				return false
 			} else {
 				epcount++
-				strType := GetEntityType(entityPtr)
-				Log.Infof("processing [%s] entity...", strType)
+				dgraphType := GetEntityType(entityPtr)
+				Log.Infof("processing [%s] entity...", dgraphType)
 				_, ok := entityPtr.(tosca.Contextual)
 				if ok {
 
@@ -102,39 +102,25 @@ func Traverse(pcontext *parser.Context) error {
 					bag.ChildName = "servicetemplate"
 					bag.ChildNspace = nurl
 				} else {
-					dgraphType := strType
-
-					if dgraphType == "Value" {
+					/*if dgraphType == "Value" {
 						Log.Debugf("*** dgraphType is Value ***")
 						if bag.Predicate == "default" {
-							AddFieldToComponent(entityPtr, bag)
-							return false
+							//AddFieldToComponent(entityPtr, bag)
+							//return false
+							_ = dgraphType
 						}
-						/*} else if dgraphType == "RelationshipDefinition" {
-								pathelem := ctxt.Path[len(ctxt.Path)-4]
-								name = pathelem.Value.(string)
-								name = bag.Mapkey
-								Log.Debugf("Changed name for relationshipdefinition to %s", name)
-							} else if dgraphType == "EntrySchema" {
-								pathelem := ctxt.Path[len(ctxt.Path)-2]
-								name = pathelem.Value.(string)
-								Log.Debugf("Changed name for entry_schema to %s, bag,Mapkey: %s", name, bag.Mapkey)
-							} else if dgraphType == "SubstitutionMappings" {
-								Log.Debugf("*** dgraphType is %s ***", dgraphType)
-								var val reflect.Value
-								val, err = GetFieldValue(entityPtr, "NodeTypeName")
-								if err == nil {
-									name = val.Interface().(string)
-								}
 						} else if dgraphType == "NodeTemplate" {
-							if name == "sdwan_hub_spoke" {
-								Log.Debugf("*** dgraphType is %s ***", dgraphType)
-							}*/
-					} else if dgraphType == "" {
+						if name == "sdwan_hub_spoke" {
+							Log.Debugf("*** dgraphType is %s ***", dgraphType)
+						}
+					} else*/if dgraphType == "" {
 						Log.Errorf("*** dgraphType for predicate [%s] is undefined ***", bag.Predicate)
 					}
 					uid, name, err = PersistToscaComponent(entityPtr, name, dgraphType, nurl, urlmap, bag)
 					common.FailOnError(err)
+					if bag.Uid == uid {
+						return false
+					}
 					bag.ChildName = name
 					bag.ChildDgraphType = dgraphType
 					bag.ChildNspace = nurl

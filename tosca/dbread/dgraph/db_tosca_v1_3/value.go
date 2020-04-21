@@ -88,6 +88,25 @@ func (ntemp *DbValue) ByPassDbRead(contextData *interface{}, name string, key st
 	return false
 }
 
+func (ntemp *DbValue) DbFind(dgt *dgraph.DgraphTemplate, searchObject interface{}) (bool, string, string, error) {
+
+	obj, ok := searchObject.(dgraph.SearchFields)
+	if ok {
+		if obj.Predicate == "default" {
+			// may need it in the future - leaving it in here for now until we have
+			// enough models persisted
+			//
+			//AddFieldToComponent(entityPtr, bag)
+			return true, obj.SubjectUid, obj.ObjectKey, nil
+		} else {
+			fnd, uid, err := dgt.FindComp(obj.ObjectKey, obj.ObjectDGType, obj.ObjectNSuid, obj.SubjectUid, obj.Predicate)
+			return fnd, uid, obj.ObjectKey, err
+		}
+	} else {
+		common.FailOnError(errors.New("Invalid search fields Object passed to DbFind function."))
+	}
+	return false, "", obj.ObjectKey, nil
+}
 func (ntemp *DbValue) DbBuildInsertQuery(dataObject interface{}) (string, error) {
 	if saveFields, ok := dataObject.(dgraph.SaveFields); ok {
 		nquad := dgraph.BuildInsertQuery(saveFields)
