@@ -30,7 +30,3 @@ func main() {
 		cmd.Execute()
 	}
 }
-
-/*func main() {
-	cmd.Execute()
-}*/

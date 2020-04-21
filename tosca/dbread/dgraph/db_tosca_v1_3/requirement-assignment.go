@@ -57,16 +57,26 @@ func (ntemp *DbRequirementAssignment) DbFind(dgt *dgraph.DgraphTemplate, searchO
 		query2 := `
 	query {
 	    comp(func: uid(<%s>))@cascade  {
-		%s @filter(eq(name,"%s") and (eq(targetnodetemplatenameortypename,"%s") or eq(targetcapabilitynameortypename,"%s"))){
+		%s @filter(eq(name,"%s") %s %s){
 		  	uid
 		  	name
 			}
 		}
 	}`
+		var qp1, qp2 string
+		querypart1 := `and eq(targetnodetemplatenameortypename,"%s")`
+		querypart2 := `and eq(targetcapabilitynameortypename,"%s")`
 		var ntnamestr, capnamestr string
 		ntnamestr, _ = GetFieldString(obj.EntityPtr, "TargetNodeTemplateNameOrTypeName")
+		if ntnamestr != "" {
+			qp1 = fmt.Sprintf(querypart1, ntnamestr)
+		}
 		capnamestr, _ = GetFieldString(obj.EntityPtr, "TargetCapabilityNameOrTypeName")
-		nquad := fmt.Sprintf(query2, obj.SubjectUid, obj.Predicate, obj.ObjectKey, ntnamestr, capnamestr)
+		if capnamestr != "" {
+			qp2 = fmt.Sprintf(querypart2, capnamestr)
+		}
+
+		nquad := fmt.Sprintf(query2, obj.SubjectUid, obj.Predicate, obj.ObjectKey, qp1, qp2)
 		log.Debugf("nquad: %s", nquad)
 
 		resp, err := dgt.ExecQuery(nquad)
