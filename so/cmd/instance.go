@@ -91,6 +91,20 @@ func CreateInstance(clout_ *clout.Clout, template string, name string, uid strin
 					vxItem["tosca:attributes"] = string(bytes)
 				}
 			}
+			if (props)["interfaces"] != nil {
+				mapx := props["interfaces"].(ard.Map)
+				bytes, error := json.Marshal(mapx)
+				if error == nil {
+					(vxItem)["tosca:interfaces"] = string(bytes)
+				}
+			}
+			if (props)["artifacts"] != nil {
+				mapx := props["artifacts"].(ard.Map)
+				bytes, error := json.Marshal(mapx)
+				if error == nil {
+					(vxItem)["tosca:artifacts"] = string(bytes)
+				}
+			}
 			vertexItems = append(vertexItems, vxItem)
 		}
 

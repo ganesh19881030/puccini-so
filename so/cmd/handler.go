@@ -49,7 +49,8 @@ func HandleRequests() {
 	myRouter.HandleFunc("/bonap/templates/{name}/{function}", executeFunction).Methods("POST")
 	//myRouter.HandleFunc("/bonap/templates/{name}/createInstance/{service}", createInstance).Methods("POST")
 	myRouter.HandleFunc("/bonap/templates/createInstance", createInstance).Methods("POST")
-	myRouter.HandleFunc("/bonap/templates/{name}/workflows", getWorkflows).Methods("GET")
+	//myRouter.HandleFunc("/bonap/templates/{name}/workflows", getWorkflows).Methods("GET")
+	myRouter.HandleFunc("/bonap/templates/workflows", getWorkflows).Methods("POST")
 	myRouter.HandleFunc("/bonap/templates/{name}/workflows/{wfname}", executeWorkflow).Methods("POST")
 	//myRouter.HandleFunc("/bonap/templates/{name}/services", getServices).Methods("GET")
 	//myRouter.HandleFunc("/bonap/templates/{name}/services/{service}", getServiceByName).Methods("GET")
@@ -287,7 +288,7 @@ func executeFunction(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles request "/bonap/templates/{name}/workflows"
-func getWorkflows(w http.ResponseWriter, r *http.Request) {
+/*func getWorkflows(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 	//wfName := vars["wfname"]
@@ -298,6 +299,57 @@ func getWorkflows(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	//Insert workflow steps inside clout
+	updateCloutWithWorkflows(clout_)
+
+	// Write into a file
+	file, _ := json.MarshalIndent(clout_, "", "  ")
+	_ = ioutil.WriteFile("fw1_csar_dgraph_wf.json", file, 0644)
+
+	// Process Workflow by name
+	workflows := CreateWorkflows(clout_)
+	if workflows == nil {
+		writeResponse(Response{"Failure", "No workflows found"}, w)
+		return
+	}
+	//if err != nil {
+	//	writeResponse(Response{"Failure", err.Error()}, w)
+	//} else {
+	//writeResponse(Response{"Success", "Workflow [" + wfName + "] executed successfully"}, w)
+	//}
+
+	w.Header().Set("Content-Type", "application/json")
+	output, err := json.Marshal(workflows)
+	if err != nil {
+		fmt.Println(err.Error())
+		writeResponse(Response{"Failure", "Error creating workflows"}, w)
+		return
+	}
+	w.Write(output)
+
+}*/
+
+// Handles request "/bonap/templates/workflows"
+func getWorkflows(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		eMsg := "Empty request body is not allowed!"
+		log.Errorf(eMsg)
+		writeResponse(Response{"Failure", eMsg}, w)
+		return
+	}
+	var params ard.Map
+	//json.Unmarshal(r.Body, &m)
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		eMsg := err.Error()
+		log.Errorf(eMsg)
+		writeResponse(Response{"Failure", eMsg}, w)
+		return
+	}
+
+	clout_ := createCloutFromDgraph(w, req, params, false)
 
 	//Insert workflow steps inside clout
 	updateCloutWithWorkflows(clout_)
@@ -359,7 +411,7 @@ func executeWorkflow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wferr := ExecuteWorkflow(workflow, name)
+	wferr := ExecuteWorkflow(workflow)
 	if wferr != nil {
 		//fmt.Println(err.Error{})
 		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
@@ -460,41 +512,6 @@ func stopPolicyExecution(w http.ResponseWriter, r *http.Request) {
 	writeResponse(Response{"Success", "Policy [" + pname + "] deleted successfully"}, w)
 }
 
-/*func executeWorkflow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
-	wfName := vars["wfname"]
-
-	//Read Clout from Dgraph
-	clout_, _, err := ReadCloutFromDgraph(name)
-	if clout_ == nil || err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	// Process Workflow by name
-	// Process Workflow by name
-	workflows := CreateWorkflows(clout_)
-	if workflows == nil {
-		writeResponse(Response{"Failure", "No workflows found"}, w)
-		return
-	}
-
-	workflow := workflows[wfName]
-	if workflow == nil {
-		writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
-		return
-	}
-
-	wferr := ExecuteWorkflow(workflow)
-	if wferr != nil {
-		//fmt.Println(err.Error{})
-		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
-		return
-	}
-	writeResponse(Response{"Success", "Workflow [" + wfName + "] executed successfully"}, w)
-	//}
-
-}*/
 /*
    createInstance handles POST request in the following form:
 
@@ -542,75 +559,45 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		writeResponse(Response{"Failure", eMsg}, w)
 		return
 	}
-	name := params["name"].(string)
-	service := params["service"].(string)
-	output := params["output"].(string)
-	inputsUrl := params["inputsUrl"].(string)
-	var inputValues ard.Map
-	if inputsUrl != "" {
-		inputValues = ParseInputsFromUrl(inputsUrl)
-	}
-	inputs := params["inputs"].(ard.Map)
-	if len(inputs) > 0 {
-		inputValues = make(ard.Map)
-		for key, val := range inputs {
-			value, err := format.Decode(val.(string), "yaml")
-			if err != nil {
-				log.Errorf(err.Error())
-				writeResponse(Response{"Failure", err.Error()}, w)
-				return
-			}
-			inputValues[key] = value
-		}
-	}
-	var quirks []string
-	if quirkparams, ok := params["quirks"].([]interface{}); ok {
-		for _, quirkparam := range quirkparams {
-			if quirkstr, ok := quirkparam.(string); ok {
-				quirks = append(quirks, quirkstr)
-			}
-		}
-	}
-
-	//fn := vars["function"]
-
-	//Read Clout from Dgraph
-
-	if CloutInstanceExists(name) {
-		emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
-		log.Errorf(emsg)
-		writeResponse(Response{"Failure", emsg}, w)
-		return
-	}
-
-	urlst, err := url.NewValidURL(name, nil)
-	if err != nil {
-		log.Errorf(err.Error())
-		writeResponse(Response{"Failure", err.Error()}, w)
-		return
-	}
-
-	dbc := new(db.DgContext)
-	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues, quirks)
-	var clout *clout.Clout
-	if !ok {
-		return
-	} else {
-		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
-		if err != nil {
-			log.Errorf(err.Error())
-			writeResponse(Response{"Failure", err.Error()}, w)
-			return
-		}
-	}
+	clout_ := createCloutFromDgraph(w, req, params, true)
 
 	//clout_, uid, err := ReadCloutFromDgraph(name)
-	if clout == nil || err != nil {
+	//if clout == nil || err != nil {
+	if clout_ == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	err = CreateInstance(clout, name, service, uid)
+	//Insert workflow steps inside clout
+	/*updateCloutWithWorkflows(clout_)
+
+	// Process Workflow by name
+	workflows := CreateWorkflows(clout_)
+	if workflows == nil {
+		writeResponse(Response{"Failure", "No workflows found"}, w)
+		return
+	}
+
+	wfName := "deploy"
+	workflow := workflows[wfName]
+	if workflow == nil {
+		writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
+		return
+	}
+
+	wferr := ExecuteWorkflow(workflow)
+	if wferr != nil {
+		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
+		return
+	}*/
+
+	/*var params ard.Map
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)*/
+
+	name := params["name"].(string)
+	service := params["service"].(string)
+	err = CreateInstance(clout_, name, service, uid)
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	} else {
@@ -826,4 +813,70 @@ func connectToDgraph(w http.ResponseWriter) (*dgraph.DgraphTemplate, error) {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	}
 	return dgt, err
+}
+
+func createCloutFromDgraph(w http.ResponseWriter, req *http.Request, params ard.Map, isCreate bool) *clout.Clout {
+	name := params["name"].(string)
+	//service := params["service"].(string)
+	output := params["output"].(string)
+	inputsUrl := params["inputsUrl"].(string)
+	var inputValues ard.Map
+	if inputsUrl != "" {
+		inputValues = ParseInputsFromUrl(inputsUrl)
+	}
+	inputs := params["inputs"].(ard.Map)
+	if len(inputs) > 0 {
+		inputValues = make(ard.Map)
+		for key, val := range inputs {
+			value, err := format.Decode(val.(string), "yaml")
+			if err != nil {
+				log.Errorf(err.Error())
+				writeResponse(Response{"Failure", err.Error()}, w)
+				return nil
+			}
+			inputValues[key] = value
+		}
+	}
+	var quirks []string
+	if quirkparams, ok := params["quirks"].([]interface{}); ok {
+		for _, quirkparam := range quirkparams {
+			if quirkstr, ok := quirkparam.(string); ok {
+				quirks = append(quirks, quirkstr)
+			}
+		}
+	}
+
+	//fn := vars["function"]
+
+	//Read Clout from Dgraph
+
+	if isCreate && CloutInstanceExists(name) {
+		emsg := fmt.Sprintf("Clout instance with name %s already exists!", name)
+		log.Errorf(emsg)
+		writeResponse(Response{"Failure", emsg}, w)
+		return nil
+	}
+
+	urlst, err := url.NewValidURL(name, nil)
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return nil
+	}
+
+	dbc := new(db.DgContext)
+	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues, quirks)
+	var clout *clout.Clout
+	if !ok {
+		return nil
+	} else {
+		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+		if err != nil {
+			log.Errorf(err.Error())
+			writeResponse(Response{"Failure", err.Error()}, w)
+			return nil
+		}
+	}
+
+	return clout
 }

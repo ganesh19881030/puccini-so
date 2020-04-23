@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"strconv"
+	"sync"
 )
 
 var Processed int
@@ -28,7 +29,7 @@ func (wf *Workflow) AddProc(proc *Process) {
 	wf.Processes[proc.Name] = proc
 }
 
-func (wf *Workflow) Run() *WfError {
+func (wf *Workflow) Run(wg *sync.WaitGroup) *WfError {
 	var err *WfError
 
 	Processed = 0
@@ -37,7 +38,10 @@ func (wf *Workflow) Run() *WfError {
 	for _, proc := range procs {
 		processes = append(processes, proc.GetName())
 	}
-	execute(wf, processes)
+	wg.Add(1)
+	//fmt.Println("started processes ", processes)
+	go execute(wf, processes, wg)
+	//fmt.Println("ended processes ", processes)
 	return err
 
 }
@@ -79,20 +83,25 @@ func (wf *Workflow) canExecute(name string) bool {
 	return true
 }
 
-func processStep(wf *Workflow, curr *Process) {
+func processStep(wf *Workflow, curr *Process, wg *sync.WaitGroup) {
 	if curr != nil {
-		fmt.Println(curr.GetName())
+		//fmt.Println(curr.GetName())
 		err := curr.Run()
 		if err == nil && len(curr.GetNextSuccesses()) > 0 {
-			go execute(wf, curr.GetNextSuccesses())
+			wg.Add(1)
+			//fmt.Println("started processes *******", curr.GetNextSuccesses())
+			go execute(wf, curr.GetNextSuccesses(), wg)
+			//fmt.Println("ended processes ********", curr.GetNextSuccesses())
 		} else if err != nil && len(curr.GetNextFailures()) > 0 {
-			go execute(wf, curr.GetNextFailures())
+			wg.Add(1)
+			go execute(wf, curr.GetNextFailures(), wg)
 		}
 	}
 	return
 }
 
-func execute(wf *Workflow, processes []string) {
+func execute(wf *Workflow, processes []string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	procs := make([]string, 0)
 	c1 := make(chan []string)
 	for _, next := range processes {
@@ -100,8 +109,11 @@ func execute(wf *Workflow, processes []string) {
 		if proc.IsComplete() {
 			continue
 		} else if wf.canExecute(proc.GetName()) {
-			go runProcess(proc, c1)
+			wg.Add(1)
+			fmt.Println("start ====>>", proc.GetName())
+			go runProcess(proc, c1, wg)
 			p := <-c1
+			fmt.Println("end =========================================================>>")
 			//fmt.Println(p)
 			procs = append(procs, p...)
 		} else {
@@ -112,7 +124,10 @@ func execute(wf *Workflow, processes []string) {
 
 	if len(procs) > 0 {
 		p := removeDuplicates(procs)
-		go execute(wf, p)
+		wg.Add(1)
+		//fmt.Println("started processes *************", p)
+		go execute(wf, p, wg)
+		//fmt.Println("ended processes ************", p)
 	} else {
 		fmt.Println("Number of steps processed: " + strconv.Itoa(Processed))
 	}
@@ -131,9 +146,10 @@ func removeDuplicates(procs []string) []string {
 
 }
 
-func runProcess(proc *Process, c chan []string) {
+func runProcess(proc *Process, c chan []string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	procs := make([]string, 0)
-	fmt.Println(proc.GetName())
+	//fmt.Print("Running process =======>>>", proc.GetName())
 	Processed++
 	err := proc.Run()
 

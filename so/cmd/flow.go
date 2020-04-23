@@ -16,11 +16,16 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 var instanceName string
 var templateName string
 var uid string
+
+//var inputs ard.Map
+var baseClout *clout.Clout
 
 type Node struct {
 	Uid        string `json:"uid" yaml:"uid"`
@@ -28,6 +33,8 @@ type Node struct {
 }
 
 func CreateWorkflows(clout *clout.Clout) map[string]*flow.Workflow {
+
+	baseClout = clout
 
 	var vertexes = extractWorkflowsFromClout(clout)
 
@@ -97,11 +104,33 @@ func CreateWorkflows(clout *clout.Clout) map[string]*flow.Workflow {
 	return err
 }*/
 
-func ExecuteWorkflow(workflow *flow.Workflow, tname string, sname string) *flow.WfError {
+/*func ExecuteWorkflow(workflow *flow.Workflow, tname string, sname string) *flow.WfError {
 	instanceName = sname
 	templateName = tname
-	uid = getServiceUID(templateName, instanceName)
+	//uid = getServiceUID(templateName, instanceName)
+	uid, inputs = getServiceInputs(templateName, instanceName)
 	err := workflow.Run()
+	return err
+}*/
+
+//func ExecuteWorkflow(workflow *flow.Workflow, tname string) *flow.WfError {
+func ExecuteWorkflow(workflow *flow.Workflow) *flow.WfError {
+	var wg sync.WaitGroup
+	//instanceName = sname
+	//templateName = tname
+	//uid = getServiceUID(templateName, instanceName)
+	//uid, inputs = getServiceInputs(templateName)
+	err := workflow.Run(&wg)
+	fmt.Println("Main: Waiting for threads to finish")
+	currentTime := time.Now()
+	fmt.Println("Start time: ", currentTime.String())
+	wg.Wait()
+	fmt.Println("Main: Completed")
+	currentTime = time.Now()
+	fmt.Println("End time: ", currentTime.String())
+	file, _ := json.MarshalIndent(baseClout, "", "  ")
+	_ = ioutil.WriteFile("fw1_csar_dgraph_final.json", file, 0644)
+
 	return err
 }
 
@@ -226,7 +255,7 @@ func createWorkflowTask(wfStep *clout.Vertex, workflowProcess *flow.Process,
 			)*/
 			flow.NewTask(workflowProcess, "interface: "+inter+"; operation: "+operation, seq,
 				func() *flow.WfError {
-					return CallOperation(nodeTemplates, groups, activity)
+					return CallOperation(clout1, nodeTemplates, groups, activity)
 				},
 			)
 		}
@@ -303,40 +332,14 @@ func isToscaEdge(edge *clout.Edge, etype string) bool {
 	return false
 }
 
-/*func SetNodeState(params interface{}) *flow.WfError {
-	p := params.(map[string]interface{})
-	act := p["activity"].(map[string]interface{})
-	val := act["setNodeState"].(string)
-
-	nodeTemplates := p["nodeTemplates"].([]*clout.Vertex)
-	for _, nodeTemplate := range nodeTemplates {
-		nodeAttr := nodeTemplate.Properties["attributes"].(map[string]interface{})
-		state := nodeAttr["state"].(map[string]interface{})
-		state["value"] = val
-	}
-
-	groups := p["groups"].([]*clout.Vertex)
-	for _, group := range groups {
-		grpAttr := group.Properties["attributes"].(map[string]interface{})
-		state := grpAttr["state"].(map[string]interface{})
-		state["value"] = val
-	}
-	fmt.Println(val)
-	return nil
-}*/
-
 func SetNodeState(nodeTemplates []*clout.Vertex, groups []*clout.Vertex, activity interface{}) *flow.WfError {
-	//fmt.Println(instanceName)
 	act := activity.(map[string]interface{})
 	val := act["setNodeState"].(string)
 
 	for _, nodeTemplate := range nodeTemplates {
 		nodeName := nodeTemplate.Properties["name"].(string)
-		/*nodeAttr := nodeTemplate.Properties["attributes"].(map[string]interface{})
-		state := nodeAttr["state"].(map[string]interface{})
-		state["value"] = val*/
-		fmt.Println(nodeTemplate.Properties["name"].(string) + " set Node state ===> " + val)
-		updateNodeData(nodeName, "state", val)
+		//fmt.Println(nodeTemplate.Properties["name"].(string) + " set Node state ===> " + val)
+		updateSingleNodeAttr(nodeName, "state", val)
 	}
 
 	/*for _, group := range groups {
@@ -349,7 +352,7 @@ func SetNodeState(nodeTemplates []*clout.Vertex, groups []*clout.Vertex, activit
 	return nil
 }
 
-func updateNodeData(nodeName string, key string, val string) {
+func updateSingleNodeAttr(nodeName string, key string, val string) {
 	result := getServiceNode(uid, nodeName)
 	if result == nil || len(result) <= 0 {
 		//fmt.Println("Node " + nodeName + " has no attribute called " + key)
@@ -368,80 +371,86 @@ func updateNodeData(nodeName string, key string, val string) {
 			bytes, _ := json.Marshal(attrs)
 			node := Node{Uid: nodeUid, Attributes: string(bytes)}
 			updateNodeAttributes(node)
-			fmt.Println(node)
-			fmt.Println(atr)
+			//fmt.Println(node)
+			//fmt.Println(atr)
 		}
 	}
 }
 
-/*func CallOperation(params interface{}) *flow.WfError {
-	p := params.(map[string]interface{})
-	act := p["activity"].(map[string]interface{})
-	callOp := act["callOperation"].(map[string]interface{})
-	inter := callOp["interface"].(string)
-	operName := callOp["operation"].(string)
-
-	nodeTemplates := p["nodeTemplates"].([]*clout.Vertex)
-	for _, nodeTemplate := range nodeTemplates {
-		nodeInterface := nodeTemplate.Properties["interfaces"].(map[string]interface{})
-		inter := nodeInterface[inter].(map[string]interface{})
-		opers := inter["operations"].(map[string]interface{})
-		oper := opers[operName].(map[string]interface{})
-		fmt.Println(oper["description"].(string))
+func updateNodeAttrs(nodeName string, resultMap map[string]interface{}, outputs map[string]interface{}) {
+	result := getServiceNode(uid, nodeName)
+	if result == nil || len(result) <= 0 {
+		//fmt.Println("Node " + nodeName + " has no attribute called " + key)
+		return
 	}
-
-	groups := p["groups"].([]*clout.Vertex)
-	for _, group := range groups {
-		grpInterface := group.Properties["interfaces"].(map[string]interface{})
-		inter := grpInterface[inter].(map[string]interface{})
-		opers := inter["operations"].(map[string]interface{})
-		oper := opers[operName].(map[string]interface{})
-		fmt.Println(oper["description"].(string))
+	queryData := result["all"].([]interface{})
+	if len(queryData) != 0 {
+		for _, t := range queryData {
+			cloutMap := t.(map[string]interface{})
+			vertexList := cloutMap["clout:vertex"].([]interface{})
+			vertex := vertexList[0].(map[string]interface{})
+			nodeUid := vertex["uid"].(string)
+			attrs := getPropMap(vertex["tosca:attributes"])
+			for k, v := range outputs {
+				data := v.(map[string]interface{})
+				attrName := data["attributeName"].(string)
+				atr := attrs[attrName].(map[string]interface{})
+				atr["value"] = resultMap[k].(string)
+			}
+			bytes, _ := json.Marshal(attrs)
+			node := Node{Uid: nodeUid, Attributes: string(bytes)}
+			updateNodeAttributes(node)
+		}
 	}
+}
 
-	return nil
-}*/
-
-func CallOperation(nodeTemplates []*clout.Vertex, groups []*clout.Vertex,
+func CallOperation(clout1 *clout.Clout, nodeTemplates []*clout.Vertex, groups []*clout.Vertex,
 	activity interface{}) *flow.WfError {
 	act := activity.(map[string]interface{})
 	callOp := act["callOperation"].(map[string]interface{})
 	inter := callOp["interface"].(string)
 	operName := callOp["operation"].(string)
 
-	for _, nodeTemplate := range nodeTemplates {
-		nodeName := nodeTemplate.Properties["name"].(string)
-		//nodeInterface := nodeTemplate.Properties["interfaces"].(map[string]interface{})
-		//inter := nodeInterface[inter].(map[string]interface{})
-		//opers := inter["operations"].(map[string]interface{})
-		//oper := opers[operName].(map[string]interface{})
+	for _, tmpl := range nodeTemplates {
+		nodeName := tmpl.Properties["name"].(string)
+		nodeTemplate := getVertexByName(nodeName, "nodeTemplate")
+		nodeInterface := nodeTemplate.Properties["interfaces"].(map[string]interface{})
+		interf := nodeInterface[inter].(map[string]interface{})
+		commonInputString := ""
+		/*if strings.Contains(nodeName, "flavors__network_service.yaml.subnet") {
+			fmt.Println("********************")
+		}*/
+		if interf["inputs"] != nil && len(interf["inputs"].(map[string]interface{})) > 0 {
+			commonInputs := interf["inputs"].(map[string]interface{})
+			commonInputString = getInputStrings(clout1, nodeTemplate, commonInputs)
+		}
+		opers := interf["operations"].(map[string]interface{})
+		oper := opers[operName].(map[string]interface{})
 		//name := nodeTemplate.Properties["name"].(string)
 		//fmt.Println(name + " ===> " + oper["description"].(string))
-		//err := exec.Command("C:\\Python37-32\\python.exe", "../test/tic-tac-toe.py").Run()
+		script := oper["implementation"].(string)
+		//fmt.Println("                 " + script)
+		if script != "" {
+			inps := oper["inputs"].(map[string]interface{})
+			inputString := commonInputString + " " + getInputStrings(clout1, nodeTemplate, inps)
 
-		//Using Python
-		/*cmd := exec.Command("C:\\Python37-32\\python.exe", "../test/remote1.py")
-		var out bytes.Buffer
-		var stderr bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = &stderr
-		err := cmd.Run()
-		if err != nil {
-			fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-			//return
+			cmds := make([]string, 0)
+
+			/*if script == "common/artifacts/port/create.sh" {
+				fmt.Println("here222")
+			}*/
+			//cmds = append(cmds, "sudo -s source /opt/app/bonap/"+script+" "+inputString)
+			cmds = append(cmds, "sudo /opt/app/bonap/"+script+" "+inputString)
+			fmt.Println(cmds)
+			//}
+			/*resultMap := execRemoteCommand(cmds)
+			if oper["outputs"] != nil {
+				outputs := oper["outputs"].(map[string]interface{})
+				updateNodeAttributeInClout(resultMap, outputs)
+			}*/
 		}
-		fmt.Println("Result: " + out.String())*/
 
-		cmds := make([]string, 0)
-		//cmds = append(cmds, "eval `ssh-agent -s`")
-		//cmds = append(cmds, "ssh-add ~/.ssh/ohio-key-pair.pem")
-		//cmds = append(cmds, "cd /opt/app/bonap")
-		//cmds = append(cmds, "sudo /opt/app/bonap/scripts/create_server.sh /opt/app/bonap/ansible/create_"+name+".yml")
-		cmds = append(cmds, "sudo /opt/app/bonap/scripts/create_server.sh /opt/app/bonap/ansible/create_instance.yml "+nodeName)
-		cmds = append(cmds, "cat /opt/app/bonap/pub-ip.txt")
-		//ip := execRemoteCommand(cmds)
-		ip := "xyz.xyz.xyz.xyz"
-		updateNodeData(nodeName, "public_address", ip)
+		//updateNodeData(nodeName, "public_address", ip)
 	}
 
 	for _, group := range groups {
@@ -456,24 +465,27 @@ func CallOperation(nodeTemplates []*clout.Vertex, groups []*clout.Vertex,
 	return nil
 }
 
-func execRemoteCommand(cmds []string) string {
+func extractServerName(name string) string {
+	names := strings.Split(name, ".")
+	length := len(names)
+	return names[length-1]
+}
+
+func execRemoteCommand(cmds []string) map[string]interface{} {
 	//key, err := ssh.ParsePrivateKey([]byte(privateKey))
 	user := common.SoConfig.Remote.RemoteUser
 	addr := common.SoConfig.Remote.RemoteHost
 	port := common.SoConfig.Remote.RemotePort
 	pkfile := common.SoConfig.Remote.RemotePubKey
 	pkBytes, err := ioutil.ReadFile(pkfile)
-	//pkBytes, err := ioutil.ReadFile("../test/ohio-key-pair.pem")
 	if err != nil {
 		log.Fatalf("Failed to load authorized_keys, err: %v", err)
 	}
 	key, err := ssh.ParsePrivateKey(pkBytes)
 	if err != nil {
 		fmt.Println(err)
-		//return "", err
 	}
 	// Authentication
-	//cmd := "df -h"
 	config := &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
@@ -493,37 +505,451 @@ func execRemoteCommand(cmds []string) string {
 	client, err := ssh.Dial("tcp", net.JoinHostPort(addr, strconv.Itoa(port)), config)
 	if err != nil {
 		fmt.Println(err)
-		//return "", err
 	}
 	// Create a session. It is one session per command.
 	session, err := client.NewSession()
 	if err != nil {
 		fmt.Println(err)
-		//return "", err
 	}
 	defer session.Close()
-	var b bytes.Buffer // import "bytes"
-	//session.Stderr = &b // get error
-	session.Stdout = &b // get output
+	var b bytes.Buffer   // import "bytes"
+	var b1 bytes.Buffer  // import "bytes"
+	session.Stderr = &b  // get error
+	session.Stdout = &b1 // get output
 	// you can also pass what gets input to the stdin, allowing you to pipe
 	// content from client to server
 	//      session.Stdin = bytes.NewBufferString("My input")
 
 	// Finally, run the command
 	cmd := strings.Join(cmds, "; ")
+	if strings.Contains(cmd, "firewall/artifacts/ves/start.sh") {
+		fmt.Println("here1")
+		cmd = strings.Replace(cmd, "1.2.3.4", "18.220.146.251", 1)
+		cmd = strings.Replace(cmd, "3904", "8081", 1)
+		cmd = cmd + " \"report_file=firewall/artifacts/ves/cci_ves_reporter.sh\" "
+		fmt.Println(cmd)
+	}
 	err = session.Run(cmd)
-	//session.Stderr = &b
-	//a := session.Stderr
-	fmt.Println(b.String())
-	output := b.String()
-	ss := strings.Split(output, " ")
-	ip := strings.TrimSpace(ss[len(ss)-1])
-	fmt.Println("IP: " + ip)
-	//fmt.Println(a)
+
+	if b.Len() > 0 {
+		fmt.Println(b.String())
+	}
+	output := b1.String()
+	fmt.Println(output)
+	if output == "" {
+		return nil
+	}
+	outputMap := make(map[string]interface{})
+	err = json.Unmarshal(b1.Bytes(), &outputMap)
+
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return nil
 	}
 
-	return ip
+	return outputMap
+}
+
+func getInputStrings(clout1 *clout.Clout, nodeTemplate *clout.Vertex, inputs map[string]interface{}) string {
+	inps := ""
+
+	for key, v := range inputs {
+		val := ""
+		input := v.(map[string]interface{})
+		data := extractInputData(clout1, nodeTemplate, input)
+
+		if data != nil {
+			if reflect.TypeOf(data).Kind() == reflect.Map {
+				data1 := data.(map[string]interface{})
+				val = fmt.Sprintf("%v", data1["originalString"])
+			} else {
+				val = fmt.Sprintf("%v", data)
+			}
+		}
+		//if val != "" {
+		inps = inps + " \"" + key + "=" + val + "\""
+		//}
+	}
+
+	return inps
+
+}
+
+func extractInputData(clout1 *clout.Clout, nodeTemplate *clout.Vertex, input map[string]interface{}) interface{} {
+	var node *clout.Vertex
+	val, node := getValue(clout1, nodeTemplate, input)
+	var name interface{}
+
+	//node = nodeTemplate
+	for {
+		if val["value"] != nil {
+			name = val["value"]
+			break
+		} else if val["functionCall"] != nil {
+			var newval map[string]interface{}
+			newval, node = getValue(clout1, node, val)
+			val = newval
+		} else if val["sourcePath"] != nil {
+			name = val["sourcePath"]
+			break
+		} else if val == nil || val["value"] == nil {
+			return nil
+		}
+	}
+
+	return name
+}
+
+func getValue(clout1 *clout.Clout, nodeTemplate *clout.Vertex, input map[string]interface{}) (map[string]interface{}, *clout.Vertex) {
+	var val map[string]interface{}
+	var node *clout.Vertex
+
+	node = nodeTemplate
+	if input["functionCall"] != nil {
+		fn := input["functionCall"].(map[string]interface{})
+		name := fn["name"].(string)
+		args := fn["arguments"].([]interface{})
+		if name == "get_property" {
+			val, node = getProperty(args, nodeTemplate)
+		} else if name == "get_attribute" {
+			val, node = getAttribute(args, nodeTemplate)
+		} else if name == "get_input" {
+			val = getInput(args, nodeTemplate, clout1)
+		} else if name == "get_artifact" {
+			val = getArtifact(args, nodeTemplate)
+		} else {
+			fn1 := getJSFunction(clout1, name)
+			fmt.Println(fn1)
+		}
+
+	} /*else if input["value"] != nil {
+		val = input["value"].(string)
+	} */
+	return val, node
+}
+
+func getProperty(args []interface{}, nodeTemplate *clout.Vertex) (map[string]interface{}, *clout.Vertex) {
+	if len(args) >= 2 {
+		var arg map[string]interface{}
+		var props map[string]interface{}
+		var node *clout.Vertex
+		var propNode *clout.Vertex
+
+		model := args[0].(map[string]interface{})
+		modelName := model["value"].(string)
+
+		if modelName == "SELF" {
+			node = nodeTemplate
+		} else {
+			node = getVertexByName(modelName, "nodeTemplate")
+		}
+
+		var prop map[string]interface{}
+
+		if node != nil {
+
+			if len(args) == 2 {
+				arg = args[1].(map[string]interface{})
+				props = node.Properties["properties"].(map[string]interface{})
+				name := arg["value"].(string)
+				if props[name] != nil {
+					prop = props[name].(map[string]interface{})
+				}
+				propNode = node
+			} else {
+				prop, propNode = getValueFromCapability(args, node, "property")
+				if prop == nil {
+					prop, propNode = getValueFromRequirement(args, node, "property")
+				}
+			}
+
+			return prop, propNode
+		}
+
+	}
+	return nil, nil
+}
+
+func getAttribute(args []interface{}, nodeTemplate *clout.Vertex) (map[string]interface{}, *clout.Vertex) {
+	if len(args) >= 2 {
+		var arg map[string]interface{}
+		var attrs map[string]interface{}
+		var node *clout.Vertex
+		var attrNode *clout.Vertex
+
+		model := args[0].(map[string]interface{})
+		modelName := model["value"].(string)
+
+		if modelName == "SELF" {
+			node = nodeTemplate
+		} else {
+			node = getVertexByName(modelName, "nodeTemplate")
+		}
+
+		var attr map[string]interface{}
+
+		if node != nil {
+			if len(args) == 2 {
+				arg = args[1].(map[string]interface{})
+				attrs = node.Properties["attributes"].(map[string]interface{})
+				name := arg["value"].(string)
+				if attrs[name] != nil {
+					attr = attrs[name].(map[string]interface{})
+				}
+				attrNode = node
+			} else {
+				attr, attrNode = getValueFromCapability(args, node, "attribute")
+				if attr == nil {
+					attr, attrNode = getValueFromRequirement(args, node, "attribute")
+				}
+			}
+
+			return attr, attrNode
+		}
+
+	}
+	return nil, nil
+}
+
+func getInput(args []interface{}, nodeTemplate *clout.Vertex, clout1 *clout.Clout) map[string]interface{} {
+	if len(args) >= 1 {
+		arg := args[0].(map[string]interface{})
+		cloutProps := clout1.Properties["tosca"].(map[string]interface{})
+		inputs := cloutProps["inputs"].(map[string]interface{})
+		name := arg["value"].(string)
+		input := inputs[name].(map[string]interface{})
+		return input
+
+	}
+	return nil
+}
+
+func getArtifact(args []interface{}, nodeTemplate *clout.Vertex) map[string]interface{} {
+	if len(args) >= 2 {
+		var arg map[string]interface{}
+		var artifacts map[string]interface{}
+		var node *clout.Vertex
+
+		model := args[0].(map[string]interface{})
+		modelName := model["value"].(string)
+
+		if modelName == "SELF" {
+			node = nodeTemplate
+		} else {
+			node = getVertexByName(modelName, "nodeTemplate")
+		}
+
+		var artifact map[string]interface{}
+
+		if node != nil {
+
+			if len(args) == 2 {
+				arg = args[1].(map[string]interface{})
+				artifacts = node.Properties["artifacts"].(map[string]interface{})
+				name := arg["value"].(string)
+				if artifacts[name] != nil {
+					artifact = artifacts[name].(map[string]interface{})
+				}
+			} else {
+				// to complete later; get_artifact with more than 2 arguments
+			}
+
+			return artifact
+
+		}
+
+	}
+	return nil
+}
+
+func getJSFunction(clout1 *clout.Clout, name string) interface{} {
+	metadata := clout1.Metadata["puccini-js"].(map[string]interface{})
+	return metadata[name]
+}
+
+func getValueFromCapability(args []interface{}, node *clout.Vertex, dataType string) (map[string]interface{}, *clout.Vertex) {
+	cap := args[1].(map[string]interface{})
+	capname := cap["value"].(string)
+	capabilities := node.Properties["capabilities"].(map[string]interface{})
+	if capabilities[capname] != nil {
+		capability := capabilities[capname].(*clout.Capability)
+		if len(args) == 3 {
+			arg := args[2].(map[string]interface{})
+			propName := arg["value"].(string)
+			if dataType == "property" {
+				props := capability.Properties
+				if props[propName] != nil {
+					return props[propName].(map[string]interface{}), node
+				}
+			} else if dataType == "attribute" {
+				attrs := capability.Attributes
+				if attrs[propName] != nil {
+					return attrs[propName].(map[string]interface{}), node
+				}
+			}
+		} else {
+			//to do later
+		}
+	}
+	return nil, nil
+
+}
+
+func getValueFromRequirement(args []interface{}, node *clout.Vertex, dataType string) (map[string]interface{}, *clout.Vertex) {
+
+	var targetNode1 *clout.Vertex
+	var targetNode2 *clout.Vertex
+
+	req := args[1].(map[string]interface{})
+	reqname := req["value"].(string)
+	requirement := getRequirement(node, reqname)
+	if requirement != nil {
+		if requirement["nodeTemplateName"].(string) != "" {
+			targetNode1 = getVertexByName(requirement["nodeTemplateName"].(string), "nodeTemplate")
+		} else if requirement["nodeTypeName"].(string) != "" {
+			targetNode1 = getVertexByType(requirement["nodeTypeName"].(string), "nodeTemplate")
+		}
+		if targetNode1 != nil {
+			if len(args) == 3 {
+				arg := args[2].(map[string]interface{})
+				propName := arg["value"].(string)
+				props := targetNode1.Properties["properties"].(map[string]interface{})
+				if props[propName] != nil {
+					return props[propName].(map[string]interface{}), targetNode1
+				} else {
+					attrs := targetNode1.Properties["attributes"].(map[string]interface{})
+					if attrs[propName] != nil {
+						return attrs[propName].(map[string]interface{}), targetNode1
+					}
+				}
+			} else if len(args) == 4 {
+				arg := args[2].(map[string]interface{})
+				argname := arg["value"].(string)
+				capabilities := targetNode1.Properties["capabilities"].(map[string]interface{})
+				if capabilities[argname] != nil {
+					capability := capabilities[argname].(*clout.Capability)
+					arg := args[3].(map[string]interface{})
+					propName := arg["value"].(string)
+					if dataType == "property" {
+						props := capability.Properties
+						if props[propName] != nil {
+							return props[propName].(map[string]interface{}), targetNode1
+						}
+					} else if dataType == "attribute" {
+						attrs := capability.Attributes
+						if attrs[propName] != nil {
+							return attrs[propName].(map[string]interface{}), targetNode1
+						}
+					}
+				} else {
+					req1 := getRequirement(targetNode1, argname)
+					if req1 != nil {
+						if req1["nodeTemplateName"].(string) != "" {
+							targetNode2 = getVertexByName(req1["nodeTemplateName"].(string), "nodeTemplate")
+						} else if req1["nodeTypeName"].(string) != "" {
+							targetNode2 = getVertexByType(req1["nodeTypeName"].(string), "nodeTemplate")
+						}
+						arg := args[3].(map[string]interface{})
+						propName := arg["value"].(string)
+						if dataType == "property" {
+							//props := targetNode2.Properties
+							props := targetNode2.Properties["properties"].(map[string]interface{})
+							if props[propName] != nil {
+								return props[propName].(map[string]interface{}), targetNode2
+							}
+						} else if dataType == "attribute" {
+							attrs := targetNode2.Properties["attributes"].(map[string]interface{})
+							if attrs[propName] != nil {
+								return attrs[propName].(map[string]interface{}), targetNode2
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+	return nil, nil
+
+}
+
+func getRequirement(nodeTemplate *clout.Vertex, name string) map[string]interface{} {
+	reqs := nodeTemplate.Properties["requirements"].([]interface{})
+
+	for _, rq := range reqs {
+		req := rq.(map[string]interface{})
+		if req["name"] == name {
+			return req
+		}
+	}
+
+	return nil
+}
+
+func updateNodeAttributeInClout(resultMap map[string]interface{}, outputs map[string]interface{}) {
+
+	if resultMap != nil {
+		for k, v := range outputs {
+			data := v.(map[string]interface{})
+			attrName := data["attributeName"].(string)
+			tmplName := data["nodeTemplateName"].(string)
+			tmpl := getVertexByName(tmplName, "nodeTemplate")
+			if tmpl != nil {
+				//nodeUid := tmpl.ID
+				attrs := tmpl.Properties["attributes"].(map[string]interface{})
+				if attrs[attrName] != nil {
+					/*if attrName == "mac_address" {
+						fmt.Println("here*******************")
+					}*/
+					atr := attrs[attrName].(map[string]interface{})
+					atr["value"] = resultMap[k].(string)
+					tmpl.Properties["attributes"] = attrs
+				} else {
+					fmt.Println("Error: Attribute with name " + attrName + " not found!!!!")
+					// Add the attributes if not present in the target node
+					/*atr := make(ard.Map)
+					atr["value"] = resultMap[k].(string)
+					attrs[attrName] = atr
+					tmpl.Properties["attributes"] = attrs*/
+				}
+
+			}
+		}
+	}
+
+}
+
+func getVertexByName(name string, kind string) *clout.Vertex {
+	for _, vertex := range baseClout.Vertexes {
+		if vertex.Properties["name"] != nil {
+			vname := vertex.Properties["name"].(string)
+			if isToscaVertex(vertex, kind) && vname == name {
+				return vertex
+			}
+		}
+
+	}
+	return nil
+}
+
+func getVertexByType(typeName string, kind string) *clout.Vertex {
+	for _, vertex := range baseClout.Vertexes {
+		if vertex.Properties["types"] != nil {
+			types := vertex.Properties["types"].(map[string]interface{})
+			if isToscaVertex(vertex, kind) && types[typeName] != nil {
+				return vertex
+			}
+		}
+	}
+	return nil
+}
+
+func writeOutput(data map[string]interface{}) {
+	// Write into a file
+	file, _ := json.MarshalIndent(data, "", "  ")
+	fmt.Println(string(file))
+
+	//_ = ioutil.WriteFile("fw1_csar_dgraph_wf_int1.json", file, 0644)
+
 }
