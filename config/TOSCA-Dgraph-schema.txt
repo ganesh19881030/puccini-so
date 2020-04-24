@@ -543,6 +543,51 @@
 		metadata: Metadata
 	}
 
+	type CloutDataType {
+		<clout:name>: string
+		<clout:version>: string
+		<clout:grammarversion>: string
+		<clout:properties>: string
+		<clout:vertex>: [CloutVertexType]
+	}
+
+	type CloutVertexType {
+		<tosca:name>: string
+		<tosca:vertexId>: string
+		<tosca:artifacts>: string
+		<tosca:attributes>: string
+		<tosca:entity>: string
+		<tosca:description>: string
+		<tosca:properties>: string
+		<tosca:interfaces>: string
+		<tosca:requirements>: string
+		<tosca:directives>: string
+		<tosca:callOperation>: string
+		<tosca:setNodeState>: string
+		<tosca:operation>: string
+		<tosca:event_type>: string
+		<tosca:condition>: string
+		<tosca:action>: string
+		<tosca:inputs>: string
+		<tosca:type>: string
+		<tosca:dependencies>: string
+		<tosca:typeMetadata>: string
+		<tosca:substitutionFilter>: string
+		<tosca:capabilities>: [CloutCapabilityType]
+		<clout:edge>: [CloutVertexType]
+	}
+	type CloutCapabilityType {
+		<tosca:attributes>: string
+        <tosca:description>: string
+        <tosca:entity>: string
+        <tosca:key>: string
+        <tosca:maxRelationshipCount>: string
+        <tosca:minRelationshipCount>: string
+        <tosca:name>: string
+        <tosca:properties>: string
+        <tosca:types>: string 
+	}
+
 		# Define Directives and index
 
 		description: string .
@@ -709,3 +754,33 @@
 		role: string .
 		<clout:name>: string @index(exact) .
 		<clout:grammarversion>: string @index(exact) .
+		<clout:properties>: string .
+		<clout:version>: string .
+		<clout:vertex>: [uid] .
+		<clout:edge>: [uid] .
+		<tosca:capabilities>: [uid] .
+		<tosca:name>: string .
+		<tosca:vertexId>: string .
+		<tosca:entity>: string .
+		<tosca:description>: string .
+		<tosca:types>: string .
+		<tosca:properties>: string .
+		<tosca:attributes>: string .
+		<tosca:key>: string .
+		<tosca:maxRelationshipCount>: string .
+		<tosca:minRelationshipCount>: string .
+		<tosca:artifacts>: string .
+		<tosca:interfaces>: string .
+		<tosca:requirements>: string .
+		<tosca:directives>: string .
+		<tosca:callOperation>: string .
+		<tosca:setNodeState>: string .
+		<tosca:operation>: string .
+		<tosca:event_type>: string .
+		<tosca:condition>: string .
+		<tosca:action>: string .
+		<tosca:inputs>: string .
+		<tosca:type>: string .
+		<tosca:dependencies>: string .
+		<tosca:typeMetadata>: string .
+		<tosca:substitutionFilter>: string .

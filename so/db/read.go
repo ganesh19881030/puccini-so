@@ -265,7 +265,7 @@ func mergeToscaScriptNamespace(toscaContext *tosca.Context) {
 }
 
 // Compile - Compiles ServiceTemplate into Clout structure
-func (dbc *DgContext) Compile(st *normal.ServiceTemplate, sturl url.URL, resolve bool, coerce bool, output string) (*clout.Clout, error) {
+func (dbc *DgContext) Compile(st *normal.ServiceTemplate, sturl url.URL, resolve bool, coerce bool, output string, persist bool) (*clout.Clout, error) {
 
 	clout, err := compiler.Compile(st)
 	common.FailOnError(err)
@@ -294,8 +294,6 @@ func (dbc *DgContext) Compile(st *normal.ServiceTemplate, sturl url.URL, resolve
 		}
 	}
 
-	// turned it off for now as the clout is not being saved properly
-	persist := true
 	if persist {
 		internalImport := common.InternalImport
 		urlString := strings.Replace(sturl.String(), "\\", "/", -1)

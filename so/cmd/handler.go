@@ -597,6 +597,7 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 
 	name := params["name"].(string)
 	service := params["service"].(string)
+
 	err = CreateInstance(clout_, name, service, uid)
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
@@ -870,7 +871,7 @@ func createCloutFromDgraph(w http.ResponseWriter, req *http.Request, params ard.
 	if !ok {
 		return nil
 	} else {
-		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+		clout, err = dbc.Compile(st, urlst, resolve, coerce, output, false)
 		if err != nil {
 			log.Errorf(err.Error())
 			writeResponse(Response{"Failure", err.Error()}, w)
