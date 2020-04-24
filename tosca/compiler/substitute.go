@@ -57,7 +57,7 @@ func addVertexIDsOfSubstituteVertexesInAbstractVertex(clout_ *clout.Clout) {
 		}
 
 		// abstract node found, look for its substitute directive
-		var newDirectives []string
+		var newDirectives []interface{}
 		for _, directive := range directiveList {
 			if directive == "substitute" {
 
@@ -133,7 +133,7 @@ func addVertexIDsOfSubstituteVertexesInAbstractVertex(clout_ *clout.Clout) {
 					}
 				}
 			} else {
-				newDirectives = append(newDirectives, directive.(string))
+				newDirectives = append(newDirectives, directive)
 			}
 		}
 		if len(newDirectives) != 0 {
@@ -153,7 +153,7 @@ func storeSubstituteVertexesForEachAbstractVertex(cloutFile *clout.Clout, s *nor
 
 	for _, vertex := range cloutVertexes {
 		var directive interface{} = "substitute"
-		var directiveLists []string
+		var directiveLists []interface{}
 		var substituteVertexIDs string
 		var serviceTemp normal.ServiceTemplate
 		var substitution *normal.Substitution
@@ -599,7 +599,7 @@ func checkForSubstitutionFilter(abstractVertex *clout.Vertex, substituteVertex *
 
 //find substitute vertexes from abstract vertex
 func findSubstituteVertexesFromAbstractVertex(cloutVertexes clout.Vertexes, vertexProperties map[string]interface{}) clout.Vertexes {
-	directiveList, _ := vertexProperties["directives"].([]string)
+	directiveList, _ := vertexProperties["directives"].([]interface{})
 
 	if len(directiveList) == 0 {
 		return nil
@@ -612,7 +612,7 @@ func findSubstituteVertexesFromAbstractVertex(cloutVertexes clout.Vertexes, vert
 			continue
 		}
 
-		substituteDirective := strings.Split(directive, ":")
+		substituteDirective := strings.Split(directive.(string), ":")
 		for ind2, vertexID := range substituteDirective {
 			if ind2 == 0 {
 				continue
