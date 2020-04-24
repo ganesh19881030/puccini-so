@@ -223,7 +223,7 @@ func addNodeTemplates(vertexList []interface{}, cloutOutput *clout.Clout) map[st
 				capMap := make(ard.Map)
 
 				//Capabilities
-				capabilityList := templateMap["capabilities"].([]interface{})
+				capabilityList := templateMap["tosca:capabilities"].([]interface{})
 				for _, cap := range capabilityList {
 					capability := cap.(map[string]interface{})
 					c := clout.NewCapability()
@@ -615,7 +615,7 @@ func addSubstitutions(vertexList []interface{}, nodeTemplates map[string]*clout.
 							entity := edgeMap[prefix+"|tosca:entity"].(string)
 							vv := nodeTemplates[edgeMap["clout:edge|tosca:vertexId"].(string)]
 							if vv != nil {
-							//if edgeMap["tosca:entity"] == "nodeTemplate" {
+								//if edgeMap["tosca:entity"] == "nodeTemplate" {
 								//vv := nodeTemplates[edgeMap["tosca:vertexId"].(string)]
 								edgeOut := v.NewEdgeTo(vv)
 								setMetadata(edgeOut, entity, TemplateVersion)
