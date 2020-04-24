@@ -63,7 +63,7 @@ var execCmd = &cobra.Command{
 		if !ok {
 			return
 		} else {
-			clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+			clout, err = dbc.Compile(st, urlst, resolve, coerce, output, true)
 			common.FailOnError(err)
 		}
 		//clout_, err := ReadCloutFromDgraph(name)

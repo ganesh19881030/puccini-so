@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"github.com/gorilla/mux"
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
+	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/js"
 	"github.com/tliron/puccini/so/db"
+	"github.com/tliron/puccini/tosca/database"
 	"github.com/tliron/puccini/tosca/dbread/dgraph"
 	"github.com/tliron/puccini/url"
 )
@@ -589,9 +592,10 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	st, ok := dbc.ReadServiceTemplateFromDgraph(urlst, inputValues, quirks)
 	var clout *clout.Clout
 	if !ok {
+		writeResponse(Response{"Failure", "Failed to read model from database."}, w)
 		return
 	} else {
-		clout, err = dbc.Compile(st, urlst, resolve, coerce, output)
+		clout, err = dbc.Compile(st, urlst, resolve, coerce, output, false)
 		if err != nil {
 			log.Errorf(err.Error())
 			writeResponse(Response{"Failure", err.Error()}, w)
@@ -605,7 +609,12 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = CreateInstance(clout, name, service, uid)
+	internalImport := common.InternalImport
+	urlString := strings.Replace(urlst.String(), "\\", "/", -1)
+	err = database.Persist(clout, st, urlString, dbc.Pcontext.GrammerVersions, internalImport)
+
+	_ = service
+	//err = CreateInstance(clout, name, service, uid)
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	} else {

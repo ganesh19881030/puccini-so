@@ -41,7 +41,7 @@ func (db CloutDB1) IsCloutCapable() bool {
 // It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
 func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
-	var printout = false
+	var printout = true
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {
 	//		return  err
@@ -92,6 +92,7 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 		ind := vertex.ID
 		vxItem := make(ard.Map)
 		vxItem["uid"] = "_:clout.vertex." + ind
+		vxItem["dgraph.type"] = "CloutVertexType"
 		vxItem["tosca:vertexId"] = ind
 		vxItem["clout:edge"] = make([]*ard.Map, 0)
 		//vertexItems = append(vertexItems, vxItem)
@@ -131,6 +132,7 @@ func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersio
 	}
 
 	cloutItem["clout:vertex"] = vertexItems
+	cloutItem["dgraph.type"] = "CloutDataType"
 
 	topologyName := extractTopologyName(urlString)
 	cloutItem["clout:name"] = topologyName
@@ -243,6 +245,8 @@ func fillTosca(item *ard.Map, entity *ard.Map, ttype string, prefix string) erro
 
 func fillToscaCapabilities(item *ard.Map, entity *ard.Map, type_ string, prefix string, key string) error {
 	fillTosca(item, entity, "capability", "")
+	(*item)["dgraph.type"] = "CloutCapabilityType"
+
 	(*item)[prefix+"tosca:key"] = key
 	(*item)[prefix+"tosca:maxRelationshipCount"] = (*entity)["maxRelationshipCount"]
 	(*item)[prefix+"tosca:minRelationshipCount"] = (*entity)["minRelationshipCount"]
@@ -279,7 +283,7 @@ func fillNodeTemplate(item *ard.Map, nodeTemplate *ard.Map) error {
 		itemCapabilities = append(itemCapabilities, capabilityItem)
 	}
 
-	(*item)["capabilities"] = itemCapabilities
+	(*item)["tosca:capabilities"] = itemCapabilities
 
 	if (*nodeTemplate)["interfaces"] != nil {
 		mapx := (*nodeTemplate)["interfaces"].(ard.Map)
