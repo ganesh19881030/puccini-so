@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"github.com/gorilla/mux"
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
+	"github.com/tliron/puccini/common"
 	"github.com/tliron/puccini/format"
 	"github.com/tliron/puccini/js"
 	"github.com/tliron/puccini/so/db"
+	"github.com/tliron/puccini/tosca/database"
 	"github.com/tliron/puccini/tosca/dbread/dgraph"
+	"github.com/tliron/puccini/tosca/normal"
 	"github.com/tliron/puccini/url"
 )
 
@@ -349,17 +353,17 @@ func getWorkflows(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	clout_ := createCloutFromDgraph(w, req, params, false)
+	cdresult := createCloutFromDgraph(w, req, params, false)
 
 	//Insert workflow steps inside clout
-	updateCloutWithWorkflows(clout_)
+	updateCloutWithWorkflows(cdresult.Clout)
 
 	// Write into a file
-	file, _ := json.MarshalIndent(clout_, "", "  ")
+	file, _ := json.MarshalIndent(cdresult.Clout, "", "  ")
 	_ = ioutil.WriteFile("fw1_csar_dgraph_wf.json", file, 0644)
 
 	// Process Workflow by name
-	workflows := CreateWorkflows(clout_)
+	workflows := CreateWorkflows(cdresult.Clout)
 	if workflows == nil {
 		writeResponse(Response{"Failure", "No workflows found"}, w)
 		return
@@ -559,11 +563,11 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		writeResponse(Response{"Failure", eMsg}, w)
 		return
 	}
-	clout_ := createCloutFromDgraph(w, req, params, true)
+	cdresult := createCloutFromDgraph(w, req, params, true)
 
 	//clout_, uid, err := ReadCloutFromDgraph(name)
 	//if clout == nil || err != nil {
-	if clout_ == nil {
+	if cdresult == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -595,10 +599,12 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&params)*/
 
-	name := params["name"].(string)
-	service := params["service"].(string)
+	//name := params["name"].(string)
+	//service := params["service"].(string)
 
-	err = CreateInstance(clout_, name, service, uid)
+	//err = CreateInstance(clout_, name, service, uid)
+	err = saveCloutInDgraph(cdresult)
+
 	if err != nil {
 		writeResponse(Response{"Failure", err.Error()}, w)
 	} else {
@@ -816,7 +822,17 @@ func connectToDgraph(w http.ResponseWriter) (*dgraph.DgraphTemplate, error) {
 	return dgt, err
 }
 
-func createCloutFromDgraph(w http.ResponseWriter, req *http.Request, params ard.Map, isCreate bool) *clout.Clout {
+type CloutDgraphResult struct {
+	Clout           *clout.Clout
+	Dbc             *db.DgContext
+	ServiceTemplate *normal.ServiceTemplate
+	Sturl           url.URL
+}
+
+func createCloutFromDgraph(w http.ResponseWriter, req *http.Request, params ard.Map, isCreate bool) *CloutDgraphResult {
+
+	cdresult := new(CloutDgraphResult)
+
 	name := params["name"].(string)
 	//service := params["service"].(string)
 	output := params["output"].(string)
@@ -879,5 +895,16 @@ func createCloutFromDgraph(w http.ResponseWriter, req *http.Request, params ard.
 		}
 	}
 
-	return clout
+	cdresult.Clout = clout
+	cdresult.Dbc = dbc
+	cdresult.Sturl = urlst
+	cdresult.ServiceTemplate = st
+
+	return cdresult
+}
+
+func saveCloutInDgraph(cdresult *CloutDgraphResult) error {
+	internalImport := common.InternalImport
+	urlString := strings.Replace(cdresult.Sturl.String(), "\\", "/", -1)
+	return database.Persist(cdresult.Clout, cdresult.ServiceTemplate, urlString, cdresult.Dbc.Pcontext.GrammerVersions, internalImport)
 }

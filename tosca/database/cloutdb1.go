@@ -41,7 +41,7 @@ func (db CloutDB1) IsCloutCapable() bool {
 // It is essentially a translation of graph.js plugin functionality to GO
 // with a few tweaks
 func (db CloutDB1) SaveClout(clout *clout.Clout, urlString string, grammarVersions string, internalImport string) error {
-	var printout = true
+	var printout = false
 	//	timestamp, err := common.Timestamp()
 	//	if err != nil {
 	//		return  err
@@ -401,7 +401,7 @@ func fillSubstitutionEdge(item *ard.Map, edge *clout.Edge) error {
 
 	edgeItem := make(ard.Map)
 	//edgeItem["uid"] = "_:clout.vertex." + edge.Target.ID
-	
+
 	prefix := "clout:edge|"
 	edgeItem[prefix+"tosca:vertexId"] = edge.Target.ID
 
