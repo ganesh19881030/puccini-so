@@ -545,6 +545,7 @@
 
 	type CloutDataType {
 		<clout:name>: string
+		<clout:import>: string
 		<clout:version>: string
 		<clout:grammarversion>: string
 		<clout:properties>: string
@@ -581,8 +582,8 @@
         <tosca:description>: string
         <tosca:entity>: string
         <tosca:key>: string
-        <tosca:maxRelationshipCount>: string
-        <tosca:minRelationshipCount>: string
+        <tosca:maxRelationshipCount>: float
+        <tosca:minRelationshipCount>: float
         <tosca:name>: string
         <tosca:properties>: string
         <tosca:types>: string 
@@ -753,6 +754,7 @@
 		fnarguments: string .
 		role: string .
 		<clout:name>: string @index(exact) .
+		<clout:import>: string .
 		<clout:grammarversion>: string @index(exact) .
 		<clout:properties>: string .
 		<clout:version>: string .
@@ -767,8 +769,8 @@
 		<tosca:properties>: string .
 		<tosca:attributes>: string .
 		<tosca:key>: string .
-		<tosca:maxRelationshipCount>: string .
-		<tosca:minRelationshipCount>: string .
+		<tosca:maxRelationshipCount>: float .
+		<tosca:minRelationshipCount>: float .
 		<tosca:artifacts>: string .
 		<tosca:interfaces>: string .
 		<tosca:requirements>: string .
