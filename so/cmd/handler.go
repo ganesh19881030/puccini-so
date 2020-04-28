@@ -573,10 +573,10 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	}
 
 	//Insert workflow steps inside clout
-	/*updateCloutWithWorkflows(clout_)
+	updateCloutWithWorkflows(cdresult.Clout)
 
 	// Process Workflow by name
-	workflows := CreateWorkflows(clout_)
+	workflows := CreateWorkflows(cdresult.Clout)
 	if workflows == nil {
 		writeResponse(Response{"Failure", "No workflows found"}, w)
 		return
@@ -593,14 +593,7 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	if wferr != nil {
 		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
 		return
-	}*/
-
-	/*var params ard.Map
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&params)*/
-
-	//name := params["name"].(string)
-	//service := params["service"].(string)
+	}
 
 	//err = CreateInstance(clout_, name, service, uid)
 	err = saveCloutInDgraph(cdresult)

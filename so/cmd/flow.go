@@ -436,18 +436,15 @@ func CallOperation(clout1 *clout.Clout, nodeTemplates []*clout.Vertex, groups []
 
 			cmds := make([]string, 0)
 
-			/*if script == "common/artifacts/port/create.sh" {
-				fmt.Println("here222")
-			}*/
 			//cmds = append(cmds, "sudo -s source /opt/app/bonap/"+script+" "+inputString)
 			cmds = append(cmds, "sudo /opt/app/bonap/"+script+" "+inputString)
 			fmt.Println(cmds)
 			//}
-			/*resultMap := execRemoteCommand(cmds)
+			resultMap := execRemoteCommand(cmds)
 			if oper["outputs"] != nil {
 				outputs := oper["outputs"].(map[string]interface{})
 				updateNodeAttributeInClout(resultMap, outputs)
-			}*/
+			}
 		}
 
 		//updateNodeData(nodeName, "public_address", ip)
@@ -523,8 +520,7 @@ func execRemoteCommand(cmds []string) map[string]interface{} {
 	// Finally, run the command
 	cmd := strings.Join(cmds, "; ")
 	if strings.Contains(cmd, "firewall/artifacts/ves/start.sh") {
-		fmt.Println("here1")
-		cmd = strings.Replace(cmd, "1.2.3.4", "18.220.146.251", 1)
+		cmd = strings.Replace(cmd, "1.2.3.4", "3.135.237.9", 1)
 		cmd = strings.Replace(cmd, "3904", "8081", 1)
 		cmd = cmd + " \"report_file=firewall/artifacts/ves/cci_ves_reporter.sh\" "
 		fmt.Println(cmd)
@@ -772,17 +768,18 @@ func getValueFromCapability(args []interface{}, node *clout.Vertex, dataType str
 	capname := cap["value"].(string)
 	capabilities := node.Properties["capabilities"].(map[string]interface{})
 	if capabilities[capname] != nil {
-		capability := capabilities[capname].(*clout.Capability)
+		//capability := capabilities[capname].(*clout.Capability)
+		capability := capabilities[capname].(map[string]interface{})
 		if len(args) == 3 {
 			arg := args[2].(map[string]interface{})
 			propName := arg["value"].(string)
 			if dataType == "property" {
-				props := capability.Properties
+				props := capability["properties"].(map[string]interface{})
 				if props[propName] != nil {
 					return props[propName].(map[string]interface{}), node
 				}
 			} else if dataType == "attribute" {
-				attrs := capability.Attributes
+				attrs := capability["attributes"].(map[string]interface{})
 				if attrs[propName] != nil {
 					return attrs[propName].(map[string]interface{}), node
 				}
@@ -827,16 +824,19 @@ func getValueFromRequirement(args []interface{}, node *clout.Vertex, dataType st
 				argname := arg["value"].(string)
 				capabilities := targetNode1.Properties["capabilities"].(map[string]interface{})
 				if capabilities[argname] != nil {
-					capability := capabilities[argname].(*clout.Capability)
+					//capability := capabilities[argname].(*clout.Capability)
+					capability := capabilities[argname].(map[string]interface{})
 					arg := args[3].(map[string]interface{})
 					propName := arg["value"].(string)
 					if dataType == "property" {
-						props := capability.Properties
+						//props := capability.Properties
+						props := capability["properties"].(map[string]interface{})
 						if props[propName] != nil {
 							return props[propName].(map[string]interface{}), targetNode1
 						}
 					} else if dataType == "attribute" {
-						attrs := capability.Attributes
+						//attrs := capability.Attributes
+						attrs := capability["attributes"].(map[string]interface{})
 						if attrs[propName] != nil {
 							return attrs[propName].(map[string]interface{}), targetNode1
 						}
@@ -896,12 +896,8 @@ func updateNodeAttributeInClout(resultMap map[string]interface{}, outputs map[st
 			tmplName := data["nodeTemplateName"].(string)
 			tmpl := getVertexByName(tmplName, "nodeTemplate")
 			if tmpl != nil {
-				//nodeUid := tmpl.ID
 				attrs := tmpl.Properties["attributes"].(map[string]interface{})
 				if attrs[attrName] != nil {
-					/*if attrName == "mac_address" {
-						fmt.Println("here*******************")
-					}*/
 					atr := attrs[attrName].(map[string]interface{})
 					atr["value"] = resultMap[k].(string)
 					tmpl.Properties["attributes"] = attrs
