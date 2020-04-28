@@ -563,6 +563,8 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		writeResponse(Response{"Failure", eMsg}, w)
 		return
 	}
+
+	execWf := params["execute-workflow"].(bool)
 	cdresult := createCloutFromDgraph(w, req, params, true)
 
 	//clout_, uid, err := ReadCloutFromDgraph(name)
@@ -575,24 +577,26 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	//Insert workflow steps inside clout
 	updateCloutWithWorkflows(cdresult.Clout)
 
-	// Process Workflow by name
-	workflows := CreateWorkflows(cdresult.Clout)
-	if workflows == nil {
-		writeResponse(Response{"Failure", "No workflows found"}, w)
-		return
-	}
+	if execWf {
+		// Process Workflow by name
+		workflows := CreateWorkflows(cdresult.Clout)
+		if workflows == nil {
+			writeResponse(Response{"Failure", "No workflows found"}, w)
+			return
+		}
 
-	wfName := "deploy"
-	workflow := workflows[wfName]
-	if workflow == nil {
-		writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
-		return
-	}
+		wfName := "deploy"
+		workflow := workflows[wfName]
+		if workflow == nil {
+			writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
+			return
+		}
 
-	wferr := ExecuteWorkflow(workflow)
-	if wferr != nil {
-		writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
-		return
+		wferr := ExecuteWorkflow(workflow)
+		if wferr != nil {
+			writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
+			return
+		}
 	}
 
 	//err = CreateInstance(clout_, name, service, uid)
