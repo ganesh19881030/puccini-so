@@ -329,10 +329,17 @@ func addNodeTemplateNameForDanglingRequirements(cloutFile *clout.Clout) {
 			requirementMap := requirement.(map[string]interface{})
 			nodeTemplateName := requirementMap["nodeTemplateName"]
 			nodeTypeName := requirementMap["nodeTypeName"]
+			nodeTemplatePropertyConstraints := requirementMap["nodeTemplatePropertyConstraints"]
+			nodeFilterData, _ := nodeTemplatePropertyConstraints.(map[string]interface{})
 
 			//if nodeTemplateName for requirement is not empty then it is not a dangling requirement
 			if nodeTemplateName != "" {
 				continue
+			}
+
+			//if node_filter is present then add nodeTemplateName based on node_filter
+			if len(nodeFilterData) != 0 {
+				addNodeTemplateNameBasedOnNodeFilter(cloutFile, requirementMap)
 			}
 
 			//find substitution mapping vertex from the current vertex
@@ -693,6 +700,80 @@ func addNodeTemplateNameBasedOnCapabilityType(targetSubstituteVertexes clout.Ver
 	if targetCapabilityName != "" {
 		addNodeTemplateNameBasedOnCapabilityName(targetSubstituteVertexes, targetCapabilityName, requirementMap, "")
 	}
+}
+
+//add nodeTemplateName based on node_filter on requirements of vertex
+func addNodeTemplateNameBasedOnNodeFilter(clout *clout.Clout, requirementMap map[string]interface{}) {
+	var substitutePropertyValue interface{}
+	var nodeTypeName interface{}
+	var nodeTemplatePropertyName string
+
+	nodeTemplatePropertyConstraints := requirementMap["nodeTemplatePropertyConstraints"].(map[string]interface{})
+	nodeTypeName = requirementMap["nodeTypeName"]
+
+	//check for requirement that contains property node_filter and store its values for later use
+	for propertyName, nodeTemplateProperty := range nodeTemplatePropertyConstraints {
+		nodeTemplatePropertyName = propertyName
+		propertyData := nodeTemplateProperty.([]interface{})
+
+		for _, property := range propertyData {
+			propertyFields := property.(map[string]interface{})
+			functionCall := propertyFields["functionCall"].(map[string]interface{})
+			arguments := functionCall["arguments"].([]interface{})
+
+			for _, argument := range arguments {
+				argumentData := argument.(map[string]interface{})
+				mapData, _ := argumentData["map"].(map[string]interface{})
+
+				for functionName, functionData := range mapData {
+					substitutePropertyValue = handleGetInputFunction(clout, functionName, functionData)
+				}
+			}
+		}
+	}
+
+	//serach vertex based on nodeType of requirement and then store nodeTemplateName
+	for _, vertex := range clout.Vertexes {
+		properties := vertex.Properties
+		types, _ := properties["types"].(map[string]interface{})
+
+		for nodeType := range types {
+			if nodeType == nodeTypeName {
+				vertexProperties := properties["properties"].(map[string]interface{})
+
+				if property, ok := vertexProperties[nodeTemplatePropertyName]; ok {
+					propertyData := property.(map[string]interface{})
+					functionCall := propertyData["functionCall"].(map[string]interface{})
+					arguments := functionCall["arguments"].([]interface{})
+					functionName, _ := functionCall["name"].(string)
+
+					for _, argument := range arguments {
+						propertyValue := handleGetInputFunction(clout, functionName, argument)
+
+						if propertyValue == substitutePropertyValue {
+							requirementMap["nodeTemplateName"] = properties["name"]
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+//for 'get_input' function get the value for that property from input section of clout properties
+func handleGetInputFunction(clout *clout.Clout, functionName string, functionData interface{}) interface{} {
+	var propertyValue interface{}
+	if functionName == "get_input" {
+		functionFields := functionData.(map[string]interface{})
+		propertyName, _ := functionFields["value"].(string)
+		cloutProperties, _ := clout.Properties["tosca"].(map[string]interface{})
+		inputs, _ := cloutProperties["inputs"].(map[string]interface{})
+
+		if propertyData, ok := inputs[propertyName].(map[string]interface{}); ok {
+			propertyValue = propertyData["value"]
+		}
+	}
+	return propertyValue
 }
 
 func findSubstitutionMappingVertexBasedOnVertexID(cloutVertexes clout.Vertexes, vertexID string) *clout.Vertex {
