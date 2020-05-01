@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -102,13 +103,17 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 	//resp, err := txn.Query(context.Background(), q)
 	resp, err := dgt.ExecQuery(q)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
 	}
 
 	var result map[string]interface{}
 
 	if err := json.Unmarshal(resp.GetJson(), &result); err != nil {
-		log.Fatal(err)
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
 	}
 
 	tmpls := make([]Template, 0)
@@ -130,11 +135,24 @@ func getAllTemplates(w http.ResponseWriter, r *http.Request) {
 				if vertex["tosca:entity"] != nil {
 					node["entity"] = vertex["tosca:entity"]
 				}
-				node["attributes"] = getPropMap(vertex["tosca:attributes"])
+				node["attributes"], err = getPropMap(vertex["tosca:attributes"])
+				if err != nil {
+					log.Errorf(err.Error())
+					writeResponse(Response{"Failure", err.Error()}, w)
+					return
+				}
+
 				nodeList = append(nodeList, node)
 			}
+			propMap, err := getPropMap(cloutMap["clout:properties"])
+			if err != nil {
+				log.Errorf(err.Error())
+				writeResponse(Response{"Failure", err.Error()}, w)
+				return
+			}
+
 			tmpl := Template{cloutMap["uid"].(string), cloutMap["clout:name"].(string), cloutMap["clout:version"].(string),
-				cloutMap["clout:grammarversion"].(string), getPropMap(cloutMap["clout:properties"]),
+				cloutMap["clout:grammarversion"].(string), propMap,
 				nodeList}
 
 			tmpls = append(tmpls, tmpl)
@@ -229,14 +247,25 @@ func getTemplateByName(w http.ResponseWriter, r *http.Request) {
 		if vertex["tosca:entity"] != nil {
 			node["entity"] = vertex["tosca:entity"]
 		}
-		node["attributes"] = getPropMap(vertex["tosca:attributes"])
+		node["attributes"], err = getPropMap(vertex["tosca:attributes"])
+		if err != nil {
+			log.Errorf(err.Error())
+			writeResponse(Response{"Failure", err.Error()}, w)
+			return
+		}
 		/*if vertex["tosca:firstStep"] != nil {
 			node["firstStep"] = vertex["tosca:firstStep"]
 		}*/
 		nodeList = append(nodeList, node)
 	}
+	propMap, err := getPropMap(cloutMap["clout:properties"])
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
+	}
 	tmpl := Template{cloutMap["uid"].(string), cloutMap["clout:name"].(string), cloutMap["clout:version"].(string),
-		cloutMap["clout:grammarversion"].(string), getPropMap(cloutMap["clout:properties"]),
+		cloutMap["clout:grammarversion"].(string), propMap,
 		nodeList}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -434,7 +463,8 @@ func getPolicies(w http.ResponseWriter, r *http.Request) {
 	//Read Clout from Dgraph
 	clout_, _, err := ReadCloutFromDgraph(name)
 	if clout_ == nil || err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		//w.WriteHeader(http.StatusNotFound)
+		writeResponse(Response{"Failure", err.Error()}, w)
 		return
 	}
 
@@ -543,6 +573,8 @@ func stopPolicyExecution(w http.ResponseWriter, r *http.Request) {
 	},
 	"quirks": ["data_types.string.permissive"],
 	"inputsUrl":"",
+	"generate-workflow":false,
+	"execute-workflow":false,
 	"service":"firewall_service"
 }
 */
@@ -564,7 +596,20 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	execWf := params["execute-workflow"].(bool)
+	genWf, err := checkRequestParameterBoolean("generate-workflow", &params)
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
+	}
+
+	execWf, err := checkRequestParameterBoolean("execute-workflow", &params)
+	if err != nil {
+		log.Errorf(err.Error())
+		writeResponse(Response{"Failure", err.Error()}, w)
+		return
+	}
+
 	cdresult := createCloutFromDgraph(w, req, params, true)
 
 	//clout_, uid, err := ReadCloutFromDgraph(name)
@@ -575,27 +620,29 @@ func createInstance(w http.ResponseWriter, req *http.Request) {
 	}
 
 	//Insert workflow steps inside clout
-	updateCloutWithWorkflows(cdresult.Clout)
+	if genWf {
+		updateCloutWithWorkflows(cdresult.Clout)
 
-	if execWf {
-		// Process Workflow by name
-		workflows := CreateWorkflows(cdresult.Clout)
-		if workflows == nil {
-			writeResponse(Response{"Failure", "No workflows found"}, w)
-			return
-		}
+		if execWf {
+			// Process Workflow by name
+			workflows := CreateWorkflows(cdresult.Clout)
+			if workflows == nil {
+				writeResponse(Response{"Failure", "No workflows found"}, w)
+				return
+			}
 
-		wfName := "deploy"
-		workflow := workflows[wfName]
-		if workflow == nil {
-			writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
-			return
-		}
+			wfName := "deploy"
+			workflow := workflows[wfName]
+			if workflow == nil {
+				writeResponse(Response{"Failure", "Workflow [" + wfName + "] found"}, w)
+				return
+			}
 
-		wferr := ExecuteWorkflow(workflow)
-		if wferr != nil {
-			writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
-			return
+			wferr := ExecuteWorkflow(workflow)
+			if wferr != nil {
+				writeResponse(Response{"Failure", "Error creating workflow [" + wfName + "]"}, w)
+				return
+			}
 		}
 	}
 
@@ -672,12 +719,22 @@ func getServices(w http.ResponseWriter, r *http.Request) {
 					node["entity"] = vertex["tosca:entity"]
 				}
 				if vertex["tosca:attributes"] != nil {
-					node["attributes"] = getAttributes(vertex["tosca:attributes"])
+					node["attributes"], err = getAttributes(vertex["tosca:attributes"])
+					if err != nil {
+						writeResponse(Response{"Failure", err.Error()}, w)
+						return
+					}
 				}
 				nodeList = append(nodeList, node)
 			}
+			propMap, err := getPropMap(cloutMap["clout:properties"])
+			if err != nil {
+				writeResponse(Response{"Failure", err.Error()}, w)
+				return
+			}
+
 			serv := Service{cloutMap["uid"].(string), cloutMap["clout:name"].(string), cloutMap["clout:type"].(string),
-				cloutMap["clout:templateName"].(string), getPropMap(cloutMap["clout:properties"]),
+				cloutMap["clout:templateName"].(string), propMap,
 				nodeList}
 
 			services = append(services, serv)
@@ -757,12 +814,22 @@ func getServiceByName(w http.ResponseWriter, r *http.Request) {
 						node["entity"] = vertex["tosca:entity"]
 					}
 					if vertex["tosca:attributes"] != nil {
-						node["attributes"] = getAttributes(vertex["tosca:attributes"])
+						node["attributes"], err = getAttributes(vertex["tosca:attributes"])
+						if err != nil {
+							writeResponse(Response{"Failure", err.Error()}, w)
+							return
+						}
 					}
 					nodeList = append(nodeList, node)
 				}
+				propMap, err := getPropMap(cloutMap["clout:properties"])
+				if err != nil {
+					writeResponse(Response{"Failure", err.Error()}, w)
+					return
+				}
+
 				service = Service{cloutMap["uid"].(string), cloutMap["clout:name"].(string), cloutMap["clout:type"].(string),
-					cloutMap["clout:templateName"].(string), getPropMap(cloutMap["clout:properties"]),
+					cloutMap["clout:templateName"].(string), propMap,
 					nodeList}
 				break
 			}
@@ -777,8 +844,11 @@ func getServiceByName(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getAttributes(attrs interface{}) map[string](map[string]interface{}) {
-	attrMap := getPropMap(attrs)
+func getAttributes(attrs interface{}) (map[string](map[string]interface{}), error) {
+	attrMap, err := getPropMap(attrs)
+	if err != nil {
+		return nil, err
+	}
 	attributes := make(map[string](map[string]interface{}))
 	for k, attr := range attrMap {
 		attrib := attr.(map[string]interface{})
@@ -788,7 +858,7 @@ func getAttributes(attrs interface{}) map[string](map[string]interface{}) {
 		a["value"] = attrib["value"]
 		attributes[k] = a
 	}
-	return attributes
+	return attributes, nil
 
 }
 
@@ -904,4 +974,19 @@ func saveCloutInDgraph(cdresult *CloutDgraphResult) error {
 	internalImport := common.InternalImport
 	urlString := strings.Replace(cdresult.Sturl.String(), "\\", "/", -1)
 	return database.Persist(cdresult.Clout, cdresult.ServiceTemplate, urlString, cdresult.Dbc.Pcontext.GrammerVersions, internalImport)
+}
+
+func checkRequestParameterBoolean(paramkey string, params *map[string]interface{}) (bool, error) {
+	var retValue bool
+	var err error
+	val, ok := (*params)[paramkey]
+	if ok {
+		retValue, ok = val.(bool)
+		if !ok {
+			err = errors.New(paramkey + " must be a boolean value")
+		}
+	} else {
+		err = errors.New(paramkey + " parameter is missing")
+	}
+	return retValue, err
 }

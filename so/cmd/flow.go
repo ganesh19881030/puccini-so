@@ -3,13 +3,15 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net"
+
 	"github.com/tliron/puccini/ard"
 	"github.com/tliron/puccini/clout"
 	"github.com/tliron/puccini/common"
 	flow "github.com/tliron/puccini/wf/components"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
-	"net"
+
 	//"os/exec"
 	"encoding/json"
 	"reflect"
@@ -352,11 +354,11 @@ func SetNodeState(nodeTemplates []*clout.Vertex, groups []*clout.Vertex, activit
 	return nil
 }
 
-func updateSingleNodeAttr(nodeName string, key string, val string) {
+func updateSingleNodeAttr(nodeName string, key string, val string) error {
 	result := getServiceNode(uid, nodeName)
 	if result == nil || len(result) <= 0 {
 		//fmt.Println("Node " + nodeName + " has no attribute called " + key)
-		return
+		return nil
 	}
 	queryData := result["all"].([]interface{})
 	if len(queryData) != 0 {
@@ -365,7 +367,10 @@ func updateSingleNodeAttr(nodeName string, key string, val string) {
 			vertexList := cloutMap["clout:vertex"].([]interface{})
 			vertex := vertexList[0].(map[string]interface{})
 			nodeUid := vertex["uid"].(string)
-			attrs := getPropMap(vertex["tosca:attributes"])
+			attrs, err := getPropMap(vertex["tosca:attributes"])
+			if err != nil {
+				return err
+			}
 			atr := attrs[key].(map[string]interface{})
 			atr["value"] = val
 			bytes, _ := json.Marshal(attrs)
@@ -375,13 +380,15 @@ func updateSingleNodeAttr(nodeName string, key string, val string) {
 			//fmt.Println(atr)
 		}
 	}
+
+	return nil
 }
 
-func updateNodeAttrs(nodeName string, resultMap map[string]interface{}, outputs map[string]interface{}) {
+func updateNodeAttrs(nodeName string, resultMap map[string]interface{}, outputs map[string]interface{}) error {
 	result := getServiceNode(uid, nodeName)
 	if result == nil || len(result) <= 0 {
 		//fmt.Println("Node " + nodeName + " has no attribute called " + key)
-		return
+		return nil
 	}
 	queryData := result["all"].([]interface{})
 	if len(queryData) != 0 {
@@ -390,7 +397,10 @@ func updateNodeAttrs(nodeName string, resultMap map[string]interface{}, outputs 
 			vertexList := cloutMap["clout:vertex"].([]interface{})
 			vertex := vertexList[0].(map[string]interface{})
 			nodeUid := vertex["uid"].(string)
-			attrs := getPropMap(vertex["tosca:attributes"])
+			attrs, err := getPropMap(vertex["tosca:attributes"])
+			if err != nil {
+				return err
+			}
 			for k, v := range outputs {
 				data := v.(map[string]interface{})
 				attrName := data["attributeName"].(string)
@@ -402,6 +412,7 @@ func updateNodeAttrs(nodeName string, resultMap map[string]interface{}, outputs 
 			updateNodeAttributes(node)
 		}
 	}
+	return nil
 }
 
 func CallOperation(clout1 *clout.Clout, nodeTemplates []*clout.Vertex, groups []*clout.Vertex,
