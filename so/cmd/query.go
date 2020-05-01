@@ -92,7 +92,7 @@ func getServiceUID(tname string) string {
 }
 
 //func getServiceInputs(tname string, sname string) (string, ard.Map) {
-func getServiceInputs(tname string) (string, ard.Map) {
+func getServiceInputs(tname string) (string, ard.Map, error) {
 	conn := createConnection()
 
 	defer conn.Close()
@@ -121,13 +121,16 @@ func getServiceInputs(tname string) (string, ard.Map) {
 	resp, err := txn.QueryWithVars(context.Background(), q, map[string]string{"$name": tname})
 
 	if err != nil {
-		return "", nil
+		return "", nil, err
 	}
 
 	var result map[string]interface{}
 
 	if err := json.Unmarshal(resp.GetJson(), &result); err != nil {
-		log.Fatal(err)
+		if err != nil {
+			log.Errorf(err.Error())
+			return "", nil, err
+		}
 	}
 	uid := ""
 	var props ard.Map
@@ -137,10 +140,13 @@ func getServiceInputs(tname string) (string, ard.Map) {
 		for _, t := range queryData {
 			cloutMap := t.(map[string]interface{})
 			uid = cloutMap["uid"].(string)
-			props = getPropMap(cloutMap["clout:properties"])
+			props, err = getPropMap(cloutMap["clout:properties"])
+			if err != nil {
+				return "", nil, err
+			}
 		}
 	}
-	return uid, props["inputs"].(ard.Map)
+	return uid, props["inputs"].(ard.Map), nil
 
 }
 

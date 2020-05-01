@@ -60,9 +60,9 @@ func ReadCloutFromDgraph(name string) (*clout.Clout, string, error) {
 	dburl := fmt.Sprintf("%s:%d", common.SoConfig.Dgraph.Host, common.SoConfig.Dgraph.Port)
 
 	//f := url_.Format()
-	output, uid := createCloutOutput(dburl, name)
+	output, uid, err := createCloutOutput(dburl, name)
 
-	return output, uid, nil
+	return output, uid, err
 
 }
 
