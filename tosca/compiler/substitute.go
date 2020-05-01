@@ -478,12 +478,10 @@ func addNodeTemplateNameForFunctionCall(cloutFile *clout.Clout) {
 
 					arguments, _ := functionCall["arguments"].([]interface{})
 					var nodeTemplateName string
-					var argument ard.Map
 
 					// look for SELF in the function arguments in any order
 					for _, arg := range arguments {
 						if name, ok := arg.(ard.Map)["value"]; ok {
-							argument = arg.(ard.Map)
 							nodeTemplateName, ok = name.(string)
 							if ok && nodeTemplateName == "SELF" {
 								break
@@ -492,12 +490,13 @@ func addNodeTemplateNameForFunctionCall(cloutFile *clout.Clout) {
 
 					}
 					if nodeTemplateName != "SELF" {
-						// look at the first argument
-						argument, _ = arguments[0].(map[string]interface{})
-						nodeTemplateName, _ = argument["value"].(string)
+						for index, argument := range arguments {
+							argumentMap, _ := argument.(map[string]interface{})
+							nodeTemplateName, _ = argumentMap["value"].(string)
 
-						if FunctionCallName == "get_attribute" {
-							argument["value"] = abstractVertexName + "." + nodeTemplateName
+							if FunctionCallName == "get_attribute" && index == 0 {
+								argumentMap["value"] = abstractVertexName + "." + nodeTemplateName
+							}
 						}
 					}
 				}
